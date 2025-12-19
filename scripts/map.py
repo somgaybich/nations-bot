@@ -1,7 +1,6 @@
 from PIL import Image
 import logging
 import math
-import traceback
 
 from scripts.nations import tiles, TileList, City
 
