@@ -148,8 +148,8 @@ class UserCog(commands.Cog):
                 
                 direction = direction_future.result()
                 match direction:
-                    case d if d in ("n", "nw", "sw", "s", "se", "ne"):
-                        current_tile, last_tile = move_in_direction(current_tile, d)
+                    case direction if direction in ("n", "nw", "sw", "s", "se", "ne"):
+                        current_tile, last_tile = move_in_direction(current_tile, direction)
                     case "Back":
                         if last_tile is not None:
                             current_tile, last_tile = last_tile, None
