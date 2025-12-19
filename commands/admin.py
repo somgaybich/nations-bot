@@ -1,11 +1,9 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import traceback
 import logging
 
 from scripts.bot import sync, NationsBot, OPGUILD_ID
-from scripts.nations import save, backup
 from scripts.response import response
 from scripts.map import render_snapshot
 
@@ -28,12 +26,6 @@ class AdminCog(commands.Cog):
         except Exception as e:
             await interaction.response.send_message(f"Error reloading {extension}:\n```\n{traceback.format_exc()}\n```", ephemeral=True)
             logger.error(f"Failed to reload extension {extension}: {e}")
-
-    @discord.slash_command(description="Save the game.", guild_ids=[OPGUILD_ID])
-    async def save_game(self, interaction: discord.Interaction):
-        save()
-        backup()
-        await response(interaction, "Success!", "Game successfully saved!", ephemeral=True)
 
 async def setup(bot: commands.Bot):
     try:
