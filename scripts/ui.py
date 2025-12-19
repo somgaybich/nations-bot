@@ -6,6 +6,11 @@ class DirectionView(discord.ui.View):
         super().__init__()
         self.future = future
 
+    async def on_timeout(self):
+        self.disable_all_items()
+        await self.message.edit(content="You took too long to select a direction!", view=self)
+        raise TimeoutError("User took too long to select a direction")
+
     @discord.ui.select(
         placeholder = "Choose a direction!",
         min_values=1,
@@ -28,6 +33,12 @@ class DirectionView(discord.ui.View):
             ),
             discord.SelectOption(
                 label="NE"
+            ),
+            discord.SelectOption(
+                label="Back"
+            ),
+            discord.SelectOption(
+                label="Cancel"
             )
         ]
     )

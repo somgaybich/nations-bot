@@ -162,16 +162,15 @@ def new_city(name: str, location: tuple[int, int], owner: int):
     to_be_claimed = []
     for tile in tiles[location].area():
         if tile.owner == None:
-            to_be_claimed.append(tile)
+            to_be_claimed.append(tile.location)
         elif tile.owner == owner:
             continue
         # Tile is owned by another player
         else:
             raise errors.NotOwned('Settlement creation', tile.location)
     
-    nation = nation_list[owner]
-    nation.tiles.append(to_be_claimed)
-    nation.cities.update({
+    nation_list[owner].tiles.append(to_be_claimed)
+    nation_list[owner].cities.update({
         name: City(tiles[location].terrain, name, location, owner, owner)
     })
     return None
@@ -216,7 +215,7 @@ class Gov:
             mil_cap = math.floor(0.2 * len(nation.military))
 
         if "Federalist" in self.systems:
-            admin_cap = math.floor(0.3 * (nation.tiles))
+            admin_cap = math.floor(0.3 * len(nation.tiles))
         elif "Centralist" in self.systems:
             admin_cap = 0
         else:
@@ -355,15 +354,15 @@ class Nation:
     The top object in the hierarchy, which contains all information about a nation.
     """
     def __init__(self, name: str, userid: int, gov: Gov, econ: Econ, 
-                 cities=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier=""):
+                 cities=[], links=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier=""):
         self.name: str = name
         self.userid: int = userid
         self.gov: Gov = gov
         self.econ: Econ = econ
         self.subdivisions: dict[str, Subdivision] = subdivisions
         self.cities: dict[str, City] = cities
-        
-        self.tiles: list[Tile] = tiles
+        self.links: list[Link] = links
+        self.tiles: list[tuple[int, int]] = tiles
         self.military: dict[str, Unit] = military
         self.espionage = espionage #Add type annotations when we figure out how this works
         self.dossier: str = dossier
@@ -478,19 +477,83 @@ class Link:
     """
     A generalized class for infrastructure connections.
     
-    :var linktype: String from one of 'sea', 'simple_rail', 'quality_rail'
-    :var origin: The city the link starts in. 
-    :var destination: The city the link ends in. Note that order doesn't matter, but may effect pathfinding.
-    :var cities: A list of both cities which are involved in the link.
-    :var path: The list of tiles which make up this link.
+    :var linktype: String from one of 'stone', 'sea', 'simple_rail', 'quality_rail'
+    :var origin: The name of the city the link starts in. 
+    :var destination: The name of the city the link ends in. Note that order doesn't matter, but may effect pathfinding.
+    :var path: The list of locations which make up this link.
+    :var owner: The userid of the nation which owns this link.
     """
 
-    def __init__(self, linktype: str, origin: City, destination: City, path: list[Tile]):
-        self.cities = [origin, destination]
+    def __init__(self, linktype: str, origin: str, destination: str, path: list[tuple[int, int]], owner: int):
+        self.origin = origin
+        self.destination = destination
         self.path = path
+        self.owner = owner
         self.linktype = linktype
+    
+    def build(self):
+        length = len(self.path)
+        match self.linktype:
+            case "stone":
+                ei_cost = math.ceil(length / 2)
+                metal_cost = 0
+                stone_cost = math.ceil(length / 5)
+            case "sea":
+                ei_cost = math.ceil(length / 5)
+                metal_cost = 0
+                stone_cost = 0
+            case "simple_rail":
+                ei_cost = length
+                metal_cost = math.ceil(length / 3)
+                stone_cost = 0
+            case "quality_rail":
+                ei_cost = length * 2
+                metal_cost = math.ceil(length / 2)
+                stone_cost = 0
 
+        resources = nation_list[self.owner].cities[self.origin].inventory + nation_list[self.owner].cities[self.destination].inventory
+        if resources.count("metal") < metal_cost:
+            raise errors.NotEnoughResources("Link construction", ["metal"] * metal_cost, resources)
+        if resources.count("stone") < stone_cost:
+            raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
 
+        if nation_list[self.owner].econ.influence < ei_cost:
+            raise errors.NotEnoughEI("Link construction", ei_cost, nation_list[self.owner].econ.influence)
+        metal_remaining = metal_cost
+        last = 0
+        while metal_remaining > 0:
+            if last == 0:
+                if "metal" in nation_list[self.owner].cities[self.origin].inventory:
+                    nation_list[self.owner].cities[self.origin].inventory.remove("metal")
+                last = 1
+            elif last == 1:
+                if "metal" in nation_list[self.owner].cities[self.destination].inventory:
+                    nation_list[self.owner].cities[self.destination].inventory.remove("metal")
+                last = 0
+            metal_remaining -= 1
+            if not ("metal" in nation_list[self.owner].cities[self.origin].inventory) and not ("metal" in nation_list[self.owner].cities[self.destination].inventory) and metal_remaining > 0:
+                raise errors.NotEnoughResources("Link construction", ["metal"] * metal_cost, resources)
+        
+        stone_remaining = stone_cost
+        last = 0
+        while stone_remaining > 0:
+            if last == 0:
+                if "stone" in nation_list[self.owner].cities[self.origin].inventory:
+                    nation_list[self.owner].cities[self.origin].inventory.remove("stone")
+                last = 1
+            elif last == 1:
+                if "stone" in nation_list[self.owner].cities[self.destination].inventory:
+                    nation_list[self.owner].cities[self.destination].inventory.remove("stone")
+                last = 0
+            stone_remaining -= 1
+            if not ("stone" in nation_list[self.owner].cities[self.origin].inventory) and not ("stone" in nation_list[self.owner].cities[self.destination].inventory) and stone_remaining > 0:
+                raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
+
+        nation_list[self.owner].econ.influence -= ei_cost
+
+        for location in self.path:
+            tiles[location].upgrades.append(self.linktype)
+        nation_list[self.owner].links.append(self)
 
 def serialize_object(obj):
     """Convert a Python object into a JSON-serializable dict."""
@@ -584,6 +647,7 @@ async def load() -> None:
                         econ["influence_cap"]
                     ),
                     cities=nation["cities"],
+                    links=nation["links"],
                     tiles=nation["tiles"],
                     military=nation["military"],
                     subdivisions=nation["subdivisions"],

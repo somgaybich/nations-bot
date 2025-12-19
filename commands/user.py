@@ -1,12 +1,14 @@
 import logging
+import asyncio
 import discord
-from discord import ApplicationContext, Object
+from discord import ApplicationContext, Embed
 from discord.ext import commands
 
 from scripts.bot import NationsBot, OPGUILD_ID
-from scripts.nations import nation_list, new_nation, tiles, new_city, new_army, new_fleet, upgrade_types
+from scripts.nations import City, Link, nation_list, new_nation, tiles, new_city, new_army, new_fleet, upgrade_types
 from scripts.response import response, error
-from scripts.errors import NationsException
+from scripts.errors import NationsException, CancelledException
+from scripts.ui import DirectionView
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,68 @@ class UserCog(commands.Cog):
         
         await response(ctx.interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
         logger.info(f"Someone built a {upgrade.lower()}!")
+
+    @build.command(description="Builds a new railroad")
+    @discord.option("origin", input_type=str, description="The city the railroad starts in.")
+    @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
+    async def rail(self, ctx: ApplicationContext, origin: str, level: str):
+        ctx.defer()
+        ctx.followup.send("")
+        finished = False
+        current_tile = nation_list[ctx.interaction.user.id].cities[origin]
+        last_tile = None
+        try:
+            while not finished:
+                # TODO: Add a map image showing current railroad progress
+                direction_future = asyncio.Future()
+                ctx.followup.edit_message(embed=Embed(
+                    title="Choose a direction",
+                    description="Select a direction for your railway to head next."
+                ), view=DirectionView(direction_future, timeout=60))
+                while not direction_future.done():
+                    await asyncio.sleep(1)
+                
+                direction = direction_future.result()
+                match direction:
+                    case "N":
+                        last_tile=current_tile
+                        current_tile=current_tile.n()
+                    case "NW":
+                        last_tile=current_tile
+                        current_tile=current_tile.nw()
+                    case "SW":
+                        last_tile=current_tile
+                        current_tile=current_tile.sw()
+                    case "S":
+                        last_tile=current_tile
+                        current_tile=current_tile.s()
+                    case "SE":
+                        last_tile=current_tile
+                        current_tile=current_tile.se()
+                    case "NE":
+                        last_tile=current_tile
+                        current_tile=current_tile.ne()
+                    case "Back":
+                        if last_tile is not None:
+                            current_tile, last_tile = last_tile, None
+                        else:
+                            await error(ctx.interaction, "You can't go back any further!")
+                    case "Cancel":
+                        raise CancelledException("Railroad building")
+                
+                if isinstance(current_tile, City):
+                    finished = True
+
+        except Exception as e:
+            logger.error(f"Failed to build railroad for {ctx.interaction.user.name}: {e}")
+            await error(ctx.interaction, e.user_message if isinstance(e, NationsException) else None)
+            return 0
+
+        #TODO: Add confirmation
+        new_link = Link(origin=origin, destination=current_tile.name, owner=ctx.interaction.user.id, 
+                        linktype=("simple railroad" if level=="simple" else "quality railroad"))
+        new_link.build()
+        await response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
     nation = discord.SlashCommandGroup("nation", description="Manage your nation", guild_ids=[OPGUILD_ID])
 

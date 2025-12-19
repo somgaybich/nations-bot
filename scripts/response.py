@@ -5,7 +5,7 @@ from scripts.bot import brand_color, bot, LOGGING_CHANNEL_ID
 
 logger = logging.getLogger(__name__)
 
-async def response(interaction: Interaction, title: str, message: str, ephemeral=False, footer=None):
+async def response(interaction: Interaction, title: str, message: str, ephemeral=False, footer=None, view=None):
     """
     Sends a message to the user in the standard format.
     """
@@ -17,14 +17,7 @@ async def response(interaction: Interaction, title: str, message: str, ephemeral
             description=message
             ).set_footer(
                 text=footer
-            ), ephemeral=ephemeral)
-            
-        else:
-            await interaction.response.send_message(embed=Embed(
-                color=brand_color,
-                title=title,
-                description=message
-            ), ephemeral=ephemeral)
+            ), ephemeral=ephemeral, view=view)
     except Exception as e:
         logger.error(f"Failed to send response message: {e}")
 

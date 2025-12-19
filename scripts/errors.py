@@ -7,6 +7,11 @@ class NationsException(Exception):
     def __init__(self):
         self.user_message = None
 
+class CancelledException(NationsException):
+    def __init__(self, action: str):
+        super().__init__(f"{action} cancelled by user.")
+        self.user_message = "This action was cancelled."
+
 class NationNameInUse(NationsException):
     def __init__(self, name: str):
         super().__init__(f"Name '{name}' already in use")
