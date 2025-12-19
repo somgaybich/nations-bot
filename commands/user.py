@@ -7,7 +7,7 @@ from discord.ext import commands
 from scripts.bot import NationsBot, OPGUILD_ID
 from scripts.nations import City, Link, nation_list, new_nation, tiles, new_city, new_army, new_fleet, upgrade_types
 from scripts.response import response, error
-from scripts.errors import NationsException, CancelledException
+from scripts.errors import NationsException, CancelledException, InvalidLocation
 from scripts.ui import DirectionView
 
 logger = logging.getLogger(__name__)
@@ -142,22 +142,40 @@ class UserCog(commands.Cog):
                 match direction:
                     case "N":
                         last_tile=current_tile
-                        current_tile=current_tile.n()
+                        new_tile = current_tile.n()
+                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+                            raise InvalidLocation("Railroad building", new_tile.terrain)
+                        current_tile=new_tile
                     case "NW":
                         last_tile=current_tile
-                        current_tile=current_tile.nw()
+                        new_tile = current_tile.nw()
+                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+                            raise InvalidLocation("Railroad building", new_tile.terrain)
+                        current_tile=new_tile
                     case "SW":
                         last_tile=current_tile
-                        current_tile=current_tile.sw()
+                        new_tile = current_tile.sw()
+                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+                            raise InvalidLocation("Railroad building", new_tile.terrain)
+                        current_tile=new_tile
                     case "S":
                         last_tile=current_tile
-                        current_tile=current_tile.s()
+                        new_tile = current_tile.s()
+                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+                            raise InvalidLocation("Railroad building", new_tile.terrain)
+                        current_tile=new_tile
                     case "SE":
                         last_tile=current_tile
-                        current_tile=current_tile.se()
+                        new_tile = current_tile.se()
+                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+                            raise InvalidLocation("Railroad building", new_tile.terrain)
+                        current_tile=new_tile
                     case "NE":
                         last_tile=current_tile
-                        current_tile=current_tile.ne()
+                        new_tile = current_tile.ne()
+                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+                            raise InvalidLocation("Railroad building", new_tile.terrain)
+                        current_tile=new_tile
                     case "Back":
                         if last_tile is not None:
                             current_tile, last_tile = last_tile, None
