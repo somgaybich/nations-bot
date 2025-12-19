@@ -18,13 +18,10 @@ token = os.getenv("token")
 
 @bot.event
 async def on_ready():
-    try:
-        logger.info("Syncing commands...")
-        await sync(bot)
-        logger.info("Loading tile data...")
-        await load_terrain()
-    except Exception as e:
-        logger.critical(f"Error in readying: {e}")
+    logger.info("Syncing commands...")
+    await sync(bot)
+    logger.info("Loading tile data...")
+    load_terrain()
     logger.info(f"Logged in as {bot.user}")
 
 @bot.event

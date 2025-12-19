@@ -4,6 +4,7 @@ import logging
 from typing import Callable
 
 from scripts.bot import bot, current_season
+import scripts.database as db
 import scripts.errors as errors
 
 logger = logging.getLogger(__name__)
@@ -15,15 +16,17 @@ class Unit:
     Strength & morale are on [0, 100], exp is positive
     Type is in ["army", "fleet"]
     """
-    def __init__(self, name: str, type: str, home: str, location = (0, 0), strength = 100, morale = 100, exp = 0):
+    def __init__(self, name: str, type: str, home: str, owner: int, location = (0, 0), strength = 100, morale = 100, exp = 0, unit_id=None):
+        self.id = unit_id
         self.name = name
         self.type = type
         self.home = home
         self.location = location
         self.strength = strength
         self.morale = morale
+        self.exp = exp
 
-        units.update({location: self})
+        units[location] = self
 
 def new_army(name: str, userid: int, location: tuple[int, int] = (0, 0)):
     if not isinstance(tiles[location], City):
@@ -56,11 +59,11 @@ def new_fleet(name: str, userid: int, location: tuple[int, int] = (0, 0)):
     })
 
 class Tile:
-    def __init__(self, terrain: str, location: tuple[int, int] = (0, 0), claimant: str = None, 
-                 owner: str = None, upgrades: str = None):
+    def __init__(self, terrain: str, location: tuple[int, int] = (0, 0), owner: str = None, 
+                 owned: bool = False, upgrades: str = None):
         self.terrain = terrain
         self.location = location
-        self.claimant = claimant
+        self.owned = owned
         self.owner = owner
         self.upgrades = upgrades if upgrades is not None else []
 
@@ -112,7 +115,7 @@ class TileList(dict[tuple[int, int], Tile]):
         except (TypeError, ValueError):
             raise TypeError("Must access the tile list with a tuple of two ints")
         
-        if not (-64 <= x and x >= 65 and -72 <= y and y >= 72):
+        if not (-64 <= x and x <= 65 and -72 <= y and y <= 72):
             raise errors.TileOutOfBounds(key)
 
     def __getitem__(self, key: tuple[int, int]) -> Tile:
@@ -140,9 +143,9 @@ def hex_distance(a: Tile, b: Tile) -> int:
 
 class City(Tile):
     def __init__(self, terrain: str, name: str, influence: int = 0, tier: int = 0, location: tuple[int, int] = (0, 0), 
-                 claimant: str = None, owner: str = None, upgrades: list["UpgradeType"] = [], 
+                 owner: str = None, upgrades: list["UpgradeType"] = [], 
                  stability: int = 80, popularity: int = 65, inventory: list[str] = []):
-        super().__init__(terrain, location, claimant, owner, upgrades)
+        super().__init__(terrain, location, owner, True, upgrades)
         self.name = name
         self.influence = influence
         self.tier = tier
@@ -188,7 +191,7 @@ class Gov:
     """
     Represents a nation's government.
     """
-    def __init__(self, nationid: str, systems: list, influence: int = 4, influence_cap: int = 4):
+    def __init__(self, nationid: str, systems: list, influence: int = 4, influence_cap: int = 4, events = [], streaks = {}):
         self.nationid = nationid
         self.systems = systems
         self.influence = influence
@@ -491,6 +494,12 @@ class Link:
         self.owner = owner
         self.linktype = linktype
     
+    def build_free(self):
+        """
+        An alternate form of build that doesn't cost anything, mainly for use in load().
+        """
+
+
     def build(self):
         length = len(self.path)
         match self.linktype:
@@ -566,3 +575,100 @@ def load_terrain():
         location = tuple(map(int, location.strip("()").split(", ")))
         terrain = tile_info['terrain']
         Tile(terrain, location)
+
+def load():
+    """
+    Reloads all game state data and reinstantiates from the database. Use will instantly clear any runtime data not protected by a save.
+    """
+    nation_list.clear()
+    units.clear()
+    tiles.clear()
+    
+    for row in db.load_nations_rows():
+        nation = Nation(
+            name=row["name"],
+            userid=row["id"],
+            gov=None,      # filled later
+            econ=None,     # filled later
+            dossier=row["dossier"],
+        )
+        nation_list[row["id"]] = nation
+
+    for row in db.load_governments_rows():
+        gov = Gov(
+            nationid=row["nationid"],
+            systems=json.loads(row["systems"]),
+            influence=row["influence"],
+            influence_cap=row["influence_cap"],
+        )
+        gov.streaks = json.loads(row["streaks"])
+        nation_list[row["nationid"]].gov = gov
+
+    for row in db.load_economies_rows():
+        econ = Econ(
+            nationid=row["nationid"],
+            influence=row["influence"],
+            influence_cap=row["influence_cap"],
+        )
+        nation_list[row["nationid"]].econ = econ
+
+    for row in db.load_tiles_rows():
+        Tile(
+            terrain=row["terrain"],
+            location=(row["x"], row["y"]),
+            owner=row["owner"],
+            owned=row["owned"],
+            upgrades=json.loads(row["upgrades"]) if row["upgrades"] else [],
+        )
+
+    for row in db.load_cities_rows():
+        City(
+            terrain=tiles[(row["x"], row["y"])].terrain,
+            name=row["name"],
+            influence=row["influence"],
+            tier=row["tier"],
+            location=(row["x"], row["y"]),
+            owner=row["owner"],
+            stability=row["stability"],
+            popularity=row["popularity"],
+            inventory=json.loads(row["inventory"]),
+        )
+
+    for row in db.load_units_rows():
+        Unit(
+            name=row["name"],
+            type=row["unit_type"],
+            home=row["home"],
+            location=(row["x"], row["y"]),
+            strength=row["strength"],
+            morale=row["morale"],
+            exp=row["exp"],
+            owner=row["owner"],
+            unit_id=row["id"],
+        )
+
+    for row in db.load_links_rows():
+        nation_list[row["owner"]].links.append(Link(
+            linktype=row["linktype"],
+            origin=row["origin"],
+            destination=row["destination"],
+            path=json.loads(row["path"]),
+            owner=row["owner"],
+        ))
+
+    subdivisions_by_id = {}
+
+    for row in db.load_subdivisions_rows():
+        subdivisions_by_id[row["id"]] = Subdivision(
+            name=row["name"],
+            nationid=row["nationid"],
+            cities=[],  # populated next
+        )
+
+    for row in db.load_subdivision_cities_rows():
+        city = tiles[(row["cityx"], row["cityy"])]
+        subdivisions_by_id[row["subdivisionid"]].cities.append(city)
+
+    # --- Attach subdivisions to nations ---
+    for subdivision in subdivisions_by_id.values():
+        nation_list[subdivision.nationid].subdivisions[subdivision.name] = subdivision
