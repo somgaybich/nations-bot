@@ -1,4 +1,4 @@
-from scripts.nations import Nation, nation_list, Subdivision, Econ, Gov
+from scripts.nations import nation_list
 
 def tick():
     for nation in nation_list.values():
