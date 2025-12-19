@@ -5,7 +5,7 @@ import tracemalloc
 import logging
 
 from scripts.bot import sync, bot
-from scripts.nations import load
+from scripts.nations import load_terrain
 
 logging.basicConfig(filename='log.log', encoding='utf-8', level=logging.DEBUG, 
                     format="[%(asctime)s][%(levelname)s] [%(message)s]", datefmt='%H%M%S')
@@ -21,8 +21,8 @@ async def on_ready():
     try:
         logger.info("Syncing commands...")
         await sync(bot)
-        logger.info("Loading nation and tile data...")
-        await load()
+        logger.info("Loading tile data...")
+        await load_terrain()
     except Exception as e:
         logger.critical(f"Error in readying: {e}")
     logger.info(f"Logged in as {bot.user}")

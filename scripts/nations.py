@@ -555,138 +555,14 @@ class Link:
             tiles[location].upgrades.append(self.linktype)
         nation_list[self.owner].links.append(self)
 
-def serialize_object(obj):
-    """Convert a Python object into a JSON-serializable dict."""
-    
-    # Already JSON-serializable primitives
-    if isinstance(obj, (int, float, str, bool)) or obj is None:
-        return obj
-
-    # Lists / tuples / sets → list
-    if isinstance(obj, (list, tuple, set)):
-        return [serialize_object(item) for item in obj]
-
-    # Dict → dict with serialized keys/values
-    if isinstance(obj, dict):
-        return {serialize_object(key): serialize_object(value) 
-                for key, value in obj.items()}
-
-    # User-defined objects → serialize their attributes
-    if hasattr(obj, "__dict__"):
-        return {key: serialize_object(value) 
-                for key, value in obj.__dict__.items()}
-
-    # Fallback: turn into string
-    return str(obj)
-
-def save() -> None:
+def load_terrain():
     """
-    Writes the current nation and tile data to their files for storage
+    Loads terrain data from tiles.json into the tiles singleton.
     """
-    try:
-        with open("data\\nation_data.json", "w") as file:
-            data = json.dumps(serialize_object(nation_list), indent=2)
-            file.write(data)
-    except Exception as e:
-        logger.error(f"There was an error saving the nation data: {e}")
-        logger.info(f"Logging data: {serialize_object(nation_list)}")
+    with open("data/tiles.json", "r") as f:
+        terrain_data = json.load(f)
     
-    try:
-        with open("data\\tiles.json", "w") as file:
-            data = json.dumps(serialize_object(tiles), indent=2)
-            file.write(data)
-    except Exception as e:
-        logger.error(f"There was an error saving the tile data: {e}")
-        logger.info(f"Logging data: {serialize_object(tiles)}")
-    
-    logger.info("Successfully saved tile and nation data.")
-
-def backup() -> None:
-    """
-    Makes a separate backup of the data in case it is lost
-    """
-    try:
-        with open("data\\nation_data_backup.json", "w") as file:
-            data = json.dumps(serialize_object(nation_list), indent=2)
-            file.write(data)
-    except Exception as e:
-        logger.critical(f"There was an error backing up the nation data: {e}")
-        logger.info(f"Logging data: {serialize_object(nation_list)}")
-    
-    try:
-        with open("data\\tiles_backup.json", "w") as file:
-            data = json.dumps(serialize_object(tiles), indent=2)
-            file.write(data)
-    except Exception as e:
-        logger.critical(f"There was an error backing up the nation data: {e}")
-        logger.info(f"Logging data: {serialize_object(tiles)}")
-    
-    logger.info("Successfully backed up tile and nation data.")
-
-# TODO: Update all this to new attributes added to accomodate new features
-async def load() -> None:
-    """
-    Load the nation and tile data files
-    WARNING: WILL OVERWRITE ALL DATA
-    """
-    try:
-        with open("data\\nation_data.json", "r") as file:
-            data = json.load(file)
-            for nation in data.values():
-                gov = nation["gov"]
-                econ = nation["econ"]
-                Nation(
-                    name=nation["name"],
-                    userid=nation["userid"],
-                    gov=Gov(
-                        gov["systems"],
-                        gov["influence"],
-                        gov["influence_cap"]),
-                    econ=Econ(
-                        econ["influence"],
-                        econ["influence_cap"]
-                    ),
-                    cities=nation["cities"],
-                    links=nation["links"],
-                    tiles=nation["tiles"],
-                    military=nation["military"],
-                    subdivisions=nation["subdivisions"],
-                    espionage=nation["espionage"],
-                    dossier=nation["dossier"])
-        logger.info(f"Loaded {len(nation_list)} nations")
-    except Exception as e:
-        logger.critical(f"There was an error loading the nation data: {e}")
-        await bot.close()
-    
-    try:
-        with open("data\\tiles.json") as file:
-            data = json.load(file)
-            for location, tile in data.items():
-                # Parse location from str to tuple[int, int]
-                coords = location.strip("()").split(",")
-                location = (int(coords[0]), int(coords[1]))
-                
-                # Having attribute "name" means the tile is a city
-                if "name" in tile:
-                    City(
-                        terrain=tile["terrain"],
-                        name=tile["name"],
-                        influence=tile["influence"],
-                        tier=tile["tier"] if "tier" in tile else 0,
-                        location=location,
-                        claimant=tile["claimed"] if "claimed" in tile else None,
-                        owner=tile["owned"] if "owned" in tile else None,
-                        upgrades=tile["upgrades"] if "upgrades" in tile else [],
-                        stability=tile["stability"] if "stability" in tile else 80,
-                        popularity=tile["popularity"] if "popularity" in tile else 65,
-                        inventory=tile["inventory"] if "ivnentory" in tile else [])
-                else:
-                    Tile(terrain=tile["terrain"],
-                         location=location,
-                         claimant=tile["claimed"] if "claimed" in tile else None,
-                         owner=tile["owned"] if "owned" in tile else None,
-                         upgrades=tile["upgrades"] if "upgrades" in tile else None)
-        logger.info(f"Loaded {len(tiles)} tiles")
-    except Exception as e:
-        logger.critical(f"There was an error loading tile data: {e}")
-        await bot.close()
+    for location, tile_info in terrain_data.items():
+        location = tuple(map(int, location.strip("()").split(", ")))
+        terrain = tile_info['terrain']
+        Tile(terrain, location)
