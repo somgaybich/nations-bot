@@ -568,6 +568,7 @@ def load_terrain():
     """
     Loads terrain data from tiles.json into the tiles singleton.
     """
+    logger.info("Starting terrain load...")
     with open("data/tiles.json", "r") as f:
         terrain_data = json.load(f)
     
@@ -576,14 +577,18 @@ def load_terrain():
         terrain = tile_info['terrain']
         Tile(terrain, location)
 
+    logger.info("Terrain load complete")
+
 def load():
     """
     Reloads all game state data and reinstantiates from the database. Use will instantly clear any runtime data not protected by a save.
     """
+    logger.warning("Clearing nation data")
     nation_list.clear()
     units.clear()
     tiles.clear()
     
+    logger.info("Starting game data load...")
     for row in db.load_nations_rows():
         nation = Nation(
             name=row["name"],
@@ -672,3 +677,5 @@ def load():
     # --- Attach subdivisions to nations ---
     for subdivision in subdivisions_by_id.values():
         nation_list[subdivision.nationid].subdivisions[subdivision.name] = subdivision
+    
+    logger.info("Loaded game data")
