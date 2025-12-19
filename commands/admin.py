@@ -1,4 +1,5 @@
 import discord
+from discord import Interaction
 from discord.ext import commands
 import traceback
 import logging
@@ -11,8 +12,8 @@ class AdminCog(commands.Cog):
     def __init__(self, bot: NationsBot):
         self.bot = bot
 
-    async def cog_check(self, ctx: discord.ApplicationContext) -> bool:
-        return ctx.interaction.user.id == 247164420273209345
+    async def cog_check(self, interaction: Interaction) -> bool:
+        return interaction.user.id == 247164420273209345
     
     @discord.slash_command(description="Reload a bot extension.", guild_ids=[OPGUILD_ID])
     async def reload_extension(self, interaction: discord.Interaction, extension: str):
@@ -27,8 +28,9 @@ class AdminCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     try:
-        cog = AdminCog(bot)
-        await bot.add_cog(cog)
+        logger.debug("Registering admin cog")
+        await bot.add_cog(AdminCog(bot))
+        logger.debug("Registered admin cog")
     except Exception as e:
         logger.critical(f"Failed to load admin cog: {e}")
         await bot.close()

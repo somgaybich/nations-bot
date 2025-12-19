@@ -1,7 +1,7 @@
 import logging
 import asyncio
 import discord
-from discord import ApplicationContext, Embed
+from discord import Interaction, Embed
 from discord.ext import commands
 
 from scripts.bot import NationsBot, OPGUILD_ID
@@ -25,10 +25,10 @@ class UserCog(commands.Cog):
         self.bot = bot
 
     @discord.slash_command(description="A simple latency test", guild_ids=[OPGUILD_ID])
-    async def ping(self, ctx: ApplicationContext):
+    async def ping(self, interaction: Interaction):
         latency_ms = round(self.bot.latency * 1000)
-        await ctx.interaction.response.send_message(f"Pong! Latency: {latency_ms}ms")
-        logger.info(f"{ctx.interaction.user.name} sent a ping.")
+        await interaction.response.send_message(f"Pong! Latency: {latency_ms}ms")
+        logger.info(f"{interaction.user.name} sent a ping.")
 
     @discord.slash_command(description="Make a new nation.", guild_ids=[OPGUILD_ID])
     @discord.option("name", input_type=str, description="The name of your new nation.")
@@ -43,21 +43,21 @@ class UserCog(commands.Cog):
     @discord.option("capital_name", input_type=str, description="The name of your new capital city.")
     @discord.option("capital_x", input_type=int, description="The x-coordinate (1st on the map) of your capital tile.")
     @discord.option("capital_y", input_type=int, description="The y-coordinate (2nd on the map) of your capital tile.")
-    async def start(self, ctx: ApplicationContext, name: str, system_1: str, system_2: str, capital_name: str, capital_x: int, capital_y: int):
+    async def start(self, interaction: Interaction, name: str, system_1: str, system_2: str, capital_name: str, capital_x: int, capital_y: int):
         try:
             try:
-                new_nation(name, ctx.interaction.user.id, [system_1, system_2])
-                new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
+                new_nation(name, interaction.user.id, [system_1, system_2])
+                new_city(capital_name, (capital_x, capital_y), interaction.user.id)
             except NationsException as e:
-                await error(ctx.interaction, e.user_message)
+                await error(interaction, e.user_message)
             
         except Exception as e:
-            logger.error(f"Failed to create new nation for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction)
+            logger.error(f"Failed to create new nation for {interaction.user.name}: {e}")
+            await error(interaction)
             return 0
         
-        await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
-        logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
+        await response(interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
+        logger.info(f"{interaction.user.name} started a new nation, {name}")
 
     military = discord.SlashCommandGroup("military", description="Manage your military", guild_ids=[OPGUILD_ID])
 
@@ -66,39 +66,39 @@ class UserCog(commands.Cog):
     @discord.option("name", input_type=str, description="The name of the new army.")
     @discord.option("location_x", input_type=str, description="The x-coordinate (1st on the map) of the city to train in.")
     @discord.option("location_y", input_type=str, description="The y-coordinate (2nd on the map) of the city to train in.")
-    async def newarmy(self, ctx: ApplicationContext, name: str, location_x: int, location_y: int):
+    async def newarmy(self, interaction: Interaction, name: str, location_x: int, location_y: int):
         location = (location_x, location_y)
 
         try:
-            new_army(name, ctx.interaction.user.id, location)
+            new_army(name, interaction.user.id, location)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await error(interaction, e.user_message)
             return 0
         except Exception as e:
-            logger.error(f"Failed to create new army for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction)
+            logger.error(f"Failed to create new army for {interaction.user.name}: {e}")
+            await error(interaction)
         
-        await response(ctx.interaction, "Created!", f"New army {name} successfully started training in {tiles[location].name}")
+        await response(interaction, "Created!", f"New army {name} successfully started training in {tiles[location].name}")
         logger.info("Someone successfully made a new army!", )
 
     @military.command(description="Builds a new fleet")
     @discord.option("name", input_type=str, description="The name of the new fleet.")
     @discord.option("location_x", input_type=str, description="The x-coordinate (1st on the map) of the city to build in.")
     @discord.option("location_y", input_type=str, description="The y-coordinate (2nd on the map) of the city to build in.")
-    async def fleet(self, ctx: ApplicationContext, name: str, location_x: int, location_y: int):
+    async def fleet(self, interaction: Interaction, name: str, location_x: int, location_y: int):
         location = (location_x, location_y)
 
         try:
-            new_fleet(name, ctx.interaction.user.id, location)
+            new_fleet(name, interaction.user.id, location)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await error(interaction, e.user_message)
             return 0
         except Exception as e:
-            logger.error(f"Failed to create new fleet for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction)
+            logger.error(f"Failed to create new fleet for {interaction.user.name}: {e}")
+            await error(interaction)
             return 0
         
-        await response(ctx.interaction, "Created!", f"New fleet {name} successfully started training in {tiles[location].name}")
+        await response(interaction, "Created!", f"New fleet {name} successfully started training in {tiles[location].name}")
         logger.info("Someone successfully made a new fleet!")
 
     build = discord.SlashCommandGroup("build", description="Build structures", guild_ids=[OPGUILD_ID])
@@ -109,37 +109,37 @@ class UserCog(commands.Cog):
         "Temple", "Grand Temple", "Station", "Central Station", "Workshop",
         "Charcoal pit", "Smeltery", "Port", "Foundry"
     ])
-    async def upgrade(self, ctx: ApplicationContext, cityname: str, upgrade: str):
+    async def upgrade(self, interaction: Interaction, cityname: str, upgrade: str):
         try:
-            nation = nation_list[ctx.interaction.user.id]
+            nation = nation_list[interaction.user.id]
             city = nation.cities[cityname]
 
             upgrade_types[upgrade].build(city.location, city, nation.econ)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await error(interaction, e.user_message)
             return 0
         except Exception as e:
             logger.error(f"Failed to build {upgrade}: {e}")
-            await error(ctx.interaction)
+            await error(interaction)
             return 0
         
-        await response(ctx.interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
+        await response(interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
         logger.info(f"Someone built a {upgrade.lower()}!")
 
     @build.command(description="Builds a new railroad")
     @discord.option("origin", input_type=str, description="The city the railroad starts in.")
     @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
-    async def rail(self, ctx: ApplicationContext, origin: str, level: str):
-        ctx.defer()
-        ctx.followup.send("")
+    async def rail(self, interaction: Interaction, origin: str, level: str):
+        interaction.response.defer()
+        interaction.followup.send("")
         finished = False
-        current_tile = nation_list[ctx.interaction.user.id].cities[origin]
+        current_tile = nation_list[interaction.user.id].cities[origin]
         last_tile = None
         try:
             while not finished:
                 # TODO: Add a map image showing current railroad progress
                 direction_future = asyncio.Future()
-                ctx.followup.edit_message(embed=Embed(
+                interaction.followup.edit_message(embed=Embed(
                     title="Choose a direction",
                     description="Select a direction for your railway to head next."
                 ), view=DirectionView(direction_future, timeout=60))
@@ -154,7 +154,7 @@ class UserCog(commands.Cog):
                         if last_tile is not None:
                             current_tile, last_tile = last_tile, None
                         else:
-                            await error(ctx.interaction, "You can't go back any further!")
+                            await error(interaction, "You can't go back any further!")
                     case "Cancel":
                         raise CancelledException("Railroad building")
                 
@@ -162,34 +162,35 @@ class UserCog(commands.Cog):
                     finished = True
 
         except Exception as e:
-            logger.error(f"Failed to build railroad for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction, e.user_message if isinstance(e, NationsException) else None)
+            logger.error(f"Failed to build railroad for {interaction.user.name}: {e}")
+            await error(interaction, e.user_message if isinstance(e, NationsException) else None)
             return 0
 
         #TODO: Add confirmation
-        new_link = Link(origin=origin, destination=current_tile.name, owner=ctx.interaction.user.id, 
+        new_link = Link(origin=origin, destination=current_tile.name, owner=interaction.user.id, 
                         linktype=("simple railroad" if level=="simple" else "quality railroad"))
         new_link.build()
-        await response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
+        await response(interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
     nation = discord.SlashCommandGroup("nation", description="Manage your nation", guild_ids=[OPGUILD_ID])
 
     @nation.command(description="Changes the summary of your nation that appears on your profile.")
     @discord.option("text", input_type=str, description="The text you want to appear on your profile.")
-    async def dossier(self, ctx: ApplicationContext, text: str):
+    async def dossier(self, interaction: Interaction, text: str):
             try:
-                nation_list[ctx.interaction.user.id].dossier = text
-                logger.info(f"{ctx.interaction.user.name} changed their nation dossier to {text}")
-                response(ctx.interaction, "Dossier changed!", f"Your dossier has been successfully changed to: \n'{text}'")
+                nation_list[interaction.user.id].dossier = text
+                logger.info(f"{interaction.user.name} changed their nation dossier to {text}")
+                response(interaction, "Dossier changed!", f"Your dossier has been successfully changed to: \n'{text}'")
             except NationsException as e:
-                error(ctx.interaction, e.user_message)
+                error(interaction, e.user_message)
             except Exception as e:
-                logger.error(f"Failed to change dossier for {ctx.interaction.user.name}: {e}")
+                logger.error(f"Failed to change dossier for {interaction.user.name}: {e}")
 
 async def setup(bot: commands.Bot):
     try:
-        cog = UserCog(bot)
-        await bot.add_cog(cog)
+        logger.debug("Registering user cog")
+        await bot.add_cog(UserCog(bot))
+        logger.debug("Registered user cog")
     except Exception as e:
         logger.critical(f"Failed to load user cog: {e}")
         await bot.close()
