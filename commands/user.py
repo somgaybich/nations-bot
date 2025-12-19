@@ -12,6 +12,14 @@ from scripts.ui import DirectionView
 
 logger = logging.getLogger(__name__)
 
+def move_in_direction(current_tile, direction):
+        last_tile = current_tile
+        new_tile = getattr(current_tile, direction)()
+        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
+            raise InvalidLocation("Railroad building", new_tile.terrain)
+
+        return new_tile, last_tile
+
 class UserCog(commands.Cog):
     def __init__(self, bot: NationsBot):
         self.bot = bot
@@ -140,42 +148,8 @@ class UserCog(commands.Cog):
                 
                 direction = direction_future.result()
                 match direction:
-                    case "N":
-                        last_tile=current_tile
-                        new_tile = current_tile.n()
-                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-                            raise InvalidLocation("Railroad building", new_tile.terrain)
-                        current_tile=new_tile
-                    case "NW":
-                        last_tile=current_tile
-                        new_tile = current_tile.nw()
-                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-                            raise InvalidLocation("Railroad building", new_tile.terrain)
-                        current_tile=new_tile
-                    case "SW":
-                        last_tile=current_tile
-                        new_tile = current_tile.sw()
-                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-                            raise InvalidLocation("Railroad building", new_tile.terrain)
-                        current_tile=new_tile
-                    case "S":
-                        last_tile=current_tile
-                        new_tile = current_tile.s()
-                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-                            raise InvalidLocation("Railroad building", new_tile.terrain)
-                        current_tile=new_tile
-                    case "SE":
-                        last_tile=current_tile
-                        new_tile = current_tile.se()
-                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-                            raise InvalidLocation("Railroad building", new_tile.terrain)
-                        current_tile=new_tile
-                    case "NE":
-                        last_tile=current_tile
-                        new_tile = current_tile.ne()
-                        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-                            raise InvalidLocation("Railroad building", new_tile.terrain)
-                        current_tile=new_tile
+                    case d if d in ("n", "nw", "sw", "s", "se", "ne"):
+                        current_tile, last_tile = move_in_direction(current_tile, d)
                     case "Back":
                         if last_tile is not None:
                             current_tile, last_tile = last_tile, None
