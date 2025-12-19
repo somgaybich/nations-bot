@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS subdivision_cities (
 def save_subdivision_cities():
     pass
 
-def load_subdivision_cities():
+def load_subdivision_cities_rows():
     return conn.execute("SELECT * FROM subdivision_cities").fetchall()
 
 conn.execute("""

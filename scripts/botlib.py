@@ -13,27 +13,18 @@ class NationsBot(discord.Bot):
         super().__init__(**kwargs)
 
     async def on_ready(self):
+        logger.info("Starting setup proccess...")
+        self.load_extension("commands.admin")
+        self.load_extension("commands.user")
+        logger.info("Loading tile data")
+        load_terrain()
+        load()
         logger.info(f"Logged in as {self.user}, syncing commands")
         await sync(self)
-
-    async def setup_hook(self):
-        try:
-            logger.info("Starting setup proccess...")
-            await self.load_extension("commands.admin")
-            await self.load_extension("commands.user")
-            logger.info("Loading tile data")
-            load_terrain()
-            load()
-        except Exception as e:
-            logger.critical(f"Failed to load extensions in setup_hook: {e}")
-            await self.close()
 bot = NationsBot()
 
 async def sync(bot: commands.Bot) -> None:
     """
     Sync application commands with Discord.
     """
-    try:
-        await bot.sync_commands(guild_ids=[OPGUILD_ID])
-    except Exception as e:
-        logger.critical(f"Sync failed: {e}")
+    await bot.sync_commands(guild_ids=[OPGUILD_ID])

@@ -11,7 +11,7 @@ logging.basicConfig(filename='logs/last.log', encoding='utf-8', level=logging.DE
                     format="[%(asctime)s][%(levelname)s] [%(message)s]", datefmt='%H:%M:%S')
 logger = logging.getLogger(__name__)
 
-from scripts.bot import bot
+from scripts.botlib import bot
 
 tracemalloc.start()
 
