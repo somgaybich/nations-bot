@@ -1,7 +1,8 @@
+import logging
 import discord
 from discord.ext import commands
 
-import scripts.log as log
+logger = logging.getLogger(__name__)
 
 # 0: spring, 1: summer, 2: autumn, 3: winter
 current_season = 0
@@ -16,11 +17,11 @@ class NationsBot(commands.Bot):
     async def setup_hook(self) -> None:
         try:
             await self.load_extension("commands.admin")
-            log.info("Loaded admin extension", "SETUP")
+            logger.info("Loaded admin extension")
             await self.load_extension("commands.user")
-            log.info("Loaded user extension", "SETUP")
+            logger.info("Loaded user extension")
         except Exception as e:
-            log.criterror(f"Failed to load extensions in setup_hook: {e}", "SETUP")
+            logger.critical(f"Failed to load extensions in setup_hook: {e}")
             await self.close()
             return
 bot = NationsBot(command_prefix="!", intents=intents)
@@ -32,6 +33,6 @@ async def sync(bot: commands.Bot) -> None:
     try:
         opguild = bot.get_guild(OPGUILD_ID)
         commands = await bot.tree.sync(guild=opguild)
-        log.info(f"Commands synced: {[c.name for c in commands]}", "SYNC")
+        logger.info(f"Commands synced: {[c.name for c in commands]}")
     except Exception as e:
-        log.criterror(f"Sync failed: {e}", "SYNC")
+        logger.criterror(f"Sync failed: {e}")

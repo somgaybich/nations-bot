@@ -1,9 +1,11 @@
 from PIL import Image
+import logging
 import math
 import traceback
 
 from scripts.nations import tiles, TileList, City
-import scripts.log as log
+
+logger = logging.getLogger(__name__)
 
 HEX_WIDTH  = 90
 HEX_HEIGHT = 80
@@ -134,5 +136,5 @@ def render_snapshot(corner1, corner2, padding=0):
         return output
 
     except Exception as e:
-        log.error(f"Failed to render map: {e}", "MAP/RENDER_SNAPSHOT")
+        logger.error(f"Failed to render map: {e}")
         return None
