@@ -4,7 +4,7 @@ class NationsException(Exception):
     Is mainly used in order to check for "expected" errors within command behavior, to prevent these
     from being raised and spamming the logs.
     """
-    def __init__(self):
+    def __init__(self, *args):
         self.user_message = None
 
 class CancelledException(NationsException):
@@ -39,7 +39,7 @@ class InvalidLocation(NationsException):
 
 class TileOutOfBounds(NationsException):
     def __init__(self, location: tuple[int, int]):
-        super.__init__(f"Tried to access {location}, which is outside the map's bounds")
+        super().__init__(f"Tried to access {location}, which is outside the map's bounds")
         self.user_message = f"That location is outside the map bounds!"
 
 class NoPath(NationsException):

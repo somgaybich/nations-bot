@@ -4,8 +4,6 @@ import traceback
 import logging
 
 from scripts.bot import sync, NationsBot, OPGUILD_ID
-from scripts.response import response
-from scripts.map import render_snapshot
 
 logger = logging.getLogger(__name__)
 

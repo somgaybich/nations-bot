@@ -32,7 +32,6 @@ async def sync(bot: commands.Bot) -> None:
     """
     try:
         opguild = bot.get_guild(OPGUILD_ID)
-        commands = await bot.tree.sync(guild=opguild)
-        logger.info(f"Commands synced: {[c.name for c in commands]}")
+        await bot.sync_commands(guild_ids=[OPGUILD_ID])
     except Exception as e:
-        logger.criterror(f"Sync failed: {e}")
+        logger.critical(f"Sync failed: {e}")
