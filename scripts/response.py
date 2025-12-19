@@ -1,0 +1,56 @@
+from discord import Interaction, Embed
+import logging
+
+from scripts.bot import brand_color, bot, LOGGING_CHANNEL_ID
+
+logger = logging.getLogger(__name__)
+
+async def response(interaction: Interaction, title: str, message: str, ephemeral=False, footer=None):
+    """
+    Sends a message to the user in the standard format.
+    """
+    try:
+        if footer is not None:
+            await interaction.response.send_message(embed=Embed(
+            color=brand_color,
+            title=title,
+            description=message
+            ).set_footer(
+                text=footer
+            ), ephemeral=ephemeral)
+            
+        else:
+            await interaction.response.send_message(embed=Embed(
+                color=brand_color,
+                title=title,
+                description=message
+            ), ephemeral=ephemeral)
+    except Exception as e:
+        logger.error(f"Failed to send response message: {e}")
+
+async def error(interaction: Interaction, message = ""):
+    """
+    Used to report general errors. A message can be optionally attached if the nature of the error is known.
+    """
+    try:
+        if message != "":
+            await interaction.response.send_message(embed=Embed(
+                color=brand_color,
+                title="Oops!",
+                description=f"There was a problem processing your request! {message}"
+            ), ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=Embed(
+                color=brand_color,
+                title="Oops!",
+                description="There was a problem processing your request, but it was caught! Ping @madaman and she will take care of it as soon as possible!"
+            ), ephemeral=True)
+    except Exception as e:
+        logger.error(f"Failed to send error message: {e}")
+    
+async def log_info(message = ""):
+    try:
+        logging_channel = bot.get_channel(LOGGING_CHANNEL_ID)
+        logging_channel.send(message, ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error logging to {logging_channel.name}: {e}")

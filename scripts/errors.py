@@ -1,0 +1,82 @@
+class NationsException(Exception):
+    """
+    A parent class for all custom exceptions invoked by nations. Should never be invoked directly.
+    Is mainly used in order to check for "expected" errors within command behavior, to prevent these
+    from being raised and spamming the logs.
+    """
+    def __init__(self):
+        self.user_message = None
+
+class NationNameInUse(NationsException):
+    def __init__(self, name: str):
+        super().__init__(f"Name '{name}' already in use")
+        self.user_message = "That nation name is already taken!"
+
+class UserHasNation(NationsException):
+    def __init__(self, userid: int):
+        super().__init__(f"ID '{userid}' is already associated with a nation")
+        self.user_message = "You already have a nation!"
+
+class NationIDNotFound(NationsException):
+    def __init__(self, userid: int):
+        super().__init__(f"The userid '{userid}' isn't associated with a nation")
+        self.user_message = "You don't have a nation!"
+
+class InvalidSystems(NationsException):
+    def __init__(self, reason: str):
+        super().__init__(f"Nation creation failed: Systems were invalid because {reason.lower()}")
+        self.user_message = reason
+
+class InvalidLocation(NationsException):
+    def __init__(self, action: str, location_type: str):
+        super().__init__(f"{action} failed: Cannot be done '{location_type}'")
+        self.user_message = f"You can't do that {location_type}!"
+
+class TileOutOfBounds(NationsException):
+    def __init__(self, location: tuple[int, int]):
+        super.__init__(f"Tried to access {location}, which is outside the map's bounds")
+        self.user_message = f"That location is outside the map bounds!"
+
+class NoPath(NationsException):
+    def __init__(self, action, location1: tuple[int, int], location2: tuple[int, int]):
+        super().__init__(f"{action} failed: Could not find path from {location1} to {location2}")
+        self.user_message = f"There's no valid path between those places!"
+
+class TooManyUpgrades(NationsException):
+    def __init__(self, action: str, num_upgrades: int):
+        super().__init__(f"{action} failed: Tile already has {num_upgrades} upgrades")
+        self.user_message = f"That tile can't hold any more upgrades!"
+
+class MissingUpgrade(NationsException):
+    def __init__(self, action: str, upgrade: str):
+        super().__init__(f"{action} failed: Tile is missing required upgrade '{upgrade}'")
+        self.user_message = f"{action} needs a {upgrade} to be built first!"
+
+class CityTierTooLow(NationsException):
+    def __init__(self, action: str, tier: int, required: int):
+        super().__init__(f"{action} failed: Tile needs to be tier {required} and is {tier}")
+        self.user_message = f"The city needs to be tier {required} to do that!"
+
+class NotOwned(NationsException):
+    def __init__(self, action: str, location: tuple[int, int]):
+        super().__init__(f"{action} failed: User did not own the tile {location}")
+        self.user_message = f"You don't own {location}!"
+
+class NotEnoughEI(NationsException):
+    def __init__(self, action: str, required: int, had: int):
+        super().__init__(f"{action} failed: User needed {required} EI and had {had}")
+        self.user_message = f"You need {required} EI to do that and only have {had}!"
+
+class NotEnoughPI(NationsException):
+    def __init__(self, action: str, required: int, had: int):
+        super().__init__(f"{action} failed: User needed {required} PI and had {had}")
+        self.user_message = f"You need {required} PI to do that and only have {had}!"
+
+class NotEnoughResources(NationsException):
+    def __init__(self, action: str, required: list[str], had: list[str]):
+        super().__init__(f"{action} failed: Needed {required} but only had {had}")
+        missing_resources = ""
+        for resource in required:
+            if not resource in had:
+                missing_resources += resource + ", "
+        self.user_message = f"You don't have the resources! {missing_resources} was missing."
