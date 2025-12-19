@@ -4,9 +4,6 @@ import os
 import tracemalloc
 import logging
 
-from scripts.bot import sync, bot
-from scripts.nations import load_terrain
-
 # Clears preexisting log data
 with open("logs/last.log", 'w') as f:
     pass
@@ -14,18 +11,12 @@ logging.basicConfig(filename='logs/last.log', encoding='utf-8', level=logging.DE
                     format="[%(asctime)s][%(levelname)s] [%(message)s]", datefmt='%H:%M:%S')
 logger = logging.getLogger(__name__)
 
+from scripts.bot import bot
+
 tracemalloc.start()
 
 dotenv.load_dotenv(".venv/.env")
 token = os.getenv("token")
-
-@bot.event
-async def on_ready():
-    logger.info("Syncing commands...")
-    await sync(bot)
-    logger.info("Loading tile data...")
-    load_terrain()
-    logger.info(f"Logged in as {bot.user}")
 
 @bot.event
 async def on_disconnect():
@@ -42,8 +33,7 @@ async def on_connect():
 async def main():
     try:
         logger.info("Starting...")
-        async with bot:
-            await bot.start(token)
+        await bot.start(token)
     except KeyboardInterrupt:
         logger.critical("Shutting down.")
         await bot.close()

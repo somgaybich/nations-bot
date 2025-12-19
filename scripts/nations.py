@@ -3,7 +3,7 @@ import math
 import logging
 from typing import Callable
 
-from scripts.bot import bot, current_season
+from scripts.constants import current_season
 import scripts.database as db
 import scripts.errors as errors
 

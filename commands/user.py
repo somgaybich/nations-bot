@@ -2,9 +2,8 @@ import logging
 import asyncio
 import discord
 from discord import Interaction, Embed
-from discord.ext import commands
 
-from scripts.bot import NationsBot, OPGUILD_ID
+from scripts.bot import NationsBot
 from scripts.nations import City, Link, nation_list, new_nation, tiles, new_city, new_army, new_fleet, upgrade_types
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException, InvalidLocation
@@ -20,17 +19,17 @@ def move_in_direction(current_tile, direction):
 
         return new_tile, last_tile
 
-class UserCog(commands.Cog):
+class UserCog(discord.Cog):
     def __init__(self, bot: NationsBot):
         self.bot = bot
 
-    @discord.slash_command(description="A simple latency test", guild_ids=[OPGUILD_ID])
+    @discord.slash_command(description="A simple latency test")
     async def ping(self, interaction: Interaction):
         latency_ms = round(self.bot.latency * 1000)
         await interaction.response.send_message(f"Pong! Latency: {latency_ms}ms")
         logger.info(f"{interaction.user.name} sent a ping.")
 
-    @discord.slash_command(description="Make a new nation.", guild_ids=[OPGUILD_ID])
+    @discord.slash_command(description="Make a new nation.")
     @discord.option("name", input_type=str, description="The name of your new nation.")
     @discord.option("system_1", input_type=str, description="A system your government uses to gain power.", options=[
         "Authoritarian", "Democratic", "Militaristic", "Pacifist", "Federalist", "Centralist",
@@ -59,7 +58,7 @@ class UserCog(commands.Cog):
         await response(interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
         logger.info(f"{interaction.user.name} started a new nation, {name}")
 
-    military = discord.SlashCommandGroup("military", description="Manage your military", guild_ids=[OPGUILD_ID])
+    military = discord.SlashCommandGroup("military", description="Manage your military")
 
     #TODO: Port these commands to using city names instead of coords
     @military.command(description="Trains a new army")
@@ -101,7 +100,7 @@ class UserCog(commands.Cog):
         await response(interaction, "Created!", f"New fleet {name} successfully started training in {tiles[location].name}")
         logger.info("Someone successfully made a new fleet!")
 
-    build = discord.SlashCommandGroup("build", description="Build structures", guild_ids=[OPGUILD_ID])
+    build = discord.SlashCommandGroup("build", description="Build structures")
 
     @build.command(description="Builds a new upgrade in a city")
     @discord.option("cityname", input_type=str, description="The name of the city to build the upgrade in")
@@ -172,7 +171,7 @@ class UserCog(commands.Cog):
         new_link.build()
         await response(interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
-    nation = discord.SlashCommandGroup("nation", description="Manage your nation", guild_ids=[OPGUILD_ID])
+    nation = discord.SlashCommandGroup("nation", description="Manage your nation")
 
     @nation.command(description="Changes the summary of your nation that appears on your profile.")
     @discord.option("text", input_type=str, description="The text you want to appear on your profile.")
@@ -186,7 +185,7 @@ class UserCog(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to change dossier for {interaction.user.name}: {e}")
 
-async def setup(bot: commands.Bot):
+async def setup(bot: discord.Bot):
     try:
         logger.debug("Registering user cog")
         await bot.add_cog(UserCog(bot))
