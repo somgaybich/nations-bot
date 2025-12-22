@@ -7,6 +7,8 @@ class NationsException(Exception):
     def __init__(self, *args):
         self.user_message = None
 
+#TODO: Add "reasoning" arguments that add a ...because... to the user_message
+
 class CancelledException(NationsException):
     def __init__(self, action: str):
         super().__init__(f"{action} cancelled by user.")

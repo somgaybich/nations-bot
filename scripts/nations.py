@@ -173,9 +173,10 @@ def new_city(name: str, location: tuple[int, int], owner: int):
             raise errors.NotOwned('Settlement creation', tile.location)
     
     nation_list[owner].tiles.append(to_be_claimed)
-    nation_list[owner].cities.update({
-        name: City(tiles[location].terrain, name, location, owner, owner)
-    })
+    for location in to_be_claimed:
+        tiles[location].owner = owner
+
+    nation_list[owner].cities[name] = City(tiles[location].terrain, name, location, owner, owner)
     return None
 
 class Econ:
@@ -337,7 +338,7 @@ class Subdivision:
     """
     A segment of a nation created for easier administration.
     """
-    def __init__(self, name: str, nationid: int, cities: list[City]):
+    def __init__(self, name: str, nationid: int, cities: list[str]):
         self.name = name
         self.nationid = nationid
         self.cities = cities
@@ -346,8 +347,8 @@ class Subdivision:
         
     def update_power(self):
         influence = 0
-        for city in self.cities:
-            influence += city.influence
+        for city_name in self.cities:
+            influence += nation_list[self.nationid].cities[city_name].influence
         
         total_influence = nation_list[self.nationid].econ.influence_cap
         self.power = total_influence / influence
@@ -357,7 +358,7 @@ class Nation:
     The top object in the hierarchy, which contains all information about a nation.
     """
     def __init__(self, name: str, userid: int, gov: Gov, econ: Econ, 
-                 cities=[], links=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier=""):
+                 cities={}, links=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier=""):
         self.name: str = name
         self.userid: int = userid
         self.gov: Gov = gov
@@ -487,7 +488,7 @@ class Link:
     :var owner: The userid of the nation which owns this link.
     """
 
-    def __init__(self, linktype: str, origin: str, destination: str, path: list[tuple[int, int]], owner: int):
+    def __init__(self, linktype: str, origin: str, destination: str, path: list[tuple[int, int]], owner: int, link_id = None):
         self.origin = origin
         self.destination = destination
         self.path = path
@@ -627,7 +628,7 @@ def load():
         )
 
     for row in db.load_cities_rows():
-        City(
+        nation_list[row["owner"]].cities[row["name"]] = City(
             terrain=tiles[(row["x"], row["y"])].terrain,
             name=row["name"],
             influence=row["influence"],
@@ -659,23 +660,14 @@ def load():
             destination=row["destination"],
             path=json.loads(row["path"]),
             owner=row["owner"],
+            link_id=row["id"]
         ))
 
-    subdivisions_by_id = {}
-
     for row in db.load_subdivisions_rows():
-        subdivisions_by_id[row["id"]] = Subdivision(
+        nation_list[row["nationid"]].subdivisions[row["name"]] = Subdivision(
             name=row["name"],
             nationid=row["nationid"],
             cities=[],  # populated next
         )
-
-    for row in db.load_subdivision_cities_rows():
-        city = tiles[(row["cityx"], row["cityy"])]
-        subdivisions_by_id[row["subdivisionid"]].cities.append(city)
-
-    # --- Attach subdivisions to nations ---
-    for subdivision in subdivisions_by_id.values():
-        nation_list[subdivision.nationid].subdivisions[subdivision.name] = subdivision
     
     logger.info("Loaded game data")
