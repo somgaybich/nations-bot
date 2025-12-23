@@ -580,7 +580,7 @@ def load_terrain():
 
     logger.info("Terrain load complete")
 
-def load():
+async def load():
     """
     Reloads all game state data and reinstantiates from the database. Use will instantly clear any runtime data not protected by a save.
     """
@@ -590,7 +590,8 @@ def load():
     tiles.clear()
     
     logger.info("Starting game data load...")
-    for row in db.load_nations_rows():
+    nations_data = await db.load_nations_rows()
+    for row in nations_data:
         nation = Nation(
             name=row["name"],
             userid=row["id"],
@@ -600,7 +601,8 @@ def load():
         )
         nation_list[row["id"]] = nation
 
-    for row in db.load_governments_rows():
+    governments_data = await db.load_governments_rows()
+    for row in governments_data:
         gov = Gov(
             nationid=row["nationid"],
             systems=json.loads(row["systems"]),
@@ -610,7 +612,8 @@ def load():
         gov.streaks = json.loads(row["streaks"])
         nation_list[row["nationid"]].gov = gov
 
-    for row in db.load_economies_rows():
+    economies_data = await db.load_economies_rows()
+    for row in economies_data:
         econ = Econ(
             nationid=row["nationid"],
             influence=row["influence"],
@@ -618,7 +621,8 @@ def load():
         )
         nation_list[row["nationid"]].econ = econ
 
-    for row in db.load_tiles_rows():
+    tiles_data = await db.load_tiles_rows()
+    for row in tiles_data:
         Tile(
             terrain=row["terrain"],
             location=(row["x"], row["y"]),
@@ -627,7 +631,8 @@ def load():
             upgrades=json.loads(row["upgrades"]) if row["upgrades"] else [],
         )
 
-    for row in db.load_cities_rows():
+    cities_data = await db.load_cities_rows()
+    for row in cities_data:
         nation_list[row["owner"]].cities[row["name"]] = City(
             terrain=tiles[(row["x"], row["y"])].terrain,
             name=row["name"],
@@ -640,7 +645,8 @@ def load():
             inventory=json.loads(row["inventory"]),
         )
 
-    for row in db.load_units_rows():
+    units_data = await db.load_units_rows()
+    for row in units_data:
         Unit(
             name=row["name"],
             type=row["unit_type"],
@@ -653,7 +659,8 @@ def load():
             unit_id=row["id"],
         )
 
-    for row in db.load_links_rows():
+    links_data = await db.load_links_rows()
+    for row in links_data:
         nation_list[row["owner"]].links.append(Link(
             linktype=row["linktype"],
             origin=row["origin"],
@@ -663,7 +670,8 @@ def load():
             link_id=row["id"]
         ))
 
-    for row in db.load_subdivisions_rows():
+    subdivisions_data = await db.load_subdivisions_rows()
+    for row in subdivisions_data:
         nation_list[row["nationid"]].subdivisions[row["name"]] = Subdivision(
             name=row["name"],
             nationid=row["nationid"],

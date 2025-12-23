@@ -70,8 +70,8 @@ def render_snapshot(corner1, corner2, padding=0):
             # defend against bad keys
             try:
                 q, r = key
-            except Exception:
-                continue
+            except:
+                raise
 
             u = q
             v = r + q / 2.0
@@ -136,4 +136,4 @@ def render_snapshot(corner1, corner2, padding=0):
 
     except Exception as e:
         logger.error(f"Failed to render map: {e}")
-        return None
+        raise

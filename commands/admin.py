@@ -24,13 +24,14 @@ class AdminCog(discord.Cog):
         except Exception as e:
             await ctx.interaction.response.send_message(f"Error reloading {extension}:\n```\n{traceback.format_exc()}\n```", ephemeral=True)
             logger.error(f"Failed to reload extension {extension}: {e}")
+            raise
 
 def setup(bot: discord.Bot):
     try:
-        logger.debug("Registering admin cog")
+        logger.info("Registering admin cog")
         bot.add_cog(AdminCog(bot))
-        logger.debug("Registered admin cog")
+        logger.info("Registered admin cog")
     except Exception as e:
         logger.critical(f"Failed to load admin cog: {e}")
         bot.close()
-        return
+        raise

@@ -48,11 +48,12 @@ class UserCog(discord.Cog):
                 new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
             except NationsException as e:
                 await error(ctx.interaction, e.user_message)
+                raise
             
         except Exception as e:
             logger.error(f"Failed to create new nation for {ctx.interaction.user.name}: {e}")
             await error(ctx.interaction)
-            return 0
+            raise
         
         await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
@@ -71,10 +72,11 @@ class UserCog(discord.Cog):
             new_army(name, ctx.interaction.user.id, location)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
-            return 0
+            raise
         except Exception as e:
             logger.error(f"Failed to create new army for {ctx.interaction.user.name}: {e}")
             await error(ctx.interaction)
+            raise
         
         await response(ctx.interaction, "Created!", f"New army {name} successfully started training in {tiles[location].name}")
         logger.info("Someone successfully made a new army!", )
@@ -90,11 +92,11 @@ class UserCog(discord.Cog):
             new_fleet(name, ctx.interaction.user.id, location)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
-            return 0
+            raise
         except Exception as e:
             logger.error(f"Failed to create new fleet for {ctx.interaction.user.name}: {e}")
             await error(ctx.interaction)
-            return 0
+            raise
         
         await response(ctx.interaction, "Created!", f"New fleet {name} successfully started training in {tiles[location].name}")
         logger.info("Someone successfully made a new fleet!")
@@ -115,11 +117,11 @@ class UserCog(discord.Cog):
             upgrade_types[upgrade].build(city.location, city, nation.econ)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
-            return 0
+            raise
         except Exception as e:
             logger.error(f"Failed to build {upgrade}: {e}")
             await error(ctx.interaction)
-            return 0
+            raise
         
         await response(ctx.interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
         logger.info(f"Someone built a {upgrade.lower()}!")
@@ -162,7 +164,7 @@ class UserCog(discord.Cog):
         except Exception as e:
             logger.error(f"Failed to build railroad for {ctx.interaction.user.name}: {e}")
             await error(ctx.interaction, e.user_message if isinstance(e, NationsException) else None)
-            return 0
+            raise
 
         #TODO: Add confirmation
         new_link = Link(origin=origin, destination=current_tile.name, owner=ctx.interaction.user.id, 
@@ -181,8 +183,10 @@ class UserCog(discord.Cog):
                 response(ctx.interaction, "Dossier changed!", f"Your dossier has been successfully changed to: \n'{text}'")
             except NationsException as e:
                 error(ctx.interaction, e.user_message)
+                raise
             except Exception as e:
                 logger.error(f"Failed to change dossier for {ctx.interaction.user.name}: {e}")
+                raise
 
 def setup(bot: discord.Bot):
     try:
@@ -192,4 +196,4 @@ def setup(bot: discord.Bot):
     except Exception as e:
         logger.critical(f"Failed to load user cog: {e}")
         bot.close()
-        return
+        raise

@@ -3,26 +3,16 @@ import dotenv
 import os
 import tracemalloc
 import logging
+import time
 
-# Clears preexisting log data
-with open("logs/last.log", 'w') as f:
-    pass
+from scripts.database import init_db
+from scripts.nations import load_terrain, load
+from scripts.log import log_setup
+log_setup()
+
+logging.disable()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter("[%(asctime)s][%(levelname)s] [%(message)s]", datefmt='%H:%M:%S')
-
-file_handler = logging.FileHandler('logs/last.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG) # For now set to DEBUG, if it becomes clogged change to INFO
-console_handler.setFormatter(formatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
 
 from scripts.botlib import bot
 
@@ -44,12 +34,21 @@ async def on_connect():
     logger.info("Connected to Discord.")
 
 async def main():
+    logger.info("Starting...")
     try:
-        logger.info("Starting...")
+        timer = time.perf_counter()
+        await init_db()
+        load_terrain()
+        await load()
+        logger.debug(f"Took {(time.perf_counter() / 1000000):.2f}ms to initialize data")
         await bot.start(token)
-    except KeyboardInterrupt:
+    finally:
         logger.critical("Shutting down.")
-        await bot.close()
+        if not bot.is_closed():
+            await bot.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

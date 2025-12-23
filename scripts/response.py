@@ -21,6 +21,7 @@ async def response(interaction: Interaction, title: str, message: str, ephemeral
             ), ephemeral=ephemeral, view=view)
     except Exception as e:
         logger.error(f"Failed to send response message: {e}")
+        raise
 
 async def error(interaction: Interaction, message = ""):
     """
@@ -41,6 +42,7 @@ async def error(interaction: Interaction, message = ""):
             ), ephemeral=True)
     except Exception as e:
         logger.error(f"Failed to send error message: {e}")
+        raise
     
 async def log_info(message = ""):
     try:
@@ -48,3 +50,4 @@ async def log_info(message = ""):
         logging_channel.send(message, ephemeral=True)
     except Exception as e:
         logger.error(f"Error logging to {logging_channel.name}: {e}")
+        raise

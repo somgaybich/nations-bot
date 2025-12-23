@@ -1,11 +1,10 @@
 import logging
 import discord
-from discord.ext import commands
+import time
 
 logger = logging.getLogger(__name__)
 
 from scripts.constants import OPGUILD_ID
-from scripts.nations import load_terrain, load
 
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):
@@ -13,18 +12,16 @@ class NationsBot(discord.Bot):
         super().__init__(**kwargs)
 
     async def on_ready(self):
-        logger.info("Starting setup proccess...")
+        timer = time.perf_counter()
         self.load_extension("commands.admin")
         self.load_extension("commands.user")
-        logger.info("Loading tile data")
-        load_terrain()
-        load()
-        logger.info(f"Logged in as {self.user}, syncing commands")
         await sync(self)
+        logger.debug(f"Took {(timer / 1000000):.2f}ms to set up commands")
 bot = NationsBot()
 
-async def sync(bot: commands.Bot) -> None:
+async def sync(bot: NationsBot) -> None:
     """
     Sync application commands with Discord.
     """
+    logger.info("Syncing commands")
     await bot.sync_commands(guild_ids=[OPGUILD_ID])
