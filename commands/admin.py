@@ -1,10 +1,8 @@
 import traceback
 import logging
-import asyncio
 
 import discord
 from discord import ApplicationContext
-from discord.ext import tasks
 
 from scripts.botlib import sync
 
@@ -13,7 +11,6 @@ logger = logging.getLogger(__name__)
 class AdminCog(discord.Cog):
     def __init__(self, bot: discord.Bot):
         self.bot = bot
-        self.heartbeat.start()
 
     async def cog_check(self, ctx: ApplicationContext) -> bool:
         return ctx.interaction.user.id == 247164420273209345
@@ -29,10 +26,6 @@ class AdminCog(discord.Cog):
             await ctx.interaction.response.send_message(f"Error reloading {extension}:\n```\n{traceback.format_exc()}\n```", ephemeral=True)
             logger.error(f"Failed to reload extension {extension}: {e}")
             raise
-
-    @tasks.loop(seconds=5.0)
-    async def heartbeat(self):
-        await asyncio.sleep(1)
 
 def setup(bot: discord.Bot):
     try:
