@@ -10,8 +10,6 @@ from scripts.nations import load_terrain, load
 from scripts.log import log_setup
 log_setup()
 
-logging.disable()
-
 logger = logging.getLogger(__name__)
 
 from scripts.botlib import bot
