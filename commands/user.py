@@ -60,16 +60,12 @@ class UserCog(discord.Cog):
 
     military = discord.SlashCommandGroup("military", description="Manage your military")
 
-    #TODO: Port these commands to using city names instead of coords
     @military.command(description="Trains a new army")
     @discord.option("name", input_type=str, description="The name of the new army.")
-    @discord.option("location_x", input_type=str, description="The x-coordinate (1st on the map) of the city to train in.")
-    @discord.option("location_y", input_type=str, description="The y-coordinate (2nd on the map) of the city to train in.")
-    async def newarmy(self, ctx: ApplicationContext, name: str, location_x: int, location_y: int):
-        location = (location_x, location_y)
-
+    @discord.option("city", input_type=str, description="The city to train in.")
+    async def newarmy(self, ctx: ApplicationContext, name: str, city: str):
         try:
-            new_army(name, ctx.interaction.user.id, location)
+            new_army(name, ctx.interaction.user.id, city)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
@@ -78,18 +74,14 @@ class UserCog(discord.Cog):
             await error(ctx.interaction)
             raise
         
-        await response(ctx.interaction, "Created!", f"New army {name} successfully started training in {tiles[location].name}")
-        logger.info("Someone successfully made a new army!", )
+        await response(ctx.interaction, "Created!", f"New army {name} started training in {city}")
 
     @military.command(description="Builds a new fleet")
     @discord.option("name", input_type=str, description="The name of the new fleet.")
-    @discord.option("location_x", input_type=str, description="The x-coordinate (1st on the map) of the city to build in.")
-    @discord.option("location_y", input_type=str, description="The y-coordinate (2nd on the map) of the city to build in.")
-    async def fleet(self, ctx: ApplicationContext, name: str, location_x: int, location_y: int):
-        location = (location_x, location_y)
-
+    @discord.option("city", input_type=str, description="The city to train in.")
+    async def fleet(self, ctx: ApplicationContext, name: str, city: str):
         try:
-            new_fleet(name, ctx.interaction.user.id, location)
+            new_fleet(name, ctx.interaction.user.id, city)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
@@ -98,8 +90,7 @@ class UserCog(discord.Cog):
             await error(ctx.interaction)
             raise
         
-        await response(ctx.interaction, "Created!", f"New fleet {name} successfully started training in {tiles[location].name}")
-        logger.info("Someone successfully made a new fleet!")
+        await response(ctx.interaction, "Created!", f"New fleet {name} started training in {city}")
 
     build = discord.SlashCommandGroup("build", description="Build structures")
 

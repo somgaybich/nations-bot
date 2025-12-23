@@ -59,6 +59,11 @@ class MissingUpgrade(NationsException):
         super().__init__(f"{action} failed: Tile is missing required upgrade '{upgrade}'")
         self.user_message = f"{action} needs a {upgrade} to be built first!"
 
+class CityDoesNotExist(NationsException):
+    def __init__(self, action: str, name: str):
+        super().__init__(f"{action} failed: City '{name}' does not exist")
+        self.user_message = f"Couldn't find a city called {name}!"
+
 class CityTierTooLow(NationsException):
     def __init__(self, action: str, tier: int, required: int):
         super().__init__(f"{action} failed: Tile needs to be tier {required} and is {tier}")

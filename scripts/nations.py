@@ -9,7 +9,7 @@ import scripts.errors as errors
 
 logger = logging.getLogger(__name__)
 
-units = {}
+units = []
 class Unit:
     """
     A generalized class for a military unit.
@@ -26,37 +26,27 @@ class Unit:
         self.morale = morale
         self.exp = exp
 
-        units[location] = self
-
-def new_army(name: str, userid: int, location: tuple[int, int] = (0, 0)):
-    if not isinstance(tiles[location], City):
-        raise errors.InvalidLocation("Army creation", "in unsettled tiles")
-    if tiles[location].owner != userid:
-        raise errors.NotOwned("Army creation", location)
+def new_army(name: str, userid: int, city_name: str):
+    city = nation_list[userid].cities.get(city_name)
+    if city is None:
+        raise errors.CityDoesNotExist("Army creation", city_name)
     if nation_list[userid].econ.influence < 1:
         return errors.NotEnoughEI("Army creation", 1, nation_list[userid].econ.influence)
     
-    nation = nation_list[userid]
-    nation.gov.influence -= 1
-    nation.military.update({
-        name: Unit(name, "army", location)
-    })
+    nation_list[userid].gov.influence -= 1
+    nation_list[userid].military[name] = Unit(name, "army", nation_list[userid].cities[city].location)
 
-def new_fleet(name: str, userid: int, location: tuple[int, int] = (0, 0)):
-    if not isinstance(tiles[location], City):
-        raise errors.InvalidLocation("Fleet", "in non-city tiles")
-    if not "port" in tiles[location].upgrades:
-        raise errors.InvalidLocation("Fleet", "in non-port settlements")
-    if tiles[location].owner != userid:
-        raise errors.NotOwned("Fleet creation", location)
+def new_fleet(name: str, userid: int, city_name: str):
+    city = nation_list[userid].cities.get(city_name)
+    if city is None:
+        raise errors.CityDoesNotExist("Fleet creation", city_name)
+    if not "Port" in city.upgrades:
+        raise errors.MissingUpgrade("Fleet creation", "Port")
     if nation_list[userid].econ.influence < 2:
         raise errors.NotEnoughEI("Fleet creation", 2, nation_list[userid].econ.influence)
     
-    nation = nation_list[userid]
-    nation.gov.influence -= 2
-    nation.military.update({
-        name: Unit(name, "fleet", location)
-    })
+    nation_list[userid].gov.influence -= 2
+    nation_list[userid].military[name] = Unit(name, "fleet", city.location)
 
 class Tile:
     def __init__(self, terrain: str, location: tuple[int, int] = (0, 0), owner: str = None, 
