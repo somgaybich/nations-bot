@@ -17,6 +17,8 @@ class NationsBot(discord.Bot):
         self.load_extension("commands.user")
         await sync(self)
         logger.debug(f"Took {(timer / 1000000):.2f}ms to set up commands")
+        logger.info("Setup complete!")
+
 bot = NationsBot()
 
 async def sync(bot: NationsBot) -> None:

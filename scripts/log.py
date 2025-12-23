@@ -12,10 +12,12 @@ def log_setup():
     file_handler.setFormatter(formatter)
 
     # console_handler = logging.StreamHandler()
-    # console_handler.setLevel(logging.DEBUG) # For now set to DEBUG, if it becomes clogged change to INFO
+    # console_handler.setLevel(logging.DEBUG)
     # console_handler.setFormatter(formatter)
 
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
     root.addHandler(file_handler)
     # root.addHandler(console_handler)
+
+    logging.getLogger("discord.gateway").setLevel(logging.ERROR)
