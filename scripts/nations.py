@@ -25,28 +25,40 @@ class Unit:
         self.strength = strength
         self.morale = morale
         self.exp = exp
+    
+    async def save(self):
+        await db.save_unit(self)
 
-def new_army(name: str, userid: int, city_name: str):
+async def new_army(name: str, userid: int, city_name: str):
     city = nation_list[userid].cities.get(city_name)
     if city is None:
-        raise errors.CityDoesNotExist("Army creation", city_name)
+        raise errors.DoesNotExist("city", "Army creation", city_name)
     if nation_list[userid].econ.influence < 1:
         return errors.NotEnoughEI("Army creation", 1, nation_list[userid].econ.influence)
     
     nation_list[userid].gov.influence -= 1
-    nation_list[userid].military[name] = Unit(name, "army", nation_list[userid].cities[city].location)
 
-def new_fleet(name: str, userid: int, city_name: str):
+    new_unit = Unit(name, "army", city.location)
+    nation_list[userid].military[name] = new_unit
+
+    await nation_list[userid].save()
+    await new_unit.save()
+
+async def new_fleet(name: str, userid: int, city_name: str):
     city = nation_list[userid].cities.get(city_name)
     if city is None:
-        raise errors.CityDoesNotExist("Fleet creation", city_name)
+        raise errors.DoesNotExist("city", "Fleet creation", city_name)
     if not "Port" in city.upgrades:
         raise errors.MissingUpgrade("Fleet creation", "Port")
     if nation_list[userid].econ.influence < 2:
         raise errors.NotEnoughEI("Fleet creation", 2, nation_list[userid].econ.influence)
     
     nation_list[userid].gov.influence -= 2
-    nation_list[userid].military[name] = Unit(name, "fleet", city.location)
+    new_unit = Unit(name, "fleet", city.location)
+    nation_list[userid].military[name] = new_unit
+
+    await nation_list[userid].save()
+    await new_unit.save()
 
 class Tile:
     def __init__(self, terrain: str, location: tuple[int, int] = (0, 0), owner: str = None, 
@@ -58,6 +70,9 @@ class Tile:
         self.upgrades = upgrades if upgrades is not None else []
 
         tiles[location] = self
+    
+    async def save(self):
+        await db.save_tile(self)
     
     def n(self) -> "Tile":
         return tiles[(self.location[0], self.location[1] - 1)]
@@ -142,8 +157,11 @@ class City(Tile):
         self.stability = stability
         self.popularity = popularity
         self.inventory = inventory
+    
+    async def save(self):
+        db.save_city(self)
 
-def new_city(name: str, location: tuple[int, int], owner: int):
+async def new_city(name: str, location: tuple[int, int], owner: int):
     """
     A helper function for making new cities.
     """
@@ -165,8 +183,14 @@ def new_city(name: str, location: tuple[int, int], owner: int):
     nation_list[owner].tiles.append(to_be_claimed)
     for location in to_be_claimed:
         tiles[location].owner = owner
+        await tiles[location].save()
 
-    nation_list[owner].cities[name] = City(tiles[location].terrain, name, location, owner, owner)
+    new_city = City(tiles[location].terrain, name, location, owner, owner)
+    nation_list[owner].cities[name] = new_city
+
+    await nation_list[owner].save()
+    await new_city.save()
+    
     return None
 
 class Econ:
@@ -177,6 +201,9 @@ class Econ:
         self.nationid = nationid
         self.influence = influence
         self.influence_cap = influence_cap
+
+    async def save(self):
+        await db.save_economy(self)
 
 class Gov:
     """
@@ -197,7 +224,10 @@ class Gov:
         # Territorialist & Urbanist use this to store PI gained last season
         self.streaks = {}
     
-    def upkeep(self):
+    async def save(self):
+        await db.save_government(self)
+    
+    def upkeep(self) -> int:
         """
         Calculates PI upkeep costs for one season.
         """
@@ -206,14 +236,14 @@ class Gov:
         if "Militaristic" in self.systems:
             mil_cap = 0
         else:
-            mil_cap = math.floor(0.2 * len(nation.military))
+            mil_cap = math.floor(0.2 * len(units))
 
         if "Federalist" in self.systems:
-            admin_cap = math.floor(0.3 * len(nation.tiles))
+            admin_cap = math.floor(0.3 * len(units))
         elif "Centralist" in self.systems:
             admin_cap = 0
         else:
-            admin_cap = math.floor(0.2 * len(nation.tiles))
+            admin_cap = math.floor(0.2 * len(units))
         
         espionage_cost = 0
         if not len(nation.espionage) == 0:
@@ -222,7 +252,7 @@ class Gov:
 
         return mil_cap + admin_cap + espionage_cost
 
-    def event_update(self):
+    async def event_update(self):
         """
         Updates stored events. Should be called for every government every season.
         """
@@ -244,8 +274,9 @@ class Gov:
             new_events.append((category, age))
             
         self.events = new_events
+        self.save()
     
-    def system_pi(self, system: str):
+    def system_pi(self, system: str) -> int:
         """
         Calculates the PI added by a particular system.
         """
@@ -323,6 +354,8 @@ class Gov:
                 prev_streak = self.streaks["Urbanist"]
                 self.streaks["Urbanist"] = 0
                 return -prev_streak
+            case _:
+                raise ValueError("Invalid system (make sure it's capitalized!)")
 
 class Subdivision:
     """
@@ -334,14 +367,19 @@ class Subdivision:
         self.cities = cities
         self.power = 0
         self.update_power()
+    
+    async def save(self):
+        await db.save_subdivision(self)
         
-    def update_power(self):
+    async def update_power(self):
         influence = 0
         for city_name in self.cities:
             influence += nation_list[self.nationid].cities[city_name].influence
         
         total_influence = nation_list[self.nationid].econ.influence_cap
-        self.power = total_influence / influence
+        self.power = total_influence / influence\
+        
+        self.save()
 
 class Nation:
     """
@@ -362,6 +400,9 @@ class Nation:
         self.dossier: str = dossier
 
         nation_list.update({userid: self})
+    
+    async def save(self):
+        await db.save_nation(self)
 
 class NationList(dict[int, Nation]):
     """
@@ -392,38 +433,46 @@ def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
         if system_opposites[system] in systems:
             raise errors.InvalidSystems("The system list contained opposites!")
     
-    for nation in nation_list.values():
-        if nation.name == name:
+    for existing_nation in nation_list.values():
+        if existing_nation.name == name:
             raise errors.NationNameInUse(name)
-        elif nation.userid == userid:
+        elif existing_nation.userid == userid:
             raise errors.UserHasNation(userid)
 
-    return Nation(name, userid, Gov(systems), Econ())
+    nation = Nation(name, userid, Gov(systems), Econ())
+    nation.save()
+    return nation
 
 class UpgradeType:
     """
     A base class for all tile upgrades.
     """
-    def __init__(self, usable_in: list[type], ei_cost: int, resource_cost: list[str], name: str, on_build: Callable = None,
-                 prereq: str = '', tier_req: int = 0):
+    def __init__(self, usable_in: list[type], ei_cost: int, resource_cost: list[str], name: str, prereq: str = '', tier_req: int = 0):
         self.usable_in = usable_in
         self.ei_cost = ei_cost
         self.resource_cost = resource_cost
         self.name = name
         self.prereq = prereq # An upgrade that needs to be built first
         self.tier_req = tier_req # The city tier that the upgrade needs to be built in
-        self.on_build = on_build # A function called when building is complete
 
-    def build(self, location: tuple[int, int], city: City, econ: Econ):
-        tile = tiles[location]
+    async def build(self, location: tuple[int, int], city_name: str, userid: int):
+        nation = nation_list.get(userid)
+        if nation is None:
+            raise errors.NationIDNotFound(userid)
+        tile = tiles.get(location)
+        city = nation.cities.get(city_name)
+        if tile is None:
+            raise errors.DoesNotExist("tile", f"{self.name.capitalize()} creation", location)
+        if city is None:
+            raise errors.DoesNotExist("city", f"{self.name.capitalize()} creation", city_name)
         if len(city.upgrades) == 2 and not city.tier >= 2:
             raise errors.TooManyUpgrades(f"{self.name.capitalize()} creation", 2)
         if len(city.upgrades) == 3 and not city.tier == 4:
             raise errors.TooManyUpgrades(f"{self.name.capitalize()} creation", 3)
         if self.resource_cost not in city.inventory:
             raise errors.NotEnoughResources(f"{self.name.capitalize()} creation", self.resource_cost, city.inventory)
-        if econ.influence < self.ei_cost:
-            raise errors.NotEnoughEI(f"{self.name.capitalize()} creation", self.ei_cost, econ.influence)
+        if nation_list[userid].econ.influence < self.ei_cost:
+            raise errors.NotEnoughEI(f"{self.name.capitalize()} creation", self.ei_cost, nation_list[userid].econ.influence)
         if self.usable_in == [City] and type(tile) != City:
             raise errors.InvalidLocation(f"{self.name.capitalize()} creation", f"in unsettled tiles")
         elif tile.terrain not in self.usable_in:
@@ -432,7 +481,7 @@ class UpgradeType:
             raise errors.InvalidLocation(f"{self.name.capitalize()} creation", "outide the settlement's range")
         if tile not in city.metroarea() and city.tier == 4:
             raise errors.InvalidLocation(f"{self.name.capitalize()} creation", "outide the settlement's range")
-        if not self.tier_req == 0 and isinstance(tile, city):
+        if not self.tier_req == 0 and location == city.location:
             if not tile.tier >= self.tier_req:
                 raise errors.CityTierTooLow(f"{self.name.capitalize()} creation", tile.tier, self.tier_req)
         # This check must always be last because it has behavior attached!
@@ -440,24 +489,26 @@ class UpgradeType:
             if self.prereq not in tile.upgrades:
                 raise errors.MissingUpgrade(f"{self.name.capitalize()} creation", self.prereq)
             
-            tile.upgrades.remove(self.prereq)
+            tiles[location].upgrades.remove(self.prereq)
+            await tiles[location].save()
 
         for item in self.resource_cost:
-            city.inventory.remove(item)
-        econ.influence -= self.ei_cost
+            nation_list[userid].cities[city_name].inventory.remove(item)
+        nation_list[userid].econ.influence -= self.ei_cost
 
         tiles[location].upgrades.append(self.name)
 
-        if self.on_build != None:
-            self.on_build()
+        if self.name == "Temple" or self.name == "Grand Temple":
+            nation_list[userid].cities[city_name].popularity += min(100, round((nation_list[userid].cities[city_name].popularity / 10) + 5))
+            nation_list[userid].cities[city_name].stability += min(100, round((nation_list[userid].cities[city_name].stability / 20) + 5))
 
-def temple_built(city: City):
-    city.popularity += min(100, round((city.popularity / 10) + 5))
-    city.stability += min(100, round((city.stability / 20) + 5))\
+        await nation_list[userid].save()
+        await nation_list[userid].cities[city_name].save()
+        await tiles[location].save()
 
 upgrade_types = {
-    "temple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Temple", on_build=temple_built),
-    "grandtemple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Grand Temple", prereq="Temple", on_build=temple_built),
+    "temple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Temple"),
+    "grandtemple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Grand Temple", prereq="Temple"),
     "station": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["lumber"], name="Station"),
     "centralstation": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["lumber"], name="Central Station", prereq="Station"),
     "workshop": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["lumber", "stone"], name="Workshop"),
@@ -485,11 +536,12 @@ class Link:
         self.owner = owner
         self.linktype = linktype
     
+    #TODO: Implement this
     def build_free(self):
         """
         An alternate form of build that doesn't cost anything, mainly for use in load().
         """
-
+        pass
 
     def build(self):
         length = len(self.path)
@@ -553,7 +605,12 @@ class Link:
 
         for location in self.path:
             tiles[location].upgrades.append(self.linktype)
+            tiles[location].save()
         nation_list[self.owner].links.append(self)
+
+        nation_list[self.owner].save()
+        nation_list[self.owner].cities[self.origin].save()
+        nation_list[self.owner].cities[self.destination].save()
 
 def load_terrain():
     """

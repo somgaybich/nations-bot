@@ -339,7 +339,7 @@ async def load_governments_rows():
 
 # ---------------
 
-async def save_economies():
+async def save_economy(econ):
     await get_db().execute(
         """
         INSERT INTO economies (nationid, influence, influence_cap)
@@ -347,7 +347,8 @@ async def save_economies():
         ON CONFLICT(nationid) DO UPDATE SET
             influence = excluded.influence
             influence_cap = excluded.influence_cap
-        """
+        """,
+        (econ.nationid, econ.influence, econ.influence_cap)
     )
 
 async def load_economies_rows():

@@ -10,6 +10,8 @@ from scripts.ui import DirectionView
 
 logger = logging.getLogger(__name__)
 
+# TODO: Implement database saves here
+
 def move_in_direction(current_tile, direction):
         last_tile = current_tile
         new_tile = getattr(current_tile, direction)()

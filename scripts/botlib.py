@@ -1,6 +1,9 @@
 import logging
 import discord
 import time
+from discord.ext import tasks
+
+from scripts.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,14 @@ class NationsBot(discord.Bot):
         logger.debug(f"Took {(timer / 1000000):.2f}ms to set up commands")
         logger.info("Setup complete!")
 
+    @tasks.loop(minautes=5)
+    async def db_commit(self):
+        try:
+            await get_db().commit()
+        except Exception as e:
+            logger.error(f"Unable to commit database: {e}")
+            raise
+        
 bot = NationsBot()
 
 async def sync(bot: NationsBot) -> None:
