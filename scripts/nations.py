@@ -1,7 +1,7 @@
 import json
 import math
 import logging
-from typing import Callable
+from discord import Embed, Color
 
 from scripts.constants import current_season
 import scripts.database as db
@@ -386,7 +386,7 @@ class Nation:
     The top object in the hierarchy, which contains all information about a nation.
     """
     def __init__(self, name: str, userid: int, gov: Gov, econ: Econ, 
-                 cities={}, links=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier=""):
+                 cities={}, links=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier={}, color=Color.random()):
         self.name: str = name
         self.userid: int = userid
         self.gov: Gov = gov
@@ -397,12 +397,24 @@ class Nation:
         self.tiles: list[tuple[int, int]] = tiles
         self.military: dict[str, Unit] = military
         self.espionage = espionage #Add type annotations when we figure out how this works
-        self.dossier: str = dossier
+        self.dossier: dict = dossier
+        self.color: Color = color
 
         nation_list.update({userid: self})
     
     async def save(self):
         await db.save_nation(self)
+    
+    def profile(self) -> Embed:
+        message = ""
+        for title, text in self.dossier.items():
+            message += f"**{title}**\n{text}\n\n"
+        
+        return Embed(
+            color=self.color,
+            title=self.name,
+            text=message
+        )
 
 class NationList(dict[int, Nation]):
     """

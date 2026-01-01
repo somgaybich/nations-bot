@@ -134,13 +134,14 @@ def get_db() -> aiosqlite.Connection:
 async def save_nation(nation):
     await get_db().execute(
         """
-        INSERT INTO nations (id, name, dossier)
-        VALUES (?, ?, ?)
+        INSERT INTO nations (id, name, dossier, color)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT (id) DO UPDATE SET
             name = excluded.name
             dossier = excluded.dossier
+            color = excluded.color
         """,
-        (nation.userid, nation.name, nation.dossier)
+        (nation.userid, nation.name, nation.dossier, json.dumps(nation.color))
     )
 
 async def load_nations_rows():

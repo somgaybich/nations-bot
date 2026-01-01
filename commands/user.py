@@ -64,6 +64,23 @@ class UserCog(discord.Cog):
         await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
 
+    @discord.slash_command(description="Show a user's profile")
+    @discord.option("target", input_type=discord.User, description="The user to show the profile of.", required=False, default=None)
+    async def profile(self, ctx: ApplicationContext, target: discord.User):
+        if target is None:
+            target = ctx.user()
+
+        try:
+            nation = nation_list[target.id]
+            await ctx.interaction.response.send_message(embed=nation.profile())
+        except NationsException as e:
+            await error(ctx.interaction, e.user_message)
+            raise
+        except Exception as e:
+            logger.error(f"Error getting nation profile for {target.name}: {e}")
+            await error(ctx.interaction)
+            raise
+
     # ----- MILITARY COMMANDS ----- #
 
     military = discord.SlashCommandGroup("military", description="Manage your military")
@@ -178,18 +195,37 @@ class UserCog(discord.Cog):
     nation = discord.SlashCommandGroup("nation", description="Manage your nation")
 
     @nation.command(description="Changes the summary of your nation that appears on your profile.")
+    @discord.option("title", input_type=str, description="The title of this dossier block", required=False, default="Dossier")
     @discord.option("text", input_type=str, description="The text you want to appear on your profile.")
-    async def dossier(self, ctx: ApplicationContext, text: str):
-            try:
-                nation_list[ctx.interaction.user.id].dossier = text
-                logger.info(f"{ctx.interaction.user.name} changed their nation dossier to {text}")
-                response(ctx.interaction, "Dossier changed!", f"Your dossier has been successfully changed to: \n'{text}'")
-            except NationsException as e:
-                error(ctx.interaction, e.user_message)
-                raise
-            except Exception as e:
-                logger.error(f"Failed to change dossier for {ctx.interaction.user.name}: {e}")
-                raise
+    async def dossier(self, ctx: ApplicationContext, title: str, text: str):
+        try:
+            nation_list[ctx.interaction.user.id].dossier[title] = text
+            await nation_list[ctx.interaction.user.id].save()
+            logger.info(f"{ctx.interaction.user.name} changed their profile's {title} block to {text}")
+            response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
+        except NationsException as e:
+            error(ctx.interaction, e.user_message)
+            raise
+        except Exception as e:
+            logger.warning(f"Failed to change dossier for {ctx.interaction.user.name}: {e}")
+            raise
+
+    @nation.command(description="Changes the color associated with your nation.")
+    @discord.option("red", input_type=int, description="The red value of the new color")
+    @discord.option("green", input_type=int, description="The green value of the new color")
+    @discord.option("blue", input_type=int, description="The blue value of the new color")
+    async def color(self, ctx: ApplicationContext, red: int, green: int, blue: int):
+        try:
+            nation_list[ctx.interaction.user.id].color = discord.Colour.from_rgb(red, green, blue)
+            await nation_list[ctx.interaction.user.id].save()
+            logger.info(f"{ctx.interaction.user.name} changed their nation color to ({red}, {green}, {blue})")
+            response(ctx.interaction, f"Color changed!", f"Your nation color has been changed to ({red}, {green}, {blue})")
+        except NationsException as e:
+            error(ctx.interaction, e.user_message)
+            raise
+        except Exception as e:
+            logger.warning(f"Failed to change color for {ctx.interaction.user.name}: {e}")
+            raise
 
 def setup(bot: discord.Bot):
     try:
