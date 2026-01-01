@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord import ApplicationContext, Embed
 
-from scripts.nations import City, Link, nation_list, new_nation, tiles, new_city, new_army, new_fleet, upgrade_types
+from scripts.nations import City, Tile, Link, nation_list, upgrade_types, units, new_nation, new_city, new_army, new_fleet
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException, InvalidLocation
 from scripts.ui import DirectionView
@@ -12,11 +12,15 @@ logger = logging.getLogger(__name__)
 
 # TODO: Implement database saves here
 
-def move_in_direction(current_tile, direction):
+def move_in_direction(current_tile: Tile, direction: str):
         last_tile = current_tile
         new_tile = getattr(current_tile, direction)()
-        if new_tile.terrain in ["ocean", "lake", "high_mountain"]:
-            raise InvalidLocation("Railroad building", new_tile.terrain)
+        if new_tile.terrain in ["ocean", "lake", "high_mountains"]:
+            raise InvalidLocation("Movement", f"in {new_tile.terrain}")
+        for unit in units:
+            if unit.location == current_tile.location:
+                # do battle stuff?
+                pass
 
         return new_tile, last_tile
 
