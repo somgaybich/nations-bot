@@ -64,6 +64,8 @@ class UserCog(discord.Cog):
         await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
 
+    # ----- MILITARY COMMANDS ----- #
+
     military = discord.SlashCommandGroup("military", description="Manage your military")
 
     @military.command(description="Trains a new army")
@@ -97,6 +99,8 @@ class UserCog(discord.Cog):
             raise
         
         await response(ctx.interaction, "Created!", f"New fleet {name} started training in {city}")
+
+    # ----- BUILD COMMANDS ----- #
 
     build = discord.SlashCommandGroup("build", description="Build structures")
 
@@ -168,6 +172,8 @@ class UserCog(discord.Cog):
                         linktype=("simple railroad" if level=="simple" else "quality railroad"))
         new_link.build()
         await response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
+
+    # ----- MILITARY COMMANDS ----- #
 
     nation = discord.SlashCommandGroup("nation", description="Manage your nation")
 
