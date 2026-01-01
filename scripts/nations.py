@@ -9,7 +9,6 @@ import scripts.errors as errors
 
 logger = logging.getLogger(__name__)
 
-units = []
 class Unit:
     """
     A generalized class for a military unit.
@@ -28,6 +27,7 @@ class Unit:
     
     async def save(self):
         await db.save_unit(self)
+units: list[Unit] = []
 
 async def new_army(name: str, userid: int, city_name: str):
     city = nation_list[userid].cities.get(city_name)
@@ -536,12 +536,18 @@ class Link:
         self.owner = owner
         self.linktype = linktype
     
-    #TODO: Implement this
     def build_free(self):
         """
         An alternate form of build that doesn't cost anything, mainly for use in load().
         """
-        pass
+        for location in self.path:
+            tiles[location].upgrades.append(self.linktype)
+            tiles[location].save()
+        nation_list[self.owner].links.append(self)
+
+        nation_list[self.owner].save()
+        nation_list[self.owner].cities[self.origin].save()
+        nation_list[self.owner].cities[self.destination].save()
 
     def build(self):
         length = len(self.path)
@@ -694,7 +700,7 @@ async def load():
 
     units_data = await db.load_units_rows()
     for row in units_data:
-        Unit(
+        unit = Unit(
             name=row["name"],
             type=row["unit_type"],
             home=row["home"],
@@ -705,17 +711,19 @@ async def load():
             owner=row["owner"],
             unit_id=row["id"],
         )
+        units.append(unit)
+        nation_list[row["owner"]].military[row["name"]] = unit
 
     links_data = await db.load_links_rows()
     for row in links_data:
-        nation_list[row["owner"]].links.append(Link(
+        link = Link(
             linktype=row["linktype"],
             origin=row["origin"],
             destination=row["destination"],
             path=json.loads(row["path"]),
             owner=row["owner"],
-            link_id=row["id"]
-        ))
+            link_id=row["id"])
+        link.build_free()
 
     subdivisions_data = await db.load_subdivisions_rows()
     for row in subdivisions_data:
