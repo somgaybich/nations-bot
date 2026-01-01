@@ -65,7 +65,7 @@ class UserCog(discord.Cog):
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
 
     @discord.slash_command(description="Show a user's profile")
-    @discord.option("target", input_type=discord.User, description="The user to show the profile of.", required=False, default=None)
+    @discord.option("target", input_type=discord.User, description="The user to show the profile of.", default=None)
     async def profile(self, ctx: ApplicationContext, target: discord.User):
         if target is None:
             target = ctx.user()
@@ -195,9 +195,9 @@ class UserCog(discord.Cog):
     nation = discord.SlashCommandGroup("nation", description="Manage your nation")
 
     @nation.command(description="Changes the summary of your nation that appears on your profile.")
-    @discord.option("title", input_type=str, description="The title of this dossier block", required=False, default="Dossier")
     @discord.option("text", input_type=str, description="The text you want to appear on your profile.")
-    async def dossier(self, ctx: ApplicationContext, title: str, text: str):
+    @discord.option("title", input_type=str, description="The title of this dossier block", default="Dossier")
+    async def dossier(self, ctx: ApplicationContext, text: str, title: str):
         try:
             nation_list[ctx.interaction.user.id].dossier[title] = text
             await nation_list[ctx.interaction.user.id].save()

@@ -38,7 +38,7 @@ async def main():
         await init_db()
         load_terrain()
         await load()
-        logger.debug(f"Took {(time.perf_counter() / 1000000):.2f}ms to initialize data")
+        logger.debug(f"Took {(timer / 1000000):.2f}ms to initialize data")
         await bot.start(token)
     finally:
         logger.critical("Shutting down.")

@@ -22,7 +22,7 @@ class NationsBot(discord.Bot):
         logger.debug(f"Took {(timer / 1000000):.2f}ms to set up commands")
         logger.info("Setup complete!")
 
-    @tasks.loop(minautes=5)
+    @tasks.loop(minutes=5)
     async def db_commit(self):
         try:
             await get_db().commit()
