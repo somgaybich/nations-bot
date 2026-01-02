@@ -5,6 +5,7 @@ import tracemalloc
 import logging
 import time
 
+from scripts.constants import json_terrain
 from scripts.database import init_db
 from scripts.nations import load_terrain, load
 from scripts.log import log_setup
@@ -36,7 +37,8 @@ async def main():
     try:
         timer = time.perf_counter()
         await init_db()
-        load_terrain()
+        if json_terrain:
+            await load_terrain()
         await load()
         logger.debug(f"Took {(timer / 1000000):.2f}ms to initialize data")
         await bot.start(token)

@@ -22,7 +22,8 @@ async def init_db():
     CREATE TABLE IF NOT EXISTS nations (
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
-        dossier TEXT)
+        dossier TEXT,
+        color INTEGER)
     """)
     logger.debug("Created nations table")
 
@@ -136,12 +137,12 @@ async def save_nation(nation):
         """
         INSERT INTO nations (id, name, dossier, color)
         VALUES (?, ?, ?, ?)
-        ON CONFLICT (id) DO UPDATE SET
-            name = excluded.name
-            dossier = excluded.dossier
+        ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            dossier = excluded.dossier,
             color = excluded.color
         """,
-        (nation.userid, nation.name, nation.dossier, json.dumps(nation.color))
+        (nation.userid, nation.name, json.dumps(nation.dossier), int(nation.color))
     )
 
 async def load_nations_rows():
@@ -214,9 +215,9 @@ async def save_tile(tile):
         )
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
-            terrain = excluded.terrain
-            owner = excluded.owner
-            owned = excluded.owned
+            terrain = excluded.terrain,
+            owner = excluded.owner,
+            owned = excluded.owned,
             upgrades = excluded.upgrades
         """,
         (x, y, tile.terrain, tile.owner, tile.owned, json.dumps(tile.upgrades))
@@ -241,13 +242,13 @@ async def save_city(city):
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
-            name = excluded.name
-            influence = excluded.influence
-            tier = excluded.tier
-            stability = excluded.stability
-            popularity = excluded.popularity
-            inventory = excluded.inventory
-            owner = excluded.owner
+            name = excluded.name,
+            influence = excluded.influence,
+            tier = excluded.tier,
+            stability = excluded.stability,
+            popularity = excluded.popularity,
+            inventory = excluded.inventory,
+            owner = excluded.owner,
             upgrades = excluded.upgrades
         """,
         (x, y, city.name, city.influence, city.tier, city.stability, city.popularity, 
@@ -325,10 +326,10 @@ async def save_government(gov):
         nationid, influence, influence_cap, systems, streaks, events)
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(nationid) DO UPDATE SET
-            influence = excluded.influence
-            influence_cap = excluded.influence_cap
-            systems = excluded.systems
-            streaks = excluded.streaks
+            influence = excluded.influence,
+            influence_cap = excluded.influence_cap,
+            systems = excluded.systems,
+            streaks = excluded.streaks,
             events = excluded.events
         """,
         (gov.nationid, gov.influence, gov.influence_cap, gov.systems, gov.streaks, gov.events)
@@ -346,7 +347,7 @@ async def save_economy(econ):
         INSERT INTO economies (nationid, influence, influence_cap)
         VALUES (?, ?, ?)
         ON CONFLICT(nationid) DO UPDATE SET
-            influence = excluded.influence
+            influence = excluded.influence,
             influence_cap = excluded.influence_cap
         """,
         (econ.nationid, econ.influence, econ.influence_cap)

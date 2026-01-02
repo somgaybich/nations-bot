@@ -36,11 +36,11 @@ class UserCog(discord.Cog):
 
     @discord.slash_command(description="Make a new nation.")
     @discord.option("name", input_type=str, description="The name of your new nation.")
-    @discord.option("system_1", input_type=str, description="A system your government uses to gain power.", options=[
+    @discord.option("system_1", input_type=str, description="A system your government uses to gain power.", choices=[
         "Authoritarian", "Democratic", "Militaristic", "Pacifist", "Federalist", "Centralist",
         "Isolationist", "Mercantilist", "Expansionist", "Territorialist", "Urbanist"
     ])
-    @discord.option("system_2", input_type=str, description="A system your government uses to gain power.", options=[
+    @discord.option("system_2", input_type=str, description="A system your government uses to gain power.", choices=[
         "Authoritarian", "Democratic", "Militaristic", "Pacifist", "Federalist", "Centralist",
         "Isolationist", "Mercantilist", "Expansionist", "Territorialist", "Urbanist"
     ])
@@ -50,8 +50,11 @@ class UserCog(discord.Cog):
     async def start(self, ctx: ApplicationContext, name: str, system_1: str, system_2: str, capital_name: str, capital_x: int, capital_y: int):
         try:
             try:
-                new_nation(name, ctx.interaction.user.id, [system_1, system_2])
-                new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
+                logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
+                await new_nation(name, ctx.interaction.user.id, [system_1, system_2])
+                logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
+                await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
+                logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
             except NationsException as e:
                 await error(ctx.interaction, e.user_message)
                 raise
@@ -204,7 +207,7 @@ class UserCog(discord.Cog):
             logger.info(f"{ctx.interaction.user.name} changed their profile's {title} block to {text}")
             response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
         except NationsException as e:
-            error(ctx.interaction, e.user_message)
+            await error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.warning(f"Failed to change dossier for {ctx.interaction.user.name}: {e}")

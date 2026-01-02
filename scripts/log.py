@@ -5,7 +5,7 @@ def log_setup():
     with open("logs/last.log", 'w') as f:
         pass
 
-    formatter = logging.Formatter("[%(asctime)s][%(levelname)s] [%(message)s]", datefmt='%H:%M:%S')
+    formatter = logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s", datefmt='%H:%M:%S')
 
     file_handler = logging.FileHandler('logs/last.log')
     file_handler.setLevel(logging.DEBUG)

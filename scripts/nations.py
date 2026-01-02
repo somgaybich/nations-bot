@@ -3,7 +3,7 @@ import math
 import logging
 from discord import Embed, Color
 
-from scripts.constants import current_season
+from scripts.constants import current_season, json_terrain
 import scripts.database as db
 import scripts.errors as errors
 
@@ -68,8 +68,6 @@ class Tile:
         self.owned = owned
         self.owner = owner
         self.upgrades = upgrades if upgrades is not None else []
-
-        tiles[location] = self
     
     async def save(self):
         await db.save_tile(self)
@@ -125,18 +123,24 @@ class TileList(dict[tuple[int, int], Tile]):
 
     def __getitem__(self, key: tuple[int, int]) -> Tile:
         self._check_bounds(key)
-        super().__getitem__(key)
+        try:
+            return super().__getitem__(key)
+        except Exception as e:
+            logger.warning(f"Failed to getitem tile at {key}: {e}")
     
     def __setitem__(self, key: tuple[int, int], value: Tile) -> None:
         self._check_bounds(key)
-        super().__setitem__(key, value)
-
-    def __hash__(self):
-        return hash(self.location)
+        try:
+            super().__setitem__(key, value)
+        except Exception as e:
+            logger.warning(f"Failed to set tile at {key}: {e}")
     
     def get(self, key, default=None):
         self._check_bounds(key)
-        return super().get(key, default)
+        try:
+            return super().get(key, default)
+        except Exception as e:
+            logger.warning(f"Failed to get tile at {key}: {e}")
 tiles = TileList()
 
 def hex_distance(a: Tile, b: Tile) -> int:
@@ -180,6 +184,9 @@ async def new_city(name: str, location: tuple[int, int], owner: int):
         else:
             raise errors.NotOwned('Settlement creation', tile.location)
     
+    logger.debug(nation_list)
+    logger.debug(owner)
+    logger.debug(nation_list[owner])
     nation_list[owner].tiles.append(to_be_claimed)
     for location in to_be_claimed:
         tiles[location].owner = owner
@@ -197,7 +204,7 @@ class Econ:
     """
     Represents a nation's economy.
     """
-    def __init__(self, nationid: str, influence: int = 4, influence_cap: int = 4):
+    def __init__(self, nationid: int, influence: int = 4, influence_cap: int = 4):
         self.nationid = nationid
         self.influence = influence
         self.influence_cap = influence_cap
@@ -209,7 +216,7 @@ class Gov:
     """
     Represents a nation's government.
     """
-    def __init__(self, nationid: str, systems: list, influence: int = 4, influence_cap: int = 4, events = [], streaks = {}):
+    def __init__(self, nationid: int, systems: list, influence: int = 4, influence_cap: int = 4, events = [], streaks = {}):
         self.nationid = nationid
         self.systems = systems
         self.influence = influence
@@ -399,8 +406,6 @@ class Nation:
         self.espionage = espionage #Add type annotations when we figure out how this works
         self.dossier: dict = dossier
         self.color: Color = color
-
-        nation_list.update({userid: self})
     
     async def save(self):
         await db.save_nation(self)
@@ -435,7 +440,7 @@ system_opposites = {
     "Expansionist": "Territorialist"
 }
 
-def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
+async def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
     """
     A helper function to create new nations.
     """
@@ -451,8 +456,9 @@ def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
         elif existing_nation.userid == userid:
             raise errors.UserHasNation(userid)
 
-    nation = Nation(name, userid, Gov(systems), Econ())
-    nation.save()
+    nation = Nation(name, userid, Gov(userid, systems), Econ(userid))
+    nation_list[userid] = nation
+    await nation.save()
     return nation
 
 class UpgradeType:
@@ -630,20 +636,32 @@ class Link:
         nation_list[self.owner].cities[self.origin].save()
         nation_list[self.owner].cities[self.destination].save()
 
-def load_terrain():
+async def load_terrain():
     """
     Loads terrain data from tiles.json into the tiles singleton.
     """
-    logger.info("Starting terrain load...")
-    with open("data/tiles.json", "r") as f:
-        terrain_data = json.load(f)
-    
-    for location, tile_info in terrain_data.items():
-        location = tuple(map(int, location.strip("()").split(", ")))
-        terrain = tile_info['terrain']
-        Tile(terrain, location)
+    try:
+        logger.info("Starting terrain load...")
+        with open("data/tiles.json", "r") as f:
+            terrain_data = json.load(f)
+            logger.debug(terrain_data)
+        
+        for location, tile_info in terrain_data.items():
+            stripped_data = location.strip("()").split(", ")
+            logger.debug(stripped_data)
+            location = (int(stripped_data[0]), int(stripped_data[1]))
+            logger.debug(location)
+            terrain = tile_info['terrain']
 
-    logger.info("Terrain load complete")
+            tile = Tile(terrain, location)
+            tiles[location] = tile
+            logger.debug(tiles)
+            await tile.save()
+
+        logger.info("Terrain load complete")
+        logger.debug(tiles)
+    except Exception as e:
+        logger.error(f"Failed to load terrain data: {e}")
 
 async def load():
     """
@@ -652,7 +670,9 @@ async def load():
     logger.warning("Clearing nation data")
     nation_list.clear()
     units.clear()
-    tiles.clear()
+    
+    if not json_terrain:
+        tiles.clear()
     
     logger.info("Starting game data load...")
     nations_data = await db.load_nations_rows()
@@ -662,7 +682,8 @@ async def load():
             userid=row["id"],
             gov=None,      # filled later
             econ=None,     # filled later
-            dossier=row["dossier"],
+            dossier=json.loads(row["dossier"]),
+            color=Color(row["color"])
         )
         nation_list[row["id"]] = nation
 
@@ -686,7 +707,10 @@ async def load():
         )
         nation_list[row["nationid"]].econ = econ
 
-    tiles_data = await db.load_tiles_rows()
+    if not json_terrain:
+        tiles_data = await db.load_tiles_rows()
+    else:
+        tiles_data = {}
     for row in tiles_data:
         Tile(
             terrain=row["terrain"],
@@ -746,3 +770,4 @@ async def load():
         )
     
     logger.info("Loaded game data")
+    logger.debug(nation_list)
