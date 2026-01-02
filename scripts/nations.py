@@ -20,6 +20,7 @@ class Unit:
         self.name = name
         self.type = type
         self.home = home
+        self.owner = owner
         self.location = location
         self.strength = strength
         self.morale = morale
@@ -38,7 +39,7 @@ async def new_army(name: str, userid: int, city_name: str):
     
     nation_list[userid].gov.influence -= 1
 
-    new_unit = Unit(name, "army", city.location)
+    new_unit = Unit(name=name, type="army", location=city.location)
     nation_list[userid].military[name] = new_unit
 
     await nation_list[userid].save()
@@ -54,7 +55,7 @@ async def new_fleet(name: str, userid: int, city_name: str):
         raise errors.NotEnoughEI("Fleet creation", 2, nation_list[userid].econ.influence)
     
     nation_list[userid].gov.influence -= 2
-    new_unit = Unit(name, "fleet", city.location)
+    new_unit = Unit(name=name, type="fleet", location=city.location)
     nation_list[userid].military[name] = new_unit
 
     await nation_list[userid].save()
@@ -163,7 +164,7 @@ class City(Tile):
         self.inventory = inventory
     
     async def save(self):
-        db.save_city(self)
+        await db.save_city(self)
 
 async def new_city(name: str, location: tuple[int, int], owner: int):
     """
@@ -184,15 +185,12 @@ async def new_city(name: str, location: tuple[int, int], owner: int):
         else:
             raise errors.NotOwned('Settlement creation', tile.location)
     
-    logger.debug(nation_list)
-    logger.debug(owner)
-    logger.debug(nation_list[owner])
     nation_list[owner].tiles.append(to_be_claimed)
     for location in to_be_claimed:
         tiles[location].owner = owner
         await tiles[location].save()
 
-    new_city = City(tiles[location].terrain, name, location, owner, owner)
+    new_city = City(terrain=tiles[location].terrain, name=name, location=location, owner=owner)
     nation_list[owner].cities[name] = new_city
 
     await nation_list[owner].save()
@@ -429,7 +427,7 @@ class NationList(dict[int, Nation]):
         if key not in self.keys():
             raise errors.NationIDNotFound(key)
         else:
-            super().__getitem__(key)
+            return super().__getitem__(key)
 nation_list = NationList()
 
 system_opposites = {
@@ -456,7 +454,7 @@ async def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
         elif existing_nation.userid == userid:
             raise errors.UserHasNation(userid)
 
-    nation = Nation(name, userid, Gov(userid, systems), Econ(userid))
+    nation = Nation(name=name, userid=userid, gov=Gov(userid, systems), econ=Econ(userid))
     nation_list[userid] = nation
     await nation.save()
     return nation
@@ -644,24 +642,21 @@ async def load_terrain():
         logger.info("Starting terrain load...")
         with open("data/tiles.json", "r") as f:
             terrain_data = json.load(f)
-            logger.debug(terrain_data)
         
         for location, tile_info in terrain_data.items():
             stripped_data = location.strip("()").split(", ")
-            logger.debug(stripped_data)
             location = (int(stripped_data[0]), int(stripped_data[1]))
-            logger.debug(location)
             terrain = tile_info['terrain']
 
             tile = Tile(terrain, location)
             tiles[location] = tile
-            logger.debug(tiles)
             await tile.save()
 
         logger.info("Terrain load complete")
-        logger.debug(tiles)
+        logger.debug(f"The tile list looked like [{tiles}]")
     except Exception as e:
         logger.error(f"Failed to load terrain data: {e}")
+        raise
 
 async def load():
     """

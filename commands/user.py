@@ -49,22 +49,20 @@ class UserCog(discord.Cog):
     @discord.option("capital_y", input_type=int, description="The y-coordinate (2nd on the map) of your capital tile.")
     async def start(self, ctx: ApplicationContext, name: str, system_1: str, system_2: str, capital_name: str, capital_x: int, capital_y: int):
         try:
-            try:
-                logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
-                await new_nation(name, ctx.interaction.user.id, [system_1, system_2])
-                logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
-                await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
-                logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
-            except NationsException as e:
-                await error(ctx.interaction, e.user_message)
-                raise
-            
+            logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
+            await new_nation(name, ctx.interaction.user.id, [system_1, system_2])
+            logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
+            await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
+            logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
+        except NationsException as e:
+            await error(ctx.interaction, e.user_message)
+            raise
         except Exception as e:
             logger.error(f"Failed to create new nation for {ctx.interaction.user.name}: {e}")
             await error(ctx.interaction)
             raise
         
-        await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You can now get started whenever you want!")
+        await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You now have access to all game commands. Check out the user guide for help!")
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
 
     @discord.slash_command(description="Show a user's profile")

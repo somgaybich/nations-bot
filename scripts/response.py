@@ -19,6 +19,12 @@ async def response(interaction: Interaction, title: str, message: str, ephemeral
             ).set_footer(
                 text=footer
             ), ephemeral=ephemeral, view=view)
+        else:
+            await interaction.response.send_message(embed=Embed(
+            color=brand_color,
+            title=title,
+            description=message
+            ), ephemeral=ephemeral, view=view)
     except Exception as e:
         logger.error(f"Failed to send response message: {e}")
         raise
@@ -38,7 +44,7 @@ async def error(interaction: Interaction, message = ""):
             await interaction.response.send_message(embed=Embed(
                 color=brand_color,
                 title="Oops!",
-                description="There was a problem processing your request, but it was caught! Ping @madaman and she will take care of it as soon as possible!"
+                description="There was a problem processing your request! Ping @madaman and she will take care of it as soon as possible."
             ), ephemeral=True)
     except Exception as e:
         logger.error(f"Failed to send error message: {e}")

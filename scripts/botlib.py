@@ -24,12 +24,14 @@ class NationsBot(discord.Bot):
 
     @tasks.loop(minutes=5)
     async def db_commit(self):
+        logger.info("Committing database...")
         try:
             await get_db().commit()
+            logger.info("Committed all database changes")
         except Exception as e:
             logger.error(f"Unable to commit database: {e}")
             raise
-        
+
 bot = NationsBot()
 
 async def sync(bot: NationsBot) -> None:

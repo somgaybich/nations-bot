@@ -133,6 +133,7 @@ def get_db() -> aiosqlite.Connection:
 # ---------------
 
 async def save_nation(nation):
+    logger.debug(f"Saving nation at {nation.userid}")
     await get_db().execute(
         """
         INSERT INTO nations (id, name, dossier, color)
@@ -152,6 +153,7 @@ async def load_nations_rows():
 # ---------------
 
 async def save_unit(unit):
+    logger.debug(f"Saving unit at {unit.id}")
     if unit.id is None:
         async with get_db().execute(
             """
@@ -207,6 +209,7 @@ async def load_units_rows():
 # ---------------
 
 async def save_tile(tile):
+    logger.debug(f"Saving tile at {tile.location}")
     x, y = tile.location
     await get_db().execute(
         """
@@ -234,13 +237,14 @@ async def load_tiles_rows():
 # ---------------
 
 async def save_city(city):
+    logger.debug(f"Saving city at {city.location}")
     x, y = city.location
     await get_db().execute(
         """
         INSERT INTO cities (
         x, y, name, influence, tier, stability, popularity, inventory, owner, upgrades
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             name = excluded.name,
             influence = excluded.influence,
@@ -262,6 +266,7 @@ async def load_cities_rows():
 # ---------------
 
 async def save_subdivision(subdivision):
+    logger.debug(f"Saving subdivision at {subdivision.id}")
     if subdivision.id is None:
         async with get_db().execute(
             """
@@ -291,6 +296,7 @@ async def load_subdivisions_rows():
 # ---------------
 
 async def save_link(link):
+    logger.debug(f"Saving link at {link.id}")
     if link.id is None:
         async with get_db().execute(
             """
@@ -320,6 +326,7 @@ async def load_links_rows():
 # ---------------
 
 async def save_government(gov):
+    logger.debug(f"Saving government at {gov.nationid}")
     await get_db().execute(
         """
         INSERT INTO governments (
@@ -342,6 +349,7 @@ async def load_governments_rows():
 # ---------------
 
 async def save_economy(econ):
+    logger.debug(f"Saving economy at {econ.nationid}")
     await get_db().execute(
         """
         INSERT INTO economies (nationid, influence, influence_cap)
