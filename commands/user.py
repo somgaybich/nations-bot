@@ -3,6 +3,7 @@ import asyncio
 import discord
 from discord import ApplicationContext, Embed
 
+from scripts.constants import brand_color
 from scripts.nations import City, Tile, Link, nation_list, upgrade_types, units, new_nation, new_city, new_army, new_fleet
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException, InvalidLocation
@@ -158,12 +159,12 @@ class UserCog(discord.Cog):
             while not finished:
                 # TODO: Add a map image showing current railroad progress
                 direction_future = asyncio.Future()
-                ctx.interaction.followup.edit_message(embed=Embed(
+                await ctx.interaction.followup.edit_message(embed=Embed(
+                    color=brand_color,
                     title="Choose a direction",
                     description="Select a direction for your railway to head next."
                 ), view=DirectionView(direction_future, timeout=60))
-                while not direction_future.done():
-                    await asyncio.sleep(1)
+                await asyncio.wait([direction_future])
                 
                 direction = direction_future.result()
                 match direction:

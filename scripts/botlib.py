@@ -1,8 +1,10 @@
 import logging
 import discord
 import time
+from datetime import datetime, timezone
 from discord.ext import tasks
 
+from scripts.nations import tick
 from scripts.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -12,6 +14,8 @@ from scripts.constants import OPGUILD_ID
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):
         kwargs.setdefault("intents", discord.Intents.default())
+        self.db_commit.start()
+        self.tick.start()
         super().__init__(**kwargs)
 
     async def on_ready(self):
@@ -31,6 +35,15 @@ class NationsBot(discord.Bot):
         except Exception as e:
             logger.error(f"Unable to commit database: {e}")
             raise
+    
+    @tasks.loop(hours=1)
+    async def tick(self):
+        if datetime.now(timezone.utc).hour == 0:
+            try:
+                await tick()
+            except Exception as e:
+                logger.error(f"Failed to execute game tick: {e}")
+                raise
 
 bot = NationsBot()
 

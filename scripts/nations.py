@@ -1,6 +1,7 @@
 import json
 import math
 import logging
+import datetime
 from discord import Embed, Color
 
 from scripts.constants import current_season, json_terrain
@@ -214,7 +215,7 @@ class Gov:
     """
     Represents a nation's government.
     """
-    def __init__(self, nationid: int, systems: list, influence: int = 4, influence_cap: int = 4, events = [], streaks = {}):
+    def __init__(self, nationid: int, systems: list, influence: int = 4, influence_cap: int = 4, events: list = [], streaks: dict = {}):
         self.nationid = nationid
         self.systems = systems
         self.influence = influence
@@ -241,14 +242,14 @@ class Gov:
         if "Militaristic" in self.systems:
             mil_cap = 0
         else:
-            mil_cap = math.floor(0.2 * len(units))
+            mil_cap = math.floor(0.2 * units)
 
         if "Federalist" in self.systems:
-            admin_cap = math.floor(0.3 * len(units))
+            admin_cap = math.floor(0.3 * units)
         elif "Centralist" in self.systems:
             admin_cap = 0
         else:
-            admin_cap = math.floor(0.2 * len(units))
+            admin_cap = math.floor(0.2 * units)
         
         espionage_cost = 0
         if not len(nation.espionage) == 0:
@@ -279,7 +280,7 @@ class Gov:
             new_events.append((category, age))
             
         self.events = new_events
-        self.save()
+        await self.save()
     
     def system_pi(self, system: str) -> int:
         """
@@ -290,16 +291,18 @@ class Gov:
         match system:
             case "Authoritarian":
                 total_stability = 0
-                for city in nation.cities:
+                city_list = nation.cities.values()
+                for city in city_list:
                     total_stability += city.stability
-                avg_stability = total_stability / len(nation.cities)
+                avg_stability = total_stability / len(city_list)
         
                 return math.floor((avg_stability - 80) / 10)
             case "Democratic":
                 total_popularity = 0
-                for city in nation.cities:
+                city_list = nation.cities.values()
+                for city in city_list:
                     total_popularity += city.popularity
-                avg_popularity = total_popularity / len(nation.cities)
+                avg_popularity = total_popularity / len(city_list)
                 
                 return math.floor((avg_popularity - 65) / 15)
             case "Militaristic":
@@ -360,7 +363,7 @@ class Gov:
                 self.streaks["Urbanist"] = 0
                 return -prev_streak
             case _:
-                raise ValueError("Invalid system (make sure it's capitalized!)")
+                raise ValueError(f"Invalid system {system}")
 
 class Subdivision:
     """
@@ -453,10 +456,15 @@ async def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
             raise errors.NationNameInUse(name)
         elif existing_nation.userid == userid:
             raise errors.UserHasNation(userid)
-
-    nation = Nation(name=name, userid=userid, gov=Gov(userid, systems), econ=Econ(userid))
+    
+    gov = Gov(userid, systems)
+    econ = Econ(userid)
+    nation = Nation(name=name, userid=userid, gov=gov, econ=econ)
     nation_list[userid] = nation
+    
     await nation.save()
+    await gov.save()
+    await econ.save()
     return nation
 
 class UpgradeType:
@@ -552,6 +560,9 @@ class Link:
         self.owner = owner
         self.linktype = linktype
     
+    async def save(self):
+        await db.save_link(self)
+
     def build_free(self):
         """
         An alternate form of build that doesn't cost anything, mainly for use in load().
@@ -634,6 +645,23 @@ class Link:
         nation_list[self.owner].cities[self.origin].save()
         nation_list[self.owner].cities[self.destination].save()
 
+async def tick():
+    logger.info("Processing game tick...")
+    for nation in nation_list.values():
+        logger.debug(f"Processing tick for {nation.name}")
+        await nation.gov.event_update()
+        nation.gov.influence_cap = 0
+        for system in nation.gov.systems:
+            nation.gov.influence_cap += nation.gov.system_pi(system)
+        nation.gov.influence = nation.gov.influence_cap - nation.gov.upkeep()
+
+        await nation.save()
+        await nation.gov.save()
+        await nation.econ.save()
+        logger.debug(f"Tick for {nation.name} complete")
+    
+    logger.info("Game tick complete.")
+
 async def load_terrain():
     """
     Loads terrain data from tiles.json into the tiles singleton.
@@ -687,10 +715,11 @@ async def load():
         gov = Gov(
             nationid=row["nationid"],
             systems=json.loads(row["systems"]),
+            streaks=json.loads(row["streaks"]),
+            events=json.loads(row["events"]),
             influence=row["influence"],
-            influence_cap=row["influence_cap"],
+            influence_cap=row["influence_cap"]
         )
-        gov.streaks = json.loads(row["streaks"])
         nation_list[row["nationid"]].gov = gov
 
     economies_data = await db.load_economies_rows()

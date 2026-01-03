@@ -50,3 +50,29 @@ class DirectionView(discord.ui.View):
     )
     async def select_callback(self, select, interaction):
         self.future.set_result(select)
+
+class ConfirmView(discord.ui.View):
+    def __init__(self, future: asyncio.Future):
+        super().__init__()
+        self.future = future
+    
+    async def on_timeout(self):
+        self.disable_all_items()
+        await self.message.edit(content="You took too long to confirm!", view=self)
+        raise TimeoutError("User took too long to confirm")
+    
+    @discord.ui.select(
+        placeholder="Are you sure?",
+        min_values=1,
+        max_values=1,
+        options=[
+            discord.SelectOption(
+                label="Yes"
+            ),
+            discord.SelectOption(
+                label="No"
+            )
+        ]
+    )
+    async def select_callback(self, select, interaction):
+        self.future.set_result(select)

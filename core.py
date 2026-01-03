@@ -6,7 +6,7 @@ import logging
 import time
 
 from scripts.constants import json_terrain
-from scripts.database import init_db
+from scripts.database import init_db, get_db
 from scripts.nations import load_terrain, load
 from scripts.log import log_setup
 log_setup()
@@ -44,8 +44,10 @@ async def main():
         await bot.start(token)
     finally:
         logger.critical("Shutting down.")
+        await get_db().commit()
         if not bot.is_closed():
             await bot.close()
+        return
 
 if __name__ == "__main__":
     try:

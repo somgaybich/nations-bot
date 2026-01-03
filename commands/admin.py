@@ -1,9 +1,14 @@
 import traceback
 import logging
+import asyncio
+import json
 
 import discord
-from discord import ApplicationContext
+from discord import Embed, ApplicationContext
 
+from scripts.nations import tick, nation_list
+from scripts.ui import ConfirmView
+from scripts.constants import brand_color
 from scripts.botlib import sync
 
 logger = logging.getLogger(__name__)
@@ -25,6 +30,28 @@ class AdminCog(discord.Cog):
         except Exception as e:
             await ctx.interaction.response.send_message(f"Error reloading {extension}:\n```\n{traceback.format_exc()}\n```", ephemeral=True)
             logger.error(f"Failed to reload extension {extension}: {e}")
+            raise
+
+    @discord.slash_command(description="Force a game tick.")
+    async def admin_tick(self, ctx: ApplicationContext):
+        confirm_future = asyncio.Future()
+        await ctx.interaction.response.send_message(embed=Embed(
+            color=brand_color,
+            title="Are you sure?",
+            description="Forcing a tick at the wrong time may invalidate nation data."
+        ), view=ConfirmView(confirm_future))
+        await asyncio.wait([confirm_future])
+        
+        if confirm_future.result() == "No":
+            await ctx.interaction.response.edit_message("Cancelled.")
+            return
+        
+        try:
+            await tick()
+            await ctx.interaction.response.edit_message("Success!")
+        except Exception as e:
+            await ctx.interaction.response.edit_message("Failed to complete a game tick.")
+            logger.error(f"Couldn't execute game tick: {e}")
             raise
 
 def setup(bot: discord.Bot):

@@ -260,7 +260,7 @@ async def save_city(city):
     )
 
 async def load_cities_rows():
-    async with get_db().execute("SELECT * FROM units") as cursor:
+    async with get_db().execute("SELECT * FROM cities") as cursor:
         return await cursor.fetchall()
 
 # ---------------
@@ -339,7 +339,7 @@ async def save_government(gov):
             streaks = excluded.streaks,
             events = excluded.events
         """,
-        (gov.nationid, gov.influence, gov.influence_cap, gov.systems, gov.streaks, gov.events)
+        (gov.nationid, gov.influence, gov.influence_cap, json.dumps(gov.systems), json.dumps(gov.streaks), json.dumps(gov.events))
     )
 
 async def load_governments_rows():
