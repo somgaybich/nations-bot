@@ -2,7 +2,7 @@ from PIL import Image
 import logging
 import math
 
-from scripts.nations import tiles, TileList, City
+from scripts.nations import tile_list, TileDict, City
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,8 @@ def render_snapshot(corner1, corner2, padding=0):
         q_max = math.floor(u_max)
 
         # collect tiles whose (u,v) lies inside the rectangle
-        selected = TileList()
-        for key, tile in tiles.items():
+        selected = TileDict()
+        for key, tile in tile_list.items():
             # defend against bad keys
             try:
                 q, r = key

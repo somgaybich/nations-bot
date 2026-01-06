@@ -1,10 +1,9 @@
 import json
 import math
 import logging
-import datetime
 from discord import Embed, Color
 
-from scripts.constants import current_season, json_terrain
+from scripts.constants import current_season, update_season, json_terrain
 import scripts.database as db
 import scripts.errors as errors
 
@@ -74,22 +73,22 @@ class Tile:
         await db.save_tile(self)
     
     def n(self) -> "Tile":
-        return tiles[(self.location[0], self.location[1] - 1)]
+        return tile_list[(self.location[0], self.location[1] - 1)]
 
     def nw(self) -> "Tile":
-        return tiles[(self.location[0] - 1, self.location[1])]
+        return tile_list[(self.location[0] - 1, self.location[1])]
 
     def sw(self) -> "Tile":
-        return tiles[(self.location[0] - 1, self.location[1] - 1)]
+        return tile_list[(self.location[0] - 1, self.location[1] - 1)]
 
     def s(self) -> "Tile":
-        return tiles[(self.location[0], self.location[1] + 1)]
+        return tile_list[(self.location[0], self.location[1] + 1)]
 
     def ne(self) -> "Tile":
-        return tiles[(self.location[0] + 1, self.location[1] - 1)]
+        return tile_list[(self.location[0] + 1, self.location[1] - 1)]
 
     def se(self) -> "Tile":
-        return tiles[(self.location[0] + 1, self.location[1])]
+        return tile_list[(self.location[0] + 1, self.location[1])]
 
     def area(self) -> list["Tile"]:
         area = [self]
@@ -108,7 +107,7 @@ class Tile:
             result |= tile.area()
         return result
 
-class TileList(dict[tuple[int, int], Tile]):
+class TileDict(dict[tuple[int, int], Tile]):
     """
     A singleton class for storing tile data.
     """
@@ -142,7 +141,7 @@ class TileList(dict[tuple[int, int], Tile]):
             return super().get(key, default)
         except Exception as e:
             logger.warning(f"Failed to get tile at {key}: {e}")
-tiles = TileList()
+tile_list = TileDict()
 
 def hex_distance(a: Tile, b: Tile) -> int:
     aq, ar = a.location
@@ -170,13 +169,13 @@ async def new_city(name: str, location: tuple[int, int], owner: int):
     """
     A helper function for making new cities.
     """
-    if tiles[location].terrain == "ocean":
+    if tile_list[location].terrain == "ocean":
         raise errors.InvalidLocation("Settlement creation", "in ocean tiles")
-    elif tiles[location].terrain == "high_mountains":
+    elif tile_list[location].terrain == "high_mountains":
         raise errors.InvalidLocation("Settlement creation", "in high mountains")
     
     to_be_claimed = []
-    for tile in tiles[location].area():
+    for tile in tile_list[location].area():
         if tile.owner == None:
             to_be_claimed.append(tile.location)
         elif tile.owner == owner:
@@ -187,10 +186,10 @@ async def new_city(name: str, location: tuple[int, int], owner: int):
     
     nation_list[owner].tiles.append(to_be_claimed)
     for location in to_be_claimed:
-        tiles[location].owner = owner
-        await tiles[location].save()
+        tile_list[location].owner = owner
+        await tile_list[location].save()
 
-    new_city = City(terrain=tiles[location].terrain, name=name, location=location, owner=owner)
+    new_city = City(terrain=tile_list[location].terrain, name=name, location=location, owner=owner)
     nation_list[owner].cities[name] = new_city
 
     await nation_list[owner].save()
@@ -241,7 +240,7 @@ class Nation:
             text=message
         )
 
-class NationList(dict[int, Nation]):
+class NationDict(dict[int, Nation]):
     """
     A singleton for storing nation data.
     """
@@ -250,15 +249,7 @@ class NationList(dict[int, Nation]):
             raise errors.NationIDNotFound(key)
         else:
             return super().__getitem__(key)
-nation_list = NationList()
-
-system_opposites = {
-    "Authoritarian": "Democratic",
-    "Militaristic": "Pacifist",
-    "Federalist": "Centralist",
-    "Isolationist": "Mercantilist",
-    "Expansionist": "Territorialist"
-}
+nation_list = NationDict()
 
 async def new_nation(name: str, userid: int) -> Nation:
     """
@@ -294,7 +285,7 @@ class UpgradeType:
         nation = nation_list.get(userid)
         if nation is None:
             raise errors.NationIDNotFound(userid)
-        tile = tiles.get(location)
+        tile = tile_list.get(location)
         city = nation.cities.get(city_name)
         if tile is None:
             raise errors.DoesNotExist("tile", f"{self.name.capitalize()} creation", location)
@@ -324,14 +315,14 @@ class UpgradeType:
             if self.prereq not in tile.upgrades:
                 raise errors.MissingUpgrade(f"{self.name.capitalize()} creation", self.prereq)
             
-            tiles[location].upgrades.remove(self.prereq)
-            await tiles[location].save()
+            tile_list[location].upgrades.remove(self.prereq)
+            await tile_list[location].save()
 
         for item in self.resource_cost:
             nation_list[userid].cities[city_name].inventory.remove(item)
         nation_list[userid].econ.influence -= self.ei_cost
 
-        tiles[location].upgrades.append(self.name)
+        tile_list[location].upgrades.append(self.name)
 
         if self.name == "Temple" or self.name == "Grand Temple":
             nation_list[userid].cities[city_name].popularity += min(100, round((nation_list[userid].cities[city_name].popularity / 10) + 5))
@@ -339,7 +330,7 @@ class UpgradeType:
 
         await nation_list[userid].save()
         await nation_list[userid].cities[city_name].save()
-        await tiles[location].save()
+        await tile_list[location].save()
 
 upgrade_types = {
     "temple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Temple"),
@@ -379,8 +370,8 @@ class Link:
         An alternate form of build that doesn't cost anything, mainly for use in load().
         """
         for location in self.path:
-            tiles[location].upgrades.append(self.linktype)
-            tiles[location].save()
+            tile_list[location].upgrades.append(self.linktype)
+            tile_list[location].save()
         nation_list[self.owner].links.append(self)
 
         nation_list[self.owner].save()
@@ -448,8 +439,8 @@ class Link:
         nation_list[self.owner].econ.influence -= ei_cost
 
         for location in self.path:
-            tiles[location].upgrades.append(self.linktype)
-            tiles[location].save()
+            tile_list[location].upgrades.append(self.linktype)
+            tile_list[location].save()
         nation_list[self.owner].links.append(self)
 
         nation_list[self.owner].save()
@@ -465,6 +456,7 @@ async def tick():
         await nation.econ.save()
         logger.debug(f"Tick for {nation.name} complete")
     
+    update_season()
     logger.info("Game tick complete.")
 
 async def load_terrain():
@@ -482,11 +474,11 @@ async def load_terrain():
             terrain = tile_info['terrain']
 
             tile = Tile(terrain, location)
-            tiles[location] = tile
+            tile_list[location] = tile
             await tile.save()
 
         logger.info("Terrain load complete")
-        logger.debug(f"The tile list looked like [{tiles}]")
+        logger.debug(f"The tile list looked like [{tile_list}]")
     except Exception as e:
         logger.error(f"Failed to load terrain data: {e}")
         raise
@@ -500,7 +492,7 @@ async def load():
     units.clear()
     
     if not json_terrain:
-        tiles.clear()
+        tile_list.clear()
     
     logger.info("Starting game data load...")
     nations_data = await db.load_nations_rows()
@@ -540,7 +532,7 @@ async def load():
     cities_data = await db.load_cities_rows()
     for row in cities_data:
         nation_list[row["owner"]].cities[row["name"]] = City(
-            terrain=tiles[(row["x"], row["y"])].terrain,
+            terrain=tile_list[(row["x"], row["y"])].terrain,
             name=row["name"],
             influence=row["influence"],
             tier=row["tier"],
