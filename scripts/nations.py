@@ -478,7 +478,7 @@ async def load_terrain():
             await tile.save()
 
         logger.info("Terrain load complete")
-        logger.debug(f"The tile list looked like [{tile_list}]")
+        logger.debug(f"[{tile_list}]")
     except Exception as e:
         logger.error(f"Failed to load terrain data: {e}")
         raise
@@ -500,8 +500,6 @@ async def load():
         nation = Nation(
             name=row["name"],
             userid=row["id"],
-            gov=None,      # filled later
-            econ=None,     # filled later
             dossier=json.loads(row["dossier"]),
             color=Color(row["color"])
         )
