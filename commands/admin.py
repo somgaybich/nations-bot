@@ -33,24 +33,40 @@ class AdminCog(discord.Cog):
             raise
 
     @discord.slash_command(description="Force a game tick.")
-    async def admin_tick(self, ctx: ApplicationContext):
+    async def tick(self, ctx: ApplicationContext):
         confirm_future = asyncio.Future()
+        view = ConfirmView(confirm_future)
         await ctx.interaction.response.send_message(embed=Embed(
             color=brand_color,
             title="Are you sure?",
             description="Forcing a tick at the wrong time may invalidate nation data."
-        ), view=ConfirmView(confirm_future))
-        await asyncio.wait([confirm_future])
+        ), view=view)
+        message = await ctx.interaction.original_response()
+        view.message = message
         
-        if confirm_future.result() == "No":
-            await ctx.interaction.response.edit_message("Cancelled.")
+        result = await confirm_future
+        if result == "No" or result is None:
+            await message.edit(embed=Embed(
+                color=brand_color,
+                title="Cancelled",
+                description="Game tick was cancelled or timed out."
+            ))
             return
         
         try:
             await tick()
-            await ctx.interaction.response.edit_message("Success!")
+            await message.edit(embed=Embed(
+                color=brand_color,
+                title="Success!",
+                description="Game tick processed."
+            ))
+            return
         except Exception as e:
-            await ctx.interaction.response.edit_message("Failed to complete a game tick.")
+            await message.edit(embed=Embed(
+                color=brand_color,
+                title="Oops!",
+                description="There was an issue executing the game tick."
+            ))
             logger.error(f"Couldn't execute game tick: {e}")
             raise
 
