@@ -61,8 +61,6 @@ class ConfirmView(discord.ui.View):
     
     async def on_timeout(self):
         self.disable_all_items()
-        if self.message:
-            await self.message.edit(view=self)
         if not self.future.done():
             self.future.set_result(None)
     
@@ -76,7 +74,6 @@ class ConfirmView(discord.ui.View):
     )
     async def select_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
         self.disable_all_items()
-        await interaction.response.edit_message(view=self)
 
         if not self.future.done():
             self.future.set_result(select.values[0])
