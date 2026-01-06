@@ -75,16 +75,6 @@ async def init_db():
 
     await _db.execute(
     """
-    CREATE TABLE IF NOT EXISTS subdivisions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        nationid INTEGER NOT NULL,
-        cities TEXT NOT NULL)
-    """)
-    logger.debug("Created subdivisions table")
-
-    await _db.execute(
-    """
     CREATE TABLE IF NOT EXISTS links (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         linktype TEXT NOT NULL,
@@ -94,18 +84,6 @@ async def init_db():
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created links table")
-
-    await _db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS governments (
-        nationid INTEGER PRIMARY KEY,
-        influence INTEGER NOT NULL,
-        influence_cap INTEGER NOT NULL,
-        systems TEXT NOT NULL,
-        streaks TEXT NOT NULL,
-        events TEXT NOT NULL)
-    """)
-    logger.debug("Created governments table")
         
     await _db.execute(
         """
@@ -265,36 +243,6 @@ async def load_cities_rows():
 
 # ---------------
 
-async def save_subdivision(subdivision):
-    logger.debug(f"Saving subdivision at {subdivision.id}")
-    if subdivision.id is None:
-        async with get_db().execute(
-            """
-            INSERT INTO subdivisions (name, nationid, cities)
-            VALUES (?, ?, ?)
-            """,
-            (subdivision.name, subdivision.nationid, json.dumps(subdivision.cities))
-        ) as cursor:
-            subdivision.id = cursor.lastrowid
-    else:
-        await get_db().execute(
-            """
-            UPDATE name = ?, nationid = ?, cities = ?
-            WHERE id = ?
-            """,
-            (subdivision.name, subdivision.nationid, json.dumps(subdivision.cities), subdivision.id)
-        )
-        
-async def delete_subdivision(subdivision):
-    if subdivision.id is not None:
-        await get_db().execute("DELETE FROM subdivisions WHERE id = ?", (subdivision.id,))
-
-async def load_subdivisions_rows():
-    async with get_db().execute("SELECT * FROM subdivisions") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
 async def save_link(link):
     logger.debug(f"Saving link at {link.id}")
     if link.id is None:
@@ -321,29 +269,6 @@ async def delete_link(link):
 
 async def load_links_rows():
     async with get_db().execute("SELECT * FROM links") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
-async def save_government(gov):
-    logger.debug(f"Saving government at {gov.nationid}")
-    await get_db().execute(
-        """
-        INSERT INTO governments (
-        nationid, influence, influence_cap, systems, streaks, events)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(nationid) DO UPDATE SET
-            influence = excluded.influence,
-            influence_cap = excluded.influence_cap,
-            systems = excluded.systems,
-            streaks = excluded.streaks,
-            events = excluded.events
-        """,
-        (gov.nationid, gov.influence, gov.influence_cap, json.dumps(gov.systems), json.dumps(gov.streaks), json.dumps(gov.events))
-    )
-
-async def load_governments_rows():
-    async with get_db().execute("SELECT * FROM governments") as cursor:
         return await cursor.fetchall()
 
 # ---------------

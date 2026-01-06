@@ -37,21 +37,13 @@ class UserCog(discord.Cog):
 
     @discord.slash_command(description="Make a new nation.")
     @discord.option("name", input_type=str, description="The name of your new nation.")
-    @discord.option("system_1", input_type=str, description="A system your government uses to gain power.", choices=[
-        "Authoritarian", "Democratic", "Militaristic", "Pacifist", "Federalist", "Centralist",
-        "Isolationist", "Mercantilist", "Expansionist", "Territorialist", "Urbanist"
-    ])
-    @discord.option("system_2", input_type=str, description="A system your government uses to gain power.", choices=[
-        "Authoritarian", "Democratic", "Militaristic", "Pacifist", "Federalist", "Centralist",
-        "Isolationist", "Mercantilist", "Expansionist", "Territorialist", "Urbanist"
-    ])
     @discord.option("capital_name", input_type=str, description="The name of your new capital city.")
     @discord.option("capital_x", input_type=int, description="The x-coordinate (1st on the map) of your capital tile.")
     @discord.option("capital_y", input_type=int, description="The y-coordinate (2nd on the map) of your capital tile.")
-    async def start(self, ctx: ApplicationContext, name: str, system_1: str, system_2: str, capital_name: str, capital_x: int, capital_y: int):
+    async def start(self, ctx: ApplicationContext, name: str, capital_name: str, capital_x: int, capital_y: int):
         try:
             logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
-            await new_nation(name, ctx.interaction.user.id, [system_1, system_2])
+            await new_nation(name, ctx.interaction.user.id)
             logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
             await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
             logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")

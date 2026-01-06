@@ -38,8 +38,7 @@ async def new_army(name: str, userid: int, city_name: str):
     if nation_list[userid].econ.influence < 1:
         return errors.NotEnoughEI("Army creation", 1, nation_list[userid].econ.influence)
     
-    nation_list[userid].gov.influence -= 1
-
+    nation_list[userid].econ.influence -= 1
     new_unit = Unit(name=name, type="army", location=city.location)
     nation_list[userid].military[name] = new_unit
 
@@ -55,7 +54,7 @@ async def new_fleet(name: str, userid: int, city_name: str):
     if nation_list[userid].econ.influence < 2:
         raise errors.NotEnoughEI("Fleet creation", 2, nation_list[userid].econ.influence)
     
-    nation_list[userid].gov.influence -= 2
+    nation_list[userid].econ.influence -= 2
     new_unit = Unit(name=name, type="fleet", location=city.location)
     nation_list[userid].military[name] = new_unit
 
@@ -211,195 +210,15 @@ class Econ:
     async def save(self):
         await db.save_economy(self)
 
-class Gov:
-    """
-    Represents a nation's government.
-    """
-    def __init__(self, nationid: int, systems: list, influence: int = 4, influence_cap: int = 4, events: list = [], streaks: dict = {}):
-        self.nationid = nationid
-        self.systems = systems
-        self.influence = influence
-        self.influence_cap = influence_cap
-
-        # Used to store system-specific triggers i.e. new cities being built
-        # Stored as tuples of (category, age)
-        self.events = []
-
-        # General-use variable for storing streaks of things for cap calculations
-        # Expansionist stores a boolean of whether the minimum expansion was met last year
-        # Territorialist & Urbanist use this to store PI gained last season
-        self.streaks = {}
-    
-    async def save(self):
-        await db.save_government(self)
-    
-    def upkeep(self) -> int:
-        """
-        Calculates PI upkeep costs for one season.
-        """
-        nation = nation_list[self.nationid]
-        units = len(nation.military)
-        if "Militaristic" in self.systems:
-            mil_cap = 0
-        else:
-            mil_cap = math.floor(0.2 * units)
-
-        if "Federalist" in self.systems:
-            admin_cap = math.floor(0.3 * units)
-        elif "Centralist" in self.systems:
-            admin_cap = 0
-        else:
-            admin_cap = math.floor(0.2 * units)
-        
-        espionage_cost = 0
-        if not len(nation.espionage) == 0:
-            for action in nation.espionage:
-                espionage_cost += action['cost']
-
-        return mil_cap + admin_cap + espionage_cost
-
-    async def event_update(self):
-        """
-        Updates stored events. Should be called for every government every season.
-        """
-        new_events = []
-        for category, age in self.events:
-            age += 1
-            if "Pacifist" in self.systems and category == "new_army":
-                continue
-            if "Mercantilist" in self.systems and category == "new_trade":
-                continue
-            if "Territorialist" in self.systems and category == "new_tile":
-                continue
-            if "Urbanist" in self.systems and category == "tier_up":
-                continue
-            if "Isolationist" in self.systems and category == "new_trade" and current_season == 1:
-                continue
-            if "Expansionist" in self.systems and category == "new_tile" and current_season == 1:
-                continue
-            new_events.append((category, age))
-            
-        self.events = new_events
-        await self.save()
-    
-    def system_pi(self, system: str) -> int:
-        """
-        Calculates the PI added by a particular system.
-        """
-        nation = nation_list[self.nationid]
-
-        match system:
-            case "Authoritarian":
-                total_stability = 0
-                city_list = nation.cities.values()
-                for city in city_list:
-                    total_stability += city.stability
-                avg_stability = total_stability / len(city_list)
-        
-                return math.floor((avg_stability - 80) / 10)
-            case "Democratic":
-                total_popularity = 0
-                city_list = nation.cities.values()
-                for city in city_list:
-                    total_popularity += city.popularity
-                avg_popularity = total_popularity / len(city_list)
-                
-                return math.floor((avg_popularity - 65) / 15)
-            case "Militaristic":
-                return math.floor(len(nation.military) / 7)
-            case "Pacifist":
-                if not "new_army" in self.events:
-                    return 1
-                else:
-                    return -2 * self.events.count("new_army")
-            case "Federalist":
-                total_power = 0
-                for subdivision in nation.subdivisions:
-                    total_power += subdivision.power
-                avg_power = total_power / len(nation.subdivisions)
-                
-                return math.floor(0.4 * avg_power)
-            # Centralist doesn't add or subtract any PI
-            case "Centralist":
-                pass
-            case "Isolationist":
-                if not current_season == 0:
-                    return 0
-                
-                if not "new_trade" in self.events:
-                    return 4
-                else:
-                    return -2 * self.events.count("new_trade")
-            case "Mercantilist":
-                if "new_trade" in self.events:
-                    return 1
-                else:
-                    return -1
-            case "Expansionist":
-                if current_season == 0:
-                    if self.streaks["Expansionist"] == True:
-                        if self.events.count("new_tile") >= 10:
-                            return 0
-                        self.streaks["Expansionist"] == False
-                        return -6
-                    if self.events.count("new_tile") >= 10:
-                        self.streaks["Expansionist"] == True
-                        return 6
-                    else:
-                        return 0
-                return 0
-            case "Territorialist":
-                if not "new_tile" in self.events:
-                    self.streaks["Territorialist"] = min(10, self.streaks["Territorialist"] + 2)
-                    return self.streaks["Territorialist"]
-                prev_streak = self.streaks["Territorialist"]
-                self.streaks["Territorialist"] = 0
-                return -prev_streak
-            case "Urbanist":
-                if "tier_up" in self.events:
-                    self.streaks["Urbanist"] = 3 * self.events.count("tier_up")
-                    return self.streaks["Urbanist"]
-                prev_streak = self.streaks["Urbanist"]
-                self.streaks["Urbanist"] = 0
-                return -prev_streak
-            case _:
-                raise ValueError(f"Invalid system {system}")
-
-class Subdivision:
-    """
-    A segment of a nation created for easier administration.
-    """
-    def __init__(self, name: str, nationid: int, cities: list[str]):
-        self.name = name
-        self.nationid = nationid
-        self.cities = cities
-        self.power = 0
-        self.update_power()
-    
-    async def save(self):
-        await db.save_subdivision(self)
-        
-    async def update_power(self):
-        influence = 0
-        for city_name in self.cities:
-            influence += nation_list[self.nationid].cities[city_name].influence
-        
-        total_influence = nation_list[self.nationid].econ.influence_cap
-        self.power = total_influence / influence\
-        
-        self.save()
-
 class Nation:
     """
     The top object in the hierarchy, which contains all information about a nation.
     """
-    def __init__(self, name: str, userid: int, gov: Gov, econ: Econ, 
-                 cities={}, links=[], tiles=[], military=[], subdivisions=[], espionage=[], dossier={}, color=Color.random()):
+    def __init__(self, name: str, userid: int, econ: Econ, 
+                 cities={}, links=[], tiles=[], military=[], espionage=[], dossier={}, color=Color.random()):
         self.name: str = name
         self.userid: int = userid
-        self.gov: Gov = gov
         self.econ: Econ = econ
-        self.subdivisions: dict[str, Subdivision] = subdivisions
         self.cities: dict[str, City] = cities
         self.links: list[Link] = links
         self.tiles: list[tuple[int, int]] = tiles
@@ -441,29 +260,21 @@ system_opposites = {
     "Expansionist": "Territorialist"
 }
 
-async def new_nation(name: str, userid: int, systems: list[str]) -> Nation:
+async def new_nation(name: str, userid: int) -> Nation:
     """
     A helper function to create new nations.
     """
-    if len(systems) != len(set(systems)):
-        raise errors.InvalidSystems("The system list contained duplicates!")
-    for system in systems:
-        if system_opposites[system] in systems:
-            raise errors.InvalidSystems("The system list contained opposites!")
-    
     for existing_nation in nation_list.values():
         if existing_nation.name == name:
             raise errors.NationNameInUse(name)
         elif existing_nation.userid == userid:
             raise errors.UserHasNation(userid)
     
-    gov = Gov(userid, systems)
     econ = Econ(userid)
-    nation = Nation(name=name, userid=userid, gov=gov, econ=econ)
+    nation = Nation(name=name, userid=userid, econ=econ)
     nation_list[userid] = nation
     
     await nation.save()
-    await gov.save()
     await econ.save()
     return nation
 
@@ -649,14 +460,8 @@ async def tick():
     logger.info("Processing game tick...")
     for nation in nation_list.values():
         logger.debug(f"Processing tick for {nation.name}")
-        await nation.gov.event_update()
-        nation.gov.influence_cap = 0
-        for system in nation.gov.systems:
-            nation.gov.influence_cap += nation.gov.system_pi(system)
-        nation.gov.influence = nation.gov.influence_cap - nation.gov.upkeep()
 
         await nation.save()
-        await nation.gov.save()
         await nation.econ.save()
         logger.debug(f"Tick for {nation.name} complete")
     
@@ -709,18 +514,6 @@ async def load():
             color=Color(row["color"])
         )
         nation_list[row["id"]] = nation
-
-    governments_data = await db.load_governments_rows()
-    for row in governments_data:
-        gov = Gov(
-            nationid=row["nationid"],
-            systems=json.loads(row["systems"]),
-            streaks=json.loads(row["streaks"]),
-            events=json.loads(row["events"]),
-            influence=row["influence"],
-            influence_cap=row["influence_cap"]
-        )
-        nation_list[row["nationid"]].gov = gov
 
     economies_data = await db.load_economies_rows()
     for row in economies_data:
@@ -784,14 +577,6 @@ async def load():
             owner=row["owner"],
             link_id=row["id"])
         link.build_free()
-
-    subdivisions_data = await db.load_subdivisions_rows()
-    for row in subdivisions_data:
-        nation_list[row["nationid"]].subdivisions[row["name"]] = Subdivision(
-            name=row["name"],
-            nationid=row["nationid"],
-            cities=[],  # populated next
-        )
     
     logger.info("Loaded game data")
     logger.debug(nation_list)

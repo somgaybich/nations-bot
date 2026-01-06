@@ -44,11 +44,6 @@ class TileOutOfBounds(NationsException):
         super().__init__(f"Tried to access {location}, which is outside the map's bounds")
         self.user_message = f"That location is outside the map bounds!"
 
-class NoPath(NationsException):
-    def __init__(self, action, location1: tuple[int, int], location2: tuple[int, int]):
-        super().__init__(f"{action} failed: Could not find path from {location1} to {location2}")
-        self.user_message = f"There's no valid path between those places!"
-
 class TooManyUpgrades(NationsException):
     def __init__(self, action: str, num_upgrades: int):
         super().__init__(f"{action} failed: Tile already has {num_upgrades} upgrades")
@@ -78,11 +73,6 @@ class NotEnoughEI(NationsException):
     def __init__(self, action: str, required: int, had: int):
         super().__init__(f"{action} failed: User needed {required} EI and had {had}")
         self.user_message = f"You need {required} EI to do that and only have {had}!"
-
-class NotEnoughPI(NationsException):
-    def __init__(self, action: str, required: int, had: int):
-        super().__init__(f"{action} failed: User needed {required} PI and had {had}")
-        self.user_message = f"You need {required} PI to do that and only have {had}!"
 
 class NotEnoughResources(NationsException):
     def __init__(self, action: str, required: list[str], had: list[str]):
