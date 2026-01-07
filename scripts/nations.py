@@ -238,6 +238,41 @@ class Econ:
 
     async def save(self):
         await db.save_economy(self)
+    
+    def calculate_cap(self) -> int:
+        cap = 1
+        nation = nation_list[self.nationid]
+        for city in nation.cities.values():
+            cap += city.tier + 1
+            if "district" in city.structures:
+                cap += 2
+            
+            luxuries = city.luxury_count()
+            if city.tier == 3:
+                luxuries -= 1
+            elif city.tier == 4:
+                luxuries -= 2
+            cap += luxuries
+        
+        for link in nation.links:
+            match link.linktype:
+                case "stone":
+                    cap += 1
+                case "sea":
+                    cap += 1
+                case "simple_rail":
+                    cap += 3
+                case "quality_rail":
+                    cap += 5
+            
+            structures = nation.cities[link.origin].structures + nation.cities[link.destination].structures
+            for structure in structures:
+                if structure == "station" and link.linktype == "simple_rail" or link.linktype == "quality_rail":
+                    cap += 1
+                if structure == "port" and link.linktype == "sea":
+                    cap += 2
+
+        return 1
 
 class Nation:
     """
@@ -494,6 +529,10 @@ async def tick():
             city.tier = city.calculate_tier()
 
             await city.save()
+        
+        nation.econ.influence_cap = nation.econ.calculate_cap()
+        nation.econ.influence = nation.econ.influence_cap
+        
         await nation.save()
         await nation.econ.save()
         logger.debug(f"Tick for {nation.name} complete")
