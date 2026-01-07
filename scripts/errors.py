@@ -44,15 +44,20 @@ class TileOutOfBounds(NationsException):
         super().__init__(f"Tried to access {location}, which is outside the map's bounds")
         self.user_message = f"That location is outside the map bounds!"
 
-class TooManyUpgrades(NationsException):
-    def __init__(self, action: str, num_upgrades: int):
-        super().__init__(f"{action} failed: Tile already has {num_upgrades} upgrades")
-        self.user_message = f"That tile can't hold any more upgrades!"
+class TooManyStructures(NationsException):
+    def __init__(self, action: str, num_structures: int):
+        super().__init__(f"{action} failed: Tile already has {num_structures} structures")
+        self.user_message = f"That tile can't hold any more structures!"
 
-class MissingUpgrade(NationsException):
-    def __init__(self, action: str, upgrade: str):
-        super().__init__(f"{action} failed: Tile is missing required upgrade '{upgrade}'")
-        self.user_message = f"{action} needs a {upgrade} to be built first!"
+class TooManyUniqueStructures(NationsException):
+    def __init__(self, structure: str):
+        super().__init__(f"Building {structure} failed: Nation already has a {structure}")
+        self.user_message = f"You can't build more than one of those!"
+
+class MissingStructure(NationsException):
+    def __init__(self, action: str, structure: str):
+        super().__init__(f"{action} failed: Tile is missing required structure '{structure}'")
+        self.user_message = f"{action} needs a {structure} to be built first!"
 
 class DoesNotExist(NationsException):
     def __init__(self, object_type: str, action: str, name: str):

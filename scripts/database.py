@@ -51,7 +51,7 @@ async def init_db():
         terrain TEXT NOT NULL,
         owner INTEGER,
         owned BOOLEAN,
-        upgrades TEXT,
+        structures TEXT,
         PRIMARY KEY (x, y))
     """)
     logger.debug("Created tiles table")
@@ -68,7 +68,7 @@ async def init_db():
         popularity INTEGER NOT NULL,
         inventory TEXT NOT NULL,
         owner INTEGER NOT NULL,
-        upgrades TEXT NOT NULL,
+        structures TEXT NOT NULL,
         PRIMARY KEY (x, y))
     """)
     logger.debug("Created cities table")
@@ -192,16 +192,16 @@ async def save_tile(tile):
     await get_db().execute(
         """
         INSERT INTO tiles (
-        x, y, terrain, owner, owned, upgrades
+        x, y, terrain, owner, owned, structures
         )
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,
             owned = excluded.owned,
-            upgrades = excluded.upgrades
+            structures = excluded.structures
         """,
-        (x, y, tile.terrain, tile.owner, tile.owned, json.dumps(tile.upgrades))
+        (x, y, tile.terrain, tile.owner, tile.owned, json.dumps(tile.structures))
     )
 
 async def save_tiles(iterable_tiles):
@@ -220,7 +220,7 @@ async def save_city(city):
     await get_db().execute(
         """
         INSERT INTO cities (
-        x, y, name, influence, tier, stability, popularity, inventory, owner, upgrades
+        x, y, name, influence, tier, stability, popularity, inventory, owner, structures
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
@@ -231,10 +231,10 @@ async def save_city(city):
             popularity = excluded.popularity,
             inventory = excluded.inventory,
             owner = excluded.owner,
-            upgrades = excluded.upgrades
+            structures = excluded.structures
         """,
         (x, y, city.name, city.influence, city.tier, city.stability, city.popularity, 
-         json.dumps(city.inventory), city.owner, json.dumps(city.upgrades))
+         json.dumps(city.inventory), city.owner, json.dumps(city.structures))
     )
 
 async def load_cities_rows():

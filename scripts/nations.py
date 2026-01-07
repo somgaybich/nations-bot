@@ -48,8 +48,8 @@ async def new_fleet(name: str, userid: int, city_name: str):
     city = nation_list[userid].cities.get(city_name)
     if city is None:
         raise errors.DoesNotExist("city", "Fleet creation", city_name)
-    if not "Port" in city.upgrades:
-        raise errors.MissingUpgrade("Fleet creation", "Port")
+    if not "Port" in city.structures:
+        raise errors.MissingStructure("Fleet creation", "Port")
     if nation_list[userid].econ.influence < 2:
         raise errors.NotEnoughEI("Fleet creation", 2, nation_list[userid].econ.influence)
     
@@ -62,12 +62,12 @@ async def new_fleet(name: str, userid: int, city_name: str):
 
 class Tile:
     def __init__(self, terrain: str, location: tuple[int, int] = (0, 0), owner: str = None, 
-                 owned: bool = False, upgrades: str = None):
+                 owned: bool = False, structures: str = None):
         self.terrain = terrain
         self.location = location
         self.owned = owned
         self.owner = owner
-        self.upgrades = upgrades if upgrades is not None else []
+        self.structures = structures if structures is not None else []
     
     async def save(self):
         await db.save_tile(self)
@@ -152,9 +152,9 @@ def hex_distance(a: Tile, b: Tile) -> int:
 
 class City(Tile):
     def __init__(self, terrain: str, name: str, influence: int = 0, tier: int = 0, location: tuple[int, int] = (0, 0), 
-                 owner: str = None, upgrades: list["UpgradeType"] = [], 
+                 owner: str = None, structures: list["StructureType"] = [], 
                  stability: int = 80, popularity: int = 65, inventory: list[str] = []):
-        super().__init__(terrain, location, owner, True, upgrades)
+        super().__init__(terrain, location, owner, True, structures)
         self.name = name
         self.influence = influence
         self.tier = tier
@@ -269,17 +269,17 @@ async def new_nation(name: str, userid: int) -> Nation:
     await econ.save()
     return nation
 
-class UpgradeType:
+class StructureType:
     """
-    A base class for all tile upgrades.
+    A base class for all tile structures.
     """
-    def __init__(self, usable_in: list[type], ei_cost: int, resource_cost: list[str], name: str, prereq: str = '', tier_req: int = 0):
+    def __init__(self, usable_in: list[type], inf_cost: int, resource_cost: list[str], name: str, prereq: str = '', tier_req: int = 0):
         self.usable_in = usable_in
-        self.ei_cost = ei_cost
+        self.inf_cost = inf_cost
         self.resource_cost = resource_cost
         self.name = name
-        self.prereq = prereq # An upgrade that needs to be built first
-        self.tier_req = tier_req # The city tier that the upgrade needs to be built in
+        self.prereq = prereq # An structure that needs to be built first
+        self.tier_req = tier_req # The city tier that the structure needs to be built in
 
     async def build(self, location: tuple[int, int], city_name: str, userid: int):
         nation = nation_list.get(userid)
@@ -288,41 +288,44 @@ class UpgradeType:
         tile = tile_list.get(location)
         city = nation.cities.get(city_name)
         if tile is None:
-            raise errors.DoesNotExist("tile", f"{self.name.capitalize()} creation", location)
+            raise errors.DoesNotExist("tile", f"{self.name} creation", location)
         if city is None:
-            raise errors.DoesNotExist("city", f"{self.name.capitalize()} creation", city_name)
-        if len(city.upgrades) == 2 and not city.tier >= 2:
-            raise errors.TooManyUpgrades(f"{self.name.capitalize()} creation", 2)
-        if len(city.upgrades) == 3 and not city.tier == 4:
-            raise errors.TooManyUpgrades(f"{self.name.capitalize()} creation", 3)
+            raise errors.DoesNotExist("city", f"{self.name} creation", city_name)
+        if len(city.structures) == 2 and not city.tier >= 2:
+            raise errors.TooManyStructures(f"{self.name} creation", 2)
+        if len(city.structures) == 3 and not city.tier == 4:
+            raise errors.TooManyStructures(f"{self.name} creation", 3)
         if self.resource_cost not in city.inventory:
-            raise errors.NotEnoughResources(f"{self.name.capitalize()} creation", self.resource_cost, city.inventory)
-        if nation_list[userid].econ.influence < self.ei_cost:
-            raise errors.NotEnoughEI(f"{self.name.capitalize()} creation", self.ei_cost, nation_list[userid].econ.influence)
+            raise errors.NotEnoughResources(f"{self.name} creation", self.resource_cost, city.inventory)
+        if nation_list[userid].econ.influence < self.inf_cost:
+            raise errors.NotEnoughEI(f"{self.name} creation", self.inf_cost, nation_list[userid].econ.influence)
         if self.usable_in == [City] and type(tile) != City:
-            raise errors.InvalidLocation(f"{self.name.capitalize()} creation", f"in unsettled tiles")
+            raise errors.InvalidLocation(f"{self.name} creation", f"in unsettled tiles")
         elif tile.terrain not in self.usable_in:
-            raise errors.InvalidLocation(f"{self.name.capitalize()} creation", f"in {tile.terrain} tiles")
+            raise errors.InvalidLocation(f"{self.name} creation", f"in {tile.terrain} tiles")
         if tile not in city.area() and city.tier != 4:
-            raise errors.InvalidLocation(f"{self.name.capitalize()} creation", "outide the settlement's range")
+            raise errors.InvalidLocation(f"{self.name} creation", "outide the settlement's range")
         if tile not in city.metroarea() and city.tier == 4:
-            raise errors.InvalidLocation(f"{self.name.capitalize()} creation", "outide the settlement's range")
+            raise errors.InvalidLocation(f"{self.name} creation", "outide the settlement's range")
         if not self.tier_req == 0 and location == city.location:
             if not tile.tier >= self.tier_req:
-                raise errors.CityTierTooLow(f"{self.name.capitalize()} creation", tile.tier, self.tier_req)
+                raise errors.CityTierTooLow(f"{self.name} creation", tile.tier, self.tier_req)
         # This check must always be last because it has behavior attached!
         if self.prereq != '':
-            if self.prereq not in tile.upgrades:
-                raise errors.MissingUpgrade(f"{self.name.capitalize()} creation", self.prereq)
+            if self.prereq not in tile.structures:
+                raise errors.MissingStructure(f"{self.name} creation", self.prereq)
+            for city in nation.cities.values():
+                if self.name in city.structures:
+                    raise errors.TooManyUniqueStructures(self.name)
             
-            tile_list[location].upgrades.remove(self.prereq)
+            tile_list[location].structures.remove(self.prereq)
             await tile_list[location].save()
 
         for item in self.resource_cost:
             nation_list[userid].cities[city_name].inventory.remove(item)
-        nation_list[userid].econ.influence -= self.ei_cost
+        nation_list[userid].econ.influence -= self.inf_cost
 
-        tile_list[location].upgrades.append(self.name)
+        tile_list[location].structures.append(self.name)
 
         if self.name == "Temple" or self.name == "Grand Temple":
             nation_list[userid].cities[city_name].popularity += min(100, round((nation_list[userid].cities[city_name].popularity / 10) + 5))
@@ -332,16 +335,16 @@ class UpgradeType:
         await nation_list[userid].cities[city_name].save()
         await tile_list[location].save()
 
-upgrade_types = {
-    "temple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Temple"),
-    "grandtemple": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["stone"], name="Grand Temple", prereq="Temple"),
-    "station": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["lumber"], name="Station"),
-    "centralstation": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["lumber"], name="Central Station", prereq="Station"),
-    "workshop": UpgradeType(usable_in=[City], ei_cost=1, resource_cost=["lumber", "stone"], name="Workshop"),
-    "charcoalpit": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["lumber"], name="Charcoal Pit"),
-    "smeltery": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["stone", "fuel"], name="Smeltery"),
-    "port": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["stone", "lumber"], name="Port"),
-    "foundry": UpgradeType(usable_in=[City], ei_cost=2, resource_cost=["metal", "fuel"], name="Foundry", tier_req=2)
+structure_types = {
+    "temple": StructureType(usable_in=[City], inf_cost=1, resource_cost=["stone"], name="Temple"),
+    "grandtemple": StructureType(usable_in=[City], inf_cost=1, resource_cost=["stone"], name="Grand Temple", prereq="Temple"),
+    "station": StructureType(usable_in=[City], inf_cost=2, resource_cost=["lumber"], name="Station"),
+    "centralstation": StructureType(usable_in=[City], inf_cost=2, resource_cost=["lumber"], name="Central Station", prereq="Station"),
+    "workshop": StructureType(usable_in=[City], inf_cost=1, resource_cost=["lumber", "stone"], name="Workshop"),
+    "charcoalpit": StructureType(usable_in=[City], inf_cost=2, resource_cost=["lumber"], name="Charcoal Pit"),
+    "smeltery": StructureType(usable_in=[City], inf_cost=2, resource_cost=["stone", "fuel"], name="Smeltery"),
+    "port": StructureType(usable_in=[City], inf_cost=2, resource_cost=["stone", "lumber"], name="Port"),
+    "foundry": StructureType(usable_in=[City], inf_cost=2, resource_cost=["metal", "fuel"], name="Foundry", tier_req=2)
 }
 
 class Link:
@@ -370,7 +373,7 @@ class Link:
         An alternate form of build that doesn't cost anything, mainly for use in load().
         """
         for location in self.path:
-            tile_list[location].upgrades.append(self.linktype)
+            tile_list[location].structures.append(self.linktype)
             tile_list[location].save()
         nation_list[self.owner].links.append(self)
 
@@ -382,19 +385,20 @@ class Link:
         length = len(self.path)
         match self.linktype:
             case "stone":
-                ei_cost = math.ceil(length / 2)
+                inf_cost = math.ceil(length / 2)
                 metal_cost = 0
                 stone_cost = math.ceil(length / 5)
             case "sea":
-                ei_cost = math.ceil(length / 5)
+                inf_cost = math.ceil(length / 5)
                 metal_cost = 0
                 stone_cost = 0
             case "simple_rail":
                 ei_cost = length
+                inf_cost = length
                 metal_cost = math.ceil(length / 3)
                 stone_cost = 0
             case "quality_rail":
-                ei_cost = length * 2
+                inf_cost = length * 2
                 metal_cost = math.ceil(length / 2)
                 stone_cost = 0
 
@@ -404,8 +408,8 @@ class Link:
         if resources.count("stone") < stone_cost:
             raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
 
-        if nation_list[self.owner].econ.influence < ei_cost:
-            raise errors.NotEnoughEI("Link construction", ei_cost, nation_list[self.owner].econ.influence)
+        if nation_list[self.owner].econ.influence < inf_cost:
+            raise errors.NotEnoughEI("Link construction", inf_cost, nation_list[self.owner].econ.influence)
         metal_remaining = metal_cost
         last = 0
         while metal_remaining > 0:
@@ -436,10 +440,10 @@ class Link:
             if not ("stone" in nation_list[self.owner].cities[self.origin].inventory) and not ("stone" in nation_list[self.owner].cities[self.destination].inventory) and stone_remaining > 0:
                 raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
 
-        nation_list[self.owner].econ.influence -= ei_cost
+        nation_list[self.owner].econ.influence -= inf_cost
 
         for location in self.path:
-            tile_list[location].upgrades.append(self.linktype)
+            tile_list[location].structures.append(self.linktype)
             tile_list[location].save()
         nation_list[self.owner].links.append(self)
 
@@ -524,7 +528,7 @@ async def load():
             location=(row["x"], row["y"]),
             owner=row["owner"],
             owned=row["owned"],
-            upgrades=json.loads(row["upgrades"]) if row["upgrades"] else [],
+            structures=json.loads(row["structures"]) if row["structures"] else [],
         )
 
     cities_data = await db.load_cities_rows()

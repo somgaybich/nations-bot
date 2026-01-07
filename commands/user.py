@@ -4,7 +4,7 @@ import discord
 from discord import ApplicationContext, Embed
 
 from scripts.constants import brand_color
-from scripts.nations import City, Tile, Link, nation_list, upgrade_types, units, new_nation, new_city, new_army, new_fleet
+from scripts.nations import City, Tile, Link, nation_list, structure_types, units, new_nation, new_city, new_army, new_fleet
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException, InvalidLocation
 from scripts.ui import DirectionView
@@ -126,7 +126,7 @@ class UserCog(discord.Cog):
             nation = nation_list[ctx.interaction.user.id]
             city = nation.cities[cityname]
 
-            upgrade_types[upgrade].build(city.location, city, nation.econ)
+            structure_types[upgrade].build(city.location, city, nation.econ)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
