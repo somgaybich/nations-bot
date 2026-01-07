@@ -164,6 +164,28 @@ class City(Tile):
     
     async def save(self):
         await db.save_city(self)
+    
+    def luxury_count(self) -> int:
+        luxuries = []
+        for item in self.inventory:
+            if item.startswith("luxurygoods") and item not in luxuries:
+                luxuries.append(item)
+        return len(luxuries)
+
+    def calculate_tier(self) -> int:
+        inventory = self.inventory
+        raw_inventory = [item.split("_")[0] for item in inventory]
+        
+        if "lumber" in inventory and "food" in inventory:
+            if "lumber" in inventory and "fuel" in inventory and raw_inventory.count("food") >= 2:
+                if raw_inventory.count("lumber") >= 2 and raw_inventory.count("food") >= 3 and raw_inventory.count("fuel") >= 2 and self.luxury_count() >= 1:
+                    if raw_inventory.count("lumber") >= 3 and raw_inventory.count("food") >= 5 and raw_inventory.count("fuel") >= 3 and self.luxury_count() >= 2:
+                        return 4
+                    return 3
+                return 2
+            return 1
+        else:
+            return 0
 
 async def new_city(name: str, location: tuple[int, int], owner: int):
     """
@@ -393,7 +415,6 @@ class Link:
                 metal_cost = 0
                 stone_cost = 0
             case "simple_rail":
-                ei_cost = length
                 inf_cost = length
                 metal_cost = math.ceil(length / 3)
                 stone_cost = 0
@@ -455,7 +476,10 @@ async def tick():
     logger.info("Processing game tick...")
     for nation in nation_list.values():
         logger.debug(f"Processing tick for {nation.name}")
+        for city in nation.cities.values():
+            city.tier = city.calculate_tier()
 
+            await city.save()
         await nation.save()
         await nation.econ.save()
         logger.debug(f"Tick for {nation.name} complete")
