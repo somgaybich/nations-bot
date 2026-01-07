@@ -4,3 +4,4 @@
 logs/
 data/nations.db
 data/nations.db-journal
+/__pycache__
