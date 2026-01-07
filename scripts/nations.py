@@ -16,8 +16,9 @@ class Unit:
     Strength & morale are on [0, 100], exp is positive
     Type is in ["army", "fleet"]
     """
-    def __init__(self, name: str, type: str, home: str, owner: int, location = (0, 0), strength = 100, morale = 100, exp = 0, unit_id=None):
-        self.id = unit_id
+    def __init__(self, name: str, type: str, home: str, owner: int, location: tuple[int, int] = (0, 0), 
+                 strength: int = 100, morale: int = 100, exp: int = 0, unit_id: int | None = None):
+        self.id = unit_id # IDs aren't guaranteed if the initial save fails!
         self.name = name
         self.type = type
         self.home = home
@@ -29,6 +30,20 @@ class Unit:
     
     async def save(self):
         await db.save_unit(self)
+    
+    async def move(self, direction: str):
+        new_tile, last_tile = move_in_direction(tile_list[self.location], direction)
+        
+        for unit in units:
+            if unit.location == new_tile.location and unit.id != self.id:
+                # TODO: Implement battle logic
+                self.battle(unit)
+        
+        await self.save()
+
+    async def battle(self, target: "Unit"):
+        pass
+
 units: list[Unit] = []
 
 async def new_army(name: str, userid: int, city_name: str):
@@ -115,6 +130,14 @@ class Tile:
         for tile in self.area():
             result |= tile.area()
         return result
+
+def move_in_direction(current_tile: Tile, direction: str):
+    last_tile = current_tile
+    new_tile = getattr(current_tile, direction)()
+    if new_tile.terrain in ["ocean", "lake", "high_mountains"]:
+        raise errors.InvalidLocation("Movement", f"in {new_tile.terrain}")
+
+    return new_tile, last_tile
 
 class TileDict(dict[tuple[int, int], Tile]):
     """
