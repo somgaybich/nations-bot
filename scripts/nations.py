@@ -31,33 +31,41 @@ class Unit:
 units: list[Unit] = []
 
 async def new_army(name: str, userid: int, city_name: str):
-    city = nation_list[userid].cities.get(city_name)
+    nation = nation_list[userid]
+    city = nation.cities.get(city_name)
+    econ = nation.econ
+
     if city is None:
         raise errors.DoesNotExist("city", "Army creation", city_name)
-    if nation_list[userid].econ.influence < 1:
-        return errors.NotEnoughEI("Army creation", 1, nation_list[userid].econ.influence)
+    if econ.influence < 1:
+        return errors.NotEnoughEI("Army creation", 1, econ.influence)
     
-    nation_list[userid].econ.influence -= 1
+    econ.influence -= 1
     new_unit = Unit(name=name, type="army", location=city.location)
-    nation_list[userid].military[name] = new_unit
+    nation.military[name] = new_unit
 
-    await nation_list[userid].save()
+    await nation.save()
+    await econ.save()
     await new_unit.save()
 
 async def new_fleet(name: str, userid: int, city_name: str):
-    city = nation_list[userid].cities.get(city_name)
+    nation = nation_list[userid]
+    city = nation.cities.get(city_name)
+    econ = nation.econ
+
     if city is None:
         raise errors.DoesNotExist("city", "Fleet creation", city_name)
     if not "Port" in city.structures:
         raise errors.MissingStructure("Fleet creation", "Port")
-    if nation_list[userid].econ.influence < 2:
-        raise errors.NotEnoughEI("Fleet creation", 2, nation_list[userid].econ.influence)
+    if econ.influence < 2:
+        raise errors.NotEnoughEI("Fleet creation", 2, econ.influence)
     
-    nation_list[userid].econ.influence -= 2
+    econ.influence -= 2
     new_unit = Unit(name=name, type="fleet", location=city.location)
-    nation_list[userid].military[name] = new_unit
+    nation.military[name] = new_unit
 
-    await nation_list[userid].save()
+    await nation.save()
+    await econ.save()
     await new_unit.save()
 
 class Tile:
@@ -223,7 +231,7 @@ class Econ:
     """
     Represents a nation's economy.
     """
-    def __init__(self, nationid: int, influence: int = 4, influence_cap: int = 4):
+    def __init__(self, nationid: int, influence: int = 2, influence_cap: int = 2):
         self.nationid = nationid
         self.influence = influence
         self.influence_cap = influence_cap
@@ -244,7 +252,7 @@ class Nation:
         self.links: list[Link] = links
         self.tiles: list[tuple[int, int]] = tiles
         self.military: dict[str, Unit] = military
-        self.espionage = espionage #Add type annotations when we figure out how this works
+        self.espionage: list[Espionage] = espionage
         self.dossier: dict = dossier
         self.color: Color = color
     
@@ -340,29 +348,29 @@ class StructureType:
                 if self.name in city.structures:
                     raise errors.TooManyUniqueStructures(self.name)
             
-            tile_list[location].structures.remove(self.prereq)
-            await tile_list[location].save()
+            tile.structures.remove(self.prereq)
+            await tile.save()
 
         for item in self.resource_cost:
-            nation_list[userid].cities[city_name].inventory.remove(item)
-        nation_list[userid].econ.influence -= self.inf_cost
+            city.inventory.remove(item)
+        nation.econ.influence -= self.inf_cost
 
-        tile_list[location].structures.append(self.name)
+        tile.structures.append(self.name)
 
         if self.name == "Temple" or self.name == "Grand Temple":
-            nation_list[userid].cities[city_name].popularity += min(100, round((nation_list[userid].cities[city_name].popularity / 10) + 5))
-            nation_list[userid].cities[city_name].stability += min(100, round((nation_list[userid].cities[city_name].stability / 20) + 5))
+            city.popularity += min(100, round((nation_list[userid].cities[city_name].popularity / 10) + 5))
+            city.stability += min(100, round((nation_list[userid].cities[city_name].stability / 20) + 5))
 
-        await nation_list[userid].save()
-        await nation_list[userid].cities[city_name].save()
-        await tile_list[location].save()
+        await nation.save()
+        await city.save()
+        await tile.save()
 
 structure_types = {
     "temple": StructureType(usable_in=[City], inf_cost=1, resource_cost=["stone"], name="Temple"),
     "grandtemple": StructureType(usable_in=[City], inf_cost=1, resource_cost=["stone"], name="Grand Temple", prereq="Temple"),
     "station": StructureType(usable_in=[City], inf_cost=2, resource_cost=["lumber"], name="Station"),
     "centralstation": StructureType(usable_in=[City], inf_cost=2, resource_cost=["lumber"], name="Central Station", prereq="Station"),
-    "workshop": StructureType(usable_in=[City], inf_cost=1, resource_cost=["lumber", "stone"], name="Workshop"),
+    "district": StructureType(usable_in=[City], inf_cost=1, resource_cost=["lumber", "stone"], name="District"),
     "charcoalpit": StructureType(usable_in=[City], inf_cost=2, resource_cost=["lumber"], name="Charcoal Pit"),
     "smeltery": StructureType(usable_in=[City], inf_cost=2, resource_cost=["stone", "fuel"], name="Smeltery"),
     "port": StructureType(usable_in=[City], inf_cost=2, resource_cost=["stone", "lumber"], name="Port"),
@@ -380,12 +388,13 @@ class Link:
     :var owner: The userid of the nation which owns this link.
     """
 
-    def __init__(self, linktype: str, origin: str, destination: str, path: list[tuple[int, int]], owner: int, link_id = None):
+    def __init__(self, linktype: str, origin: City, destination: City, path: list[tuple[int, int]], owner: int, link_id = None):
         self.origin = origin
         self.destination = destination
         self.path = path
         self.owner = owner
         self.linktype = linktype
+        self.link_id = link_id
     
     async def save(self):
         await db.save_link(self)
@@ -394,14 +403,15 @@ class Link:
         """
         An alternate form of build that doesn't cost anything, mainly for use in load().
         """
+        nation = nation_list[self.owner]
         for location in self.path:
             tile_list[location].structures.append(self.linktype)
             tile_list[location].save()
-        nation_list[self.owner].links.append(self)
+        nation.links.append(self)
 
-        nation_list[self.owner].save()
-        nation_list[self.owner].cities[self.origin].save()
-        nation_list[self.owner].cities[self.destination].save()
+        nation.save()
+        self.origin.save()
+        self.destination.save()
 
     def build(self):
         length = len(self.path)
@@ -422,55 +432,59 @@ class Link:
                 inf_cost = length * 2
                 metal_cost = math.ceil(length / 2)
                 stone_cost = 0
+        
+        nation = nation_list[self.owner]
+        econ = nation.econ
 
-        resources = nation_list[self.owner].cities[self.origin].inventory + nation_list[self.owner].cities[self.destination].inventory
+        resources = self.origin.inventory + self.destination.inventory
         if resources.count("metal") < metal_cost:
             raise errors.NotEnoughResources("Link construction", ["metal"] * metal_cost, resources)
         if resources.count("stone") < stone_cost:
             raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
 
-        if nation_list[self.owner].econ.influence < inf_cost:
-            raise errors.NotEnoughEI("Link construction", inf_cost, nation_list[self.owner].econ.influence)
+        if econ.influence < inf_cost:
+            raise errors.NotEnoughEI("Link construction", inf_cost, econ.influence)
         metal_remaining = metal_cost
         last = 0
         while metal_remaining > 0:
             if last == 0:
-                if "metal" in nation_list[self.owner].cities[self.origin].inventory:
-                    nation_list[self.owner].cities[self.origin].inventory.remove("metal")
+                if "metal" in self.origin.inventory:
+                    self.origin.inventory.remove("metal")
                 last = 1
             elif last == 1:
-                if "metal" in nation_list[self.owner].cities[self.destination].inventory:
-                    nation_list[self.owner].cities[self.destination].inventory.remove("metal")
+                if "metal" in self.destination.inventory:
+                    self.destination.inventory.remove("metal")
                 last = 0
             metal_remaining -= 1
-            if not ("metal" in nation_list[self.owner].cities[self.origin].inventory) and not ("metal" in nation_list[self.owner].cities[self.destination].inventory) and metal_remaining > 0:
+            if not ("metal" in self.origin.inventory) and not ("metal" in self.destination.inventory) and metal_remaining > 0:
                 raise errors.NotEnoughResources("Link construction", ["metal"] * metal_cost, resources)
         
         stone_remaining = stone_cost
         last = 0
         while stone_remaining > 0:
             if last == 0:
-                if "stone" in nation_list[self.owner].cities[self.origin].inventory:
-                    nation_list[self.owner].cities[self.origin].inventory.remove("stone")
+                if "stone" in self.origin.inventory:
+                    self.origin.inventory.remove("stone")
                 last = 1
             elif last == 1:
-                if "stone" in nation_list[self.owner].cities[self.destination].inventory:
-                    nation_list[self.owner].cities[self.destination].inventory.remove("stone")
+                if "stone" in self.destination.inventory:
+                    self.destination.inventory.remove("stone")
                 last = 0
             stone_remaining -= 1
-            if not ("stone" in nation_list[self.owner].cities[self.origin].inventory) and not ("stone" in nation_list[self.owner].cities[self.destination].inventory) and stone_remaining > 0:
+            if not ("stone" in self.origin.inventory) and not ("stone" in self.destination.inventory) and stone_remaining > 0:
                 raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
 
-        nation_list[self.owner].econ.influence -= inf_cost
+        econ.influence -= inf_cost
 
         for location in self.path:
             tile_list[location].structures.append(self.linktype)
             tile_list[location].save()
-        nation_list[self.owner].links.append(self)
+        nation.links.append(self)
 
-        nation_list[self.owner].save()
-        nation_list[self.owner].cities[self.origin].save()
-        nation_list[self.owner].cities[self.destination].save()
+        nation.save()
+        econ.save()
+        self.origin.save()
+        self.destination.save()
 
 async def tick():
     logger.info("Processing game tick...")
@@ -587,10 +601,19 @@ async def load():
 
     links_data = await db.load_links_rows()
     for row in links_data:
+        origin = None
+        destination = None
+        for tile in tile_list:
+            if isinstance(tile, City):
+                if tile.name == row["origin"]:
+                    origin = tile
+                elif tile.name == row["destination"]:
+                    destination = tile
+
         link = Link(
             linktype=row["linktype"],
-            origin=row["origin"],
-            destination=row["destination"],
+            origin=origin,
+            destination=destination,
             path=json.loads(row["path"]),
             owner=row["owner"],
             link_id=row["id"])
