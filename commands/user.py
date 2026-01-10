@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import discord
+import random
 from discord import ApplicationContext, Embed
 
 from scripts.constants import brand_color
@@ -15,13 +16,27 @@ class UserCog(discord.Cog):
     def __init__(self, bot: discord.Bot):
         self.bot = bot
 
-    @discord.slash_command(description="A simple latency test")
+    @discord.slash_command(description="A simple latency test.")
     async def ping(self, ctx: ApplicationContext):
         latency_ms = round(self.bot.latency * 1000)
-        await ctx.interaction.response.send_message(f"Pong! Latency: {latency_ms}ms")
+
+        if random.randint(0, 1000) == 0:
+            await ctx.interaction.response.send_message(embed=Embed(
+                color=brand_color,
+                title="Oops!",
+                description="I missed! You win."
+            ))
+        else:
+            await ctx.interaction.response.send_message(embed=Embed(
+                color=brand_color,
+                title="Pong!",
+                description=f"Latency: {latency_ms}ms"
+            ))
+        
         logger.info(f"{ctx.interaction.user.name} sent a ping.")
 
     @discord.slash_command(description="Make a new nation.")
+    @discord.default_permissions(administrator=True)
     @discord.option("name", input_type=str, description="The name of your new nation.")
     @discord.option("capital_name", input_type=str, description="The name of your new capital city.")
     @discord.option("capital_x", input_type=int, description="The x-coordinate (1st on the map) of your capital tile.")
@@ -45,6 +60,7 @@ class UserCog(discord.Cog):
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
 
     @discord.slash_command(description="Show a user's profile")
+    @discord.default_permissions(administrator=True)
     @discord.option("target", input_type=discord.User, description="The user to show the profile of.", default=None)
     async def profile(self, ctx: ApplicationContext, target: discord.User):
         if target is None:
@@ -66,6 +82,7 @@ class UserCog(discord.Cog):
     military = discord.SlashCommandGroup("military", description="Manage your military")
 
     @military.command(description="Trains a new army")
+    @discord.default_permissions(administrator=True)
     @discord.option("name", input_type=str, description="The name of the new army.")
     @discord.option("city", input_type=str, description="The city to train in.")
     async def newarmy(self, ctx: ApplicationContext, name: str, city: str):
@@ -82,6 +99,7 @@ class UserCog(discord.Cog):
         await response(ctx.interaction, "Created!", f"New army {name} started training in {city}")
 
     @military.command(description="Builds a new fleet")
+    @discord.default_permissions(administrator=True)
     @discord.option("name", input_type=str, description="The name of the new fleet.")
     @discord.option("city", input_type=str, description="The city to train in.")
     async def fleet(self, ctx: ApplicationContext, name: str, city: str):
@@ -102,6 +120,7 @@ class UserCog(discord.Cog):
     build = discord.SlashCommandGroup("build", description="Build structures")
 
     @build.command(description="Builds a new upgrade in a city")
+    @discord.default_permissions(administrator=True)
     @discord.option("cityname", input_type=str, description="The name of the city to build the upgrade in")
     @discord.option("upgrade", input_type=str, description="The upgrade you want to build", choices=[
         "Temple", "Grand Temple", "Station", "Central Station", "Workshop",
@@ -125,6 +144,7 @@ class UserCog(discord.Cog):
         logger.info(f"Someone built a {upgrade.lower()}!")
 
     @build.command(description="Builds a new railroad")
+    @discord.default_permissions(administrator=True)
     @discord.option("origin", input_type=str, description="The city the railroad starts in.")
     @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
     async def rail(self, ctx: ApplicationContext, origin: str, level: str):
@@ -175,6 +195,7 @@ class UserCog(discord.Cog):
     nation = discord.SlashCommandGroup("nation", description="Manage your nation")
 
     @nation.command(description="Changes the summary of your nation that appears on your profile.")
+    @discord.default_permissions(administrator=True)
     @discord.option("text", input_type=str, description="The text you want to appear on your profile.")
     @discord.option("title", input_type=str, description="The title of this dossier block", default="Dossier")
     async def dossier(self, ctx: ApplicationContext, text: str, title: str):
@@ -191,6 +212,7 @@ class UserCog(discord.Cog):
             raise
 
     @nation.command(description="Changes the color associated with your nation.")
+    @discord.default_permissions(administrator=True)
     @discord.option("red", input_type=int, description="The red value of the new color")
     @discord.option("green", input_type=int, description="The green value of the new color")
     @discord.option("blue", input_type=int, description="The blue value of the new color")
