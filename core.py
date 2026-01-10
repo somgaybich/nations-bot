@@ -32,25 +32,11 @@ async def on_resumed():
 async def on_connect():
     logger.info("Connected to Discord.")
 
-async def main():
-    logger.info("Starting...")
-    try:
-        timer = time.perf_counter()
-        await init_db()
-        if json_terrain:
-            await load_terrain()
-        await load()
-        logger.debug(f"Took {(timer / 1000000):.2f}ms to initialize data")
-        await bot.start(token)
-    finally:
-        logger.critical("Shutting down.")
-        await get_db().commit()
-        if not bot.is_closed():
-            await bot.close()
-        return
-
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        bot.run(token)
     except KeyboardInterrupt:
         pass
+    finally:
+        logger.critical("Shutting down.")
+        asyncio.run(get_db().commit())
