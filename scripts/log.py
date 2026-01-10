@@ -7,7 +7,7 @@ def log_setup():
 
     formatter = logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s", datefmt='%H:%M:%S')
 
-    file_handler = logging.FileHandler('logs/last.log')
+    file_handler = logging.FileHandler('logs/last.log', encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
@@ -19,5 +19,3 @@ def log_setup():
     root.setLevel(logging.DEBUG)
     root.addHandler(file_handler)
     # root.addHandler(console_handler)
-
-    logging.getLogger("discord.gateway").setLevel(logging.ERROR)
