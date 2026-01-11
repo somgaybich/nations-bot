@@ -4,7 +4,13 @@ import logging
 import random
 from discord import Embed, Color
 
-from scripts.constants import current_season, update_season, json_terrain
+from scripts.constants import (
+    current_season, update_season, json_terrain, ALLY_CONTRIBUTION, BASE_CRUSHING_CHANCE, BASE_STALEMATE_CHANCE, 
+    CRUSHING_CHANCE_MODIFIER, HOME_TERRAIN_BUFF, HOME_CITY_BUFF, DESERT_DEBUFF, FOREST_DEBUFF, MOUNTAINS_DEBUFF, 
+    HIGH_MOUNTAINS_DEBUFF, FORT_BUFF, FORT_AREA_BUFF, CRUSH_LOSER_STRENGTH_LOSS, CRUSH_LOSER_MORALE_LOSS, 
+    LOSER_STRENGTH_LOSS, LOSER_MORALE_LOSS, CRUSH_WINNER_STRENGTH_LOSS, CRUSH_WINNER_MORALE_LOSS, WINNER_STRENGTH_LOSS, 
+    WINNER_MORALE_LOSS, STALEMATE_STRENGTH_LOSS, STALEMATE_MORALE_LOSS, CRUSH_STABILITY_MODIFIER, DECISIVE_STABILITY_MODIFIER,
+    STALEMATE_STABILITY_MODIFIER, difficulties)
 import scripts.database as db
 import scripts.errors as errors
 
@@ -16,8 +22,9 @@ class Unit:
     Strength & morale are on [0, 100], exp is positive
     Type is in ["army", "fleet"]
     """
-    def __init__(self, name: str, type: str, home: str, owner: int, location: tuple[int, int] = (0, 0), 
-                 strength: int = 100, morale: int = 100, exp: int = 0, unit_id: int | None = None):
+    def __init__(self, name: str, type: str, home: str, owner: int, movement_free: int, 
+                 location: tuple[int, int] = (0, 0), strength: int = 1, morale: int = 1, 
+                 exp: int = 0, unit_id: int | None = None):
         self.id = unit_id # IDs aren't guaranteed if the initial save fails!
         self.name = name
         self.type = type
@@ -27,24 +34,217 @@ class Unit:
         self.strength = strength
         self.morale = morale
         self.exp = exp
+        self.movement_free = movement_free
     
     async def save(self):
         await db.save_unit(self)
     
+    def effectiveness(self, attacking: bool, location: tuple[int, int]) -> int:
+        base_eff = self.morale * self.strength
+        eff = base_eff
+
+        home_city = nation_list[self.owner].cities[self.home]
+        battle_terrain = location.terrain
+        home_terrain = home_city.terrain
+        
+        if battle_terrain == home_terrain:
+            eff += HOME_TERRAIN_BUFF
+        if location in home_city.area() or (location in home_city.metroarea() and home_city.tier == 4):
+            eff += HOME_CITY_BUFF
+            if location == home_city:
+                eff += HOME_CITY_BUFF
+        elif attacking:
+            match battle_terrain:
+                case "desert":
+                    eff -= DESERT_DEBUFF
+                case "forest":
+                    eff -= FOREST_DEBUFF
+                case "mountains":
+                    eff -= MOUNTAINS_DEBUFF
+                case "high_mountains":
+                    eff -= HIGH_MOUNTAINS_DEBUFF
+                #TODO: Update when more terrain types are added
+        if "fort" in location.structures:
+            eff += FORT_BUFF
+        else:
+            for tile in location.area():
+                if "fort" in tile.structures:
+                    eff += FORT_AREA_BUFF
+                    break
+        
+        # TODO: Incorporate effectiveness loss due to command hierarchy
+        return eff
+        
     async def move(self, direction: str):
         new_tile, last_tile = move_in_direction(tile_list[self.location], direction)
+        if new_tile.difficulty > self.movement_free:
+            raise errors.OutOfMovement()
         
+        self.location = new_tile.location
+        self.movement_free -= new_tile.difficulty
+
         for unit in units:
-            if unit.location == new_tile.location and unit.id != self.id:
-                # TODO: Implement battle logic
-                self.battle(unit)
+            if unit.location == new_tile.location and unit.owner != self.owner and not unit.owner in nation_list[self.owner].allies:
+                await self.attack(unit, last_tile)
         
         await self.save()
 
-    async def battle(self, target: "Unit"):
-        pass
+    async def retreat(self):
+        retreat_candidates: list[Tile] = []
+        for tile in tile_list[self.location].area():
+            if tile.difficulty <= self.movement_free:
+                for unit in units:
+                    if unit.location == tile.location:
+                        # This tile has an enemy, we can't retreat there.
+                        break
+                retreat_candidates.append(tile)
+        
+        effectivenesses = {}
+        for tile in retreat_candidates:
+            effectivenesses[tile.location] = self.effectiveness()
+        best_tile = max(effectivenesses, key=effectivenesses.get)
+        self.location = best_tile
+
+        self.movement_free = 0
+
+    async def crushing_loss(self, scaled_impact, battle_location):
+        self.strength = max(0.0, self.strength - CRUSH_LOSER_STRENGTH_LOSS * scaled_impact)
+        self.morale = max(0.0, self.strength - CRUSH_LOSER_MORALE_LOSS * scaled_impact)
+
+        for tile in tile_list[battle_location].metroarea():
+            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
+                tile.stability = min(100, tile.stability + scaled_impact * CRUSH_STABILITY_MODIFIER)
+                await tile.save()
+        
+        await self.retreat()
+
+        self.movement_free = 0
+    
+    async def loss(self, scaled_impact, battle_location):
+        self.strength = max(0.0, self.strength - LOSER_STRENGTH_LOSS * scaled_impact)
+        self.morale = max(0.0, self.strength - LOSER_MORALE_LOSS * scaled_impact)
+
+        for tile in tile_list[battle_location].metroarea():
+            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
+                tile.stability = min(100, tile.stability + scaled_impact * DECISIVE_STABILITY_MODIFIER)
+                await tile.save()
+
+        await self.retreat()
+        
+        self.movement_free = 0
+    
+    async def victory(self, scaled_impact, battle_location):
+        self.strength = max(0.0, self.strength - WINNER_STRENGTH_LOSS * scaled_impact)
+        self.morale = max(0.0, self.strength - WINNER_MORALE_LOSS * scaled_impact)
+
+        for tile in tile_list[battle_location].metroarea():
+            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
+                tile.stability = min(100, tile.stability + scaled_impact * DECISIVE_STABILITY_MODIFIER)
+                await tile.save()
+        
+        self.movement_free = 0
+    
+    async def crushing_victory(self, scaled_impact, battle_location):
+        self.strength = max(0.0, self.strength - CRUSH_WINNER_STRENGTH_LOSS * scaled_impact)
+        self.morale = max(0.0, self.strength - CRUSH_WINNER_MORALE_LOSS * scaled_impact)
+
+        for tile in tile_list[battle_location].metroarea():
+            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
+                tile.stability = min(100, tile.stability + scaled_impact * CRUSH_STABILITY_MODIFIER)
+                await tile.save()
+        
+    
+    async def stalemate(self, scaled_impact, battle_location):
+        self.strength = max(0.0, self.strength - STALEMATE_STRENGTH_LOSS * scaled_impact)
+        self.morale = max(0.0, self.strength - STALEMATE_MORALE_LOSS * scaled_impact)
+
+        for tile in tile_list[battle_location].metroarea():
+            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
+                tile.stability = min(100, tile.stability + scaled_impact * STALEMATE_STABILITY_MODIFIER)
+                await tile.save()
+        
+        self.movement_free = 0
+
+    async def attack(self, target: "Unit", last_tile: "Tile"):
+        self_eff = self.effectiveness(True, self.location)
+        target_eff = target.effectiveness(False, self.location)
+        
+        battle_location = self.location
+        attacking_team = [self]
+        self_allies_eff = 0
+        defending_team = [target]
+        target_allies_eff = 0
+        for tile in tile_list[battle_location].area():
+            for unit in units:
+                if unit.location == tile.location:
+                    # This unit is in a neighboring tile!
+                    if unit.owner == self.owner or unit.owner in nation_list[self.owner].allies:
+                        attacking_team.append(unit)
+                        self_allies_eff += unit.effectiveness(True, self.location)
+                    elif unit.owner == target.owner or unit.owner in nation_list[target.owner].allies:
+                        defending_team.append(unit)
+                        target_allies_eff += unit.effectiveness(False, self.location)
+        
+        self_eff += ALLY_CONTRIBUTION * self_allies_eff
+        target_eff += ALLY_CONTRIBUTION * target_allies_eff
+        
+        # All effectiveness modifiers must be done at this point
+
+        normalizer = 1 / (self_eff + target_eff)
+        self_bvc = (self_eff * normalizer)
+        target_bvc = (target_eff * normalizer)
+        gap = self_bvc - target_bvc
+
+        stalemate_chance = max(0.0, BASE_STALEMATE_CHANCE - ((gap ** 2) * BASE_STALEMATE_CHANCE))
+        non_stalemate_chance = 1 - stalemate_chance
+        win_chance = self_bvc * non_stalemate_chance
+        loss_chance = target_bvc * non_stalemate_chance
+
+        roll = random.random()
+        if roll <= win_chance:
+            impact = win_chance - roll
+            scaled_impact = math.sin(math.pi * impact / 2)
+            # Attacker wins
+            if impact <= crushing_chance(gap):
+                # Crushing attacker victory
+                await self.crushing_victory(scaled_impact, battle_location)
+                await target.crushing_loss(scaled_impact, battle_location)
+
+            else:
+                # Minor attacker victory
+                await self.victory()
+                await target.loss()
+
+        elif roll <= loss_chance + win_chance:
+            impact = loss_chance + win_chance - roll
+            scaled_impact = math.sin(math.pi * impact / 2)
+            if impact <= crushing_chance(-gap):
+                # Crushing attacker victory
+                await target.crushing_victory(scaled_impact)
+                await self.crushing_loss(scaled_impact)
+            else:
+                # Minor attacker victory
+                await target.victory(scaled_impact)
+                await self.loss(scaled_impact)
+        else:
+            # Stalemate
+            scaled_impact = math.sin(math.pi * (1 - roll) / 2)
+            self.stalemate(scaled_impact)
+            target.stalemate(scaled_impact)
+
+            self.location = last_tile
+        
+        await self.save()
+        await target.save()
 
 units: list[Unit] = []
+
+def crushing_chance(gap: float) -> float:
+    """
+    Takes a gap between unit strength and determines the probability of a crushing victory.
+    This probability applies only to the unit from whose perspective the gap measurement was taken.
+    """
+    return max(0.0, min(1.0, BASE_CRUSHING_CHANCE + ((gap ** 3) * CRUSHING_CHANCE_MODIFIER)))
 
 async def new_army(name: str, userid: int, city_name: str):
     nation = nation_list[userid]
@@ -56,8 +256,12 @@ async def new_army(name: str, userid: int, city_name: str):
     if econ.influence < 1:
         return errors.NotEnoughEI("Army creation", 1, econ.influence)
     
+    base_strength = 1
+    if "foundry" in city.structures:
+        base_strength = 1.3
+
     econ.influence -= 1
-    new_unit = Unit(name=name, type="army", location=city.location)
+    new_unit = Unit(name=name, type="army", location=city.location, strength=base_strength, movement_free=3)
     nation.military[name] = new_unit
 
     await nation.save()
@@ -76,8 +280,12 @@ async def new_fleet(name: str, userid: int, city_name: str):
     if econ.influence < 2:
         raise errors.NotEnoughEI("Fleet creation", 2, econ.influence)
     
+    base_strength = 1
+    if "foundry" in city.structures:
+        base_strength = 1.3
+    
     econ.influence -= 2
-    new_unit = Unit(name=name, type="fleet", location=city.location)
+    new_unit = Unit(name=name, type="fleet", location=city.location, strength=base_strength, movement_free=6)
     nation.military[name] = new_unit
 
     await nation.save()
@@ -92,6 +300,13 @@ class Tile:
         self.owned = owned
         self.owner = owner
         self.structures = structures if structures is not None else []
+
+        if "simple_rail" in structures:
+            self.difficulty = 0.5
+        elif "quality_rail" in structures:
+            self.difficulty = 0.25
+        else:
+            self.difficulty = difficulties[terrain]
     
     async def save(self):
         await db.save_tile(self)
@@ -193,7 +408,7 @@ class City(Tile):
         self.stability = stability
         self.popularity = popularity
         self.inventory = inventory
-    
+
     async def save(self):
         await db.save_city(self)
     
@@ -203,6 +418,12 @@ class City(Tile):
             if item.startswith("luxurygoods") and item not in luxuries:
                 luxuries.append(item)
         return len(luxuries)
+
+    def developed_area(self) -> list[Tile]:
+        if self.tier == 4:
+            return self.metroarea()
+        else:
+            return self.area()
 
     def calculate_tier(self) -> int:
         inventory = self.inventory
@@ -322,8 +543,8 @@ class Nation:
     """
     The top object in the hierarchy, which contains all information about a nation.
     """
-    def __init__(self, name: str, userid: int, econ: Econ, 
-                 cities={}, links=[], tiles=[], military=[], espionage=[], dossier={}, color=Color.random()):
+    def __init__(self, name: str, userid: int, econ: Econ, cities={}, links=[], tiles=[], military=[], 
+                 espionage=[], dossier={}, allies=[], color=Color.random()):
         self.name: str = name
         self.userid: int = userid
         self.econ: Econ = econ
@@ -333,6 +554,7 @@ class Nation:
         self.military: dict[str, Unit] = military
         self.espionage: list[Espionage] = espionage
         self.dossier: dict = dossier
+        self.allies: list[int] = allies
         self.color: Color = color
     
     async def save(self):
@@ -676,6 +898,7 @@ async def load():
             strength=row["strength"],
             morale=row["morale"],
             exp=row["exp"],
+            movement_free=row["movement_free"],
             owner=row["owner"],
             unit_id=row["id"],
         )

@@ -39,6 +39,7 @@ async def init_db():
         strength INTEGER NOT NULL,
         morale INTEGER NOT NULL,
         exp INTEGER NOT NULL,
+        movement_free INTEGER NOT NULL,
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created units table")
@@ -137,9 +138,10 @@ async def save_unit(unit):
             """
             INSERT INTO units (
                 name, unit_type, home, x, y,
-                strength, morale, exp, owner
+                strength, morale, exp, owner,
+                movement_free
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 unit.name,
@@ -151,6 +153,7 @@ async def save_unit(unit):
                 unit.morale,
                 unit.exp,
                 unit.owner,
+                unit.movement_free
             )
         ) as cursor:
             unit.id = cursor.lastrowid
@@ -159,7 +162,8 @@ async def save_unit(unit):
             """
             UPDATE units
             SET name = ?, unit_type = ?, home = ?, x = ?, y = ?,
-                strength = ?, morale = ?, exp = ?, owner = ?
+                strength = ?, morale = ?, exp = ?, owner = ?,
+                movement_free = ?
             WHERE id = ?
             """,
             (
@@ -172,6 +176,7 @@ async def save_unit(unit):
                 unit.morale,
                 unit.exp,
                 unit.owner,
+                unit.movement_free,
                 unit.id,
             )
         )
@@ -251,7 +256,7 @@ async def save_link(link):
             INSERT INTO links (linktype, origin, destination, path, owner)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner)
+            (link.linktype, link.origin.name, link.destination.name, json.dumps(link.path), link.owner)
         ) as cursor:
             link.id = cursor.lastrowid
     else:

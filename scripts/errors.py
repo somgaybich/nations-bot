@@ -33,6 +33,10 @@ class InvalidSystems(NationsException):
     def __init__(self, reason: str):
         super().__init__(f"Nation creation failed: Systems were invalid because {reason.lower()}")
         self.user_message = reason
+class OutOfMovement(NationsException):
+    def __init__(self):
+        super().__init__(f"A unit failed to move because it didn't have enough free movement")
+        self.user_message = "That unit doesn't have enough movement left this season!"
 
 class InvalidLocation(NationsException):
     def __init__(self, action: str, location_type: str):
