@@ -152,8 +152,7 @@ class Unit:
             if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
                 tile.stability = min(100, tile.stability + scaled_impact * CRUSH_STABILITY_MODIFIER)
                 await tile.save()
-        
-    
+          
     async def stalemate(self, scaled_impact, battle_location):
         self.strength = max(0.0, self.strength - STALEMATE_STRENGTH_LOSS * scaled_impact)
         self.morale = max(0.0, self.strength - STALEMATE_MORALE_LOSS * scaled_impact)
