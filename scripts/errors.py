@@ -29,10 +29,6 @@ class NationIDNotFound(NationsException):
         super().__init__(f"The userid '{userid}' isn't associated with a nation")
         self.user_message = "You don't have a nation!"
 
-class InvalidSystems(NationsException):
-    def __init__(self, reason: str):
-        super().__init__(f"Nation creation failed: Systems were invalid because {reason.lower()}")
-        self.user_message = reason
 class OutOfMovement(NationsException):
     def __init__(self):
         super().__init__(f"A unit failed to move because it didn't have enough free movement")
@@ -78,10 +74,10 @@ class NotOwned(NationsException):
         super().__init__(f"{action} failed: User did not own the tile {location}")
         self.user_message = f"You don't own {location}!"
 
-class NotEnoughEI(NationsException):
+class NotEnoughInfluence(NationsException):
     def __init__(self, action: str, required: int, had: int):
-        super().__init__(f"{action} failed: User needed {required} EI and had {had}")
-        self.user_message = f"You need {required} EI to do that and only have {had}!"
+        super().__init__(f"{action} failed: User needed {required} influence and had {had}")
+        self.user_message = f"You need {required} influence to do that and only have {had}!"
 
 class NotEnoughResources(NationsException):
     def __init__(self, action: str, required: list[str], had: list[str]):

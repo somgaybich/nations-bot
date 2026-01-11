@@ -254,7 +254,7 @@ async def new_army(name: str, userid: int, city_name: str):
     if city is None:
         raise errors.DoesNotExist("city", "Army creation", city_name)
     if econ.influence < 1:
-        return errors.NotEnoughEI("Army creation", 1, econ.influence)
+        return errors.NotEnoughInfluence("Army creation", 1, econ.influence)
     
     base_strength = 1
     if "foundry" in city.structures:
@@ -278,7 +278,7 @@ async def new_fleet(name: str, userid: int, city_name: str):
     if not "Port" in city.structures:
         raise errors.MissingStructure("Fleet creation", "Port")
     if econ.influence < 2:
-        raise errors.NotEnoughEI("Fleet creation", 2, econ.influence)
+        raise errors.NotEnoughInfluence("Fleet creation", 2, econ.influence)
     
     base_strength = 1
     if "foundry" in city.structures:
@@ -629,7 +629,7 @@ class StructureType:
         if self.resource_cost not in city.inventory:
             raise errors.NotEnoughResources(f"{self.name} creation", self.resource_cost, city.inventory)
         if nation_list[userid].econ.influence < self.inf_cost:
-            raise errors.NotEnoughEI(f"{self.name} creation", self.inf_cost, nation_list[userid].econ.influence)
+            raise errors.NotEnoughInfluence(f"{self.name} creation", self.inf_cost, nation_list[userid].econ.influence)
         if self.usable_in == [City] and type(tile) != City:
             raise errors.InvalidLocation(f"{self.name} creation", f"in unsettled tiles")
         elif tile.terrain not in self.usable_in:
@@ -744,7 +744,7 @@ class Link:
             raise errors.NotEnoughResources("Link construction", ["stone"] * stone_cost, resources)
 
         if econ.influence < inf_cost:
-            raise errors.NotEnoughEI("Link construction", inf_cost, econ.influence)
+            raise errors.NotEnoughInfluence("Link construction", inf_cost, econ.influence)
         metal_remaining = metal_cost
         last = 0
         while metal_remaining > 0:
