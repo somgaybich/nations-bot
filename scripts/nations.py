@@ -346,9 +346,9 @@ class Tile:
             result |= tile.area()
         return result
 
-def move_in_direction(current_tile: Tile, direction: str):
+def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
     last_tile = current_tile
-    new_tile = getattr(current_tile, direction)()
+    new_tile: Tile = getattr(current_tile, direction)()
     if new_tile.terrain in ["ocean", "lake", "high_mountains"]:
         raise errors.InvalidLocation("Movement", f"in {new_tile.terrain}")
 
