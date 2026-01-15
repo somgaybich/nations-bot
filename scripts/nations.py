@@ -5,12 +5,7 @@ import random
 from discord import Embed, Color
 
 from scripts.constants import (
-    current_season, update_season, json_terrain, ALLY_CONTRIBUTION, BASE_CRUSHING_CHANCE, BASE_STALEMATE_CHANCE, 
-    CRUSHING_CHANCE_MODIFIER, HOME_TERRAIN_BUFF, HOME_CITY_BUFF, DESERT_DEBUFF, FOREST_DEBUFF, MOUNTAINS_DEBUFF, 
-    HIGH_MOUNTAINS_DEBUFF, FORT_BUFF, FORT_AREA_BUFF, CRUSH_LOSER_STRENGTH_LOSS, CRUSH_LOSER_MORALE_LOSS, 
-    LOSER_STRENGTH_LOSS, LOSER_MORALE_LOSS, CRUSH_WINNER_STRENGTH_LOSS, CRUSH_WINNER_MORALE_LOSS, WINNER_STRENGTH_LOSS, 
-    WINNER_MORALE_LOSS, STALEMATE_STRENGTH_LOSS, STALEMATE_MORALE_LOSS, CRUSH_STABILITY_MODIFIER, DECISIVE_STABILITY_MODIFIER,
-    STALEMATE_STABILITY_MODIFIER, difficulties)
+    current_season, update_season, json_terrain, combat_settings, difficulties)
 import scripts.database as db
 import scripts.errors as errors
 
@@ -44,32 +39,33 @@ class Unit:
         eff = base_eff
 
         home_city = nation_list[self.owner].cities[self.home]
+        location = tile_list[location]
         battle_terrain = location.terrain
         home_terrain = home_city.terrain
         
         if battle_terrain == home_terrain:
-            eff += HOME_TERRAIN_BUFF
+            eff += combat_settings["home_terrain_buff"]
         if location in home_city.area() or (location in home_city.metroarea() and home_city.tier == 4):
-            eff += HOME_CITY_BUFF
+            eff += combat_settings["home_city_buff"]
             if location == home_city:
-                eff += HOME_CITY_BUFF
+                eff += combat_settings["home_city_buff"]
         elif attacking:
             match battle_terrain:
                 case "desert":
-                    eff -= DESERT_DEBUFF
+                    eff -= combat_settings["desert_debuff"]
                 case "forest":
-                    eff -= FOREST_DEBUFF
+                    eff -= combat_settings["forest_debuff"]
                 case "mountains":
-                    eff -= MOUNTAINS_DEBUFF
+                    eff -= combat_settings["mountains_debuff"]
                 case "high_mountains":
-                    eff -= HIGH_MOUNTAINS_DEBUFF
+                    eff -= combat_settings["high_mountains_debuff"]
                 #TODO: Update when more terrain types are added
         if "fort" in location.structures:
-            eff += FORT_BUFF
+            eff += combat_settings["fort_buff"]
         else:
             for tile in location.area():
                 if "fort" in tile.structures:
-                    eff += FORT_AREA_BUFF
+                    eff += combat_settings["fort_area_buff"]
                     break
         
         # TODO: Incorporate effectiveness loss due to command hierarchy
@@ -108,12 +104,12 @@ class Unit:
         self.movement_free = 0
 
     async def crushing_loss(self, scaled_impact, battle_location):
-        self.strength = max(0.0, self.strength - CRUSH_LOSER_STRENGTH_LOSS * scaled_impact)
-        self.morale = max(0.0, self.strength - CRUSH_LOSER_MORALE_LOSS * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings["crush_loser_strength_loss"] * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings["crush_loser_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
             if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * CRUSH_STABILITY_MODIFIER)
+                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["crush_stability_modifier"])
                 await tile.save()
         
         await self.retreat()
@@ -121,12 +117,12 @@ class Unit:
         self.movement_free = 0
     
     async def loss(self, scaled_impact, battle_location):
-        self.strength = max(0.0, self.strength - LOSER_STRENGTH_LOSS * scaled_impact)
-        self.morale = max(0.0, self.strength - LOSER_MORALE_LOSS * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings["loser_strength_loss"] * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings["loser_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
             if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * DECISIVE_STABILITY_MODIFIER)
+                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["decisive_stability_modifier"])
                 await tile.save()
 
         await self.retreat()
@@ -134,32 +130,32 @@ class Unit:
         self.movement_free = 0
     
     async def victory(self, scaled_impact, battle_location):
-        self.strength = max(0.0, self.strength - WINNER_STRENGTH_LOSS * scaled_impact)
-        self.morale = max(0.0, self.strength - WINNER_MORALE_LOSS * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings["winner_strength_loss"] * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings["winner_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
             if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * DECISIVE_STABILITY_MODIFIER)
+                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["decisive_stability_modifier"])
                 await tile.save()
         
         self.movement_free = 0
     
     async def crushing_victory(self, scaled_impact, battle_location):
-        self.strength = max(0.0, self.strength - CRUSH_WINNER_STRENGTH_LOSS * scaled_impact)
-        self.morale = max(0.0, self.strength - CRUSH_WINNER_MORALE_LOSS * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings["crush_winner_strength_loss"] * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings["crush_winner_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
             if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * CRUSH_STABILITY_MODIFIER)
+                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["crush_stability_modifier"])
                 await tile.save()
           
     async def stalemate(self, scaled_impact, battle_location):
-        self.strength = max(0.0, self.strength - STALEMATE_STRENGTH_LOSS * scaled_impact)
-        self.morale = max(0.0, self.strength - STALEMATE_MORALE_LOSS * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings["stalemate_strength_loss"] * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings["stalemate_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
             if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * STALEMATE_STABILITY_MODIFIER)
+                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["stalemate_stability_modifier"])
                 await tile.save()
         
         self.movement_free = 0
@@ -184,8 +180,8 @@ class Unit:
                         defending_team.append(unit)
                         target_allies_eff += unit.effectiveness(False, self.location)
         
-        self_eff += ALLY_CONTRIBUTION * self_allies_eff
-        target_eff += ALLY_CONTRIBUTION * target_allies_eff
+        self_eff += combat_settings["ally_contribution"] * self_allies_eff
+        target_eff += combat_settings["ally_contribution"] * target_allies_eff
         
         # All effectiveness modifiers must be done at this point
 
@@ -194,7 +190,7 @@ class Unit:
         target_bvc = (target_eff * normalizer)
         gap = self_bvc - target_bvc
 
-        stalemate_chance = max(0.0, BASE_STALEMATE_CHANCE - ((gap ** 2) * BASE_STALEMATE_CHANCE))
+        stalemate_chance = max(0.0, combat_settings["base_stalemate_chance"] - ((gap ** 2) * combat_settings["base_stalemate_chance"]))
         non_stalemate_chance = 1 - stalemate_chance
         win_chance = self_bvc * non_stalemate_chance
         loss_chance = target_bvc * non_stalemate_chance
@@ -243,7 +239,7 @@ def crushing_chance(gap: float) -> float:
     Takes a gap between unit strength and determines the probability of a crushing victory.
     This probability applies only to the unit from whose perspective the gap measurement was taken.
     """
-    return max(0.0, min(1.0, BASE_CRUSHING_CHANCE + ((gap ** 3) * CRUSHING_CHANCE_MODIFIER)))
+    return max(0.0, min(1.0, combat_settings["base_crushing_chance"] + ((gap ** 3) * combat_settings["crushing_chance_modifier"])))
 
 async def new_army(name: str, userid: int, city_name: str):
     nation = nation_list[userid]
