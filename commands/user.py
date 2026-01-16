@@ -4,11 +4,17 @@ import discord
 import random
 from discord import ApplicationContext, Embed
 
-from scripts.constants import brand_color
-from scripts.nations import City, Link, nation_list, structure_types, new_nation, new_city, new_army, new_fleet, move_in_direction
 from scripts.response import response, error
-from scripts.errors import NationsException, CancelledException, InvalidLocation
+from scripts.errors import NationsException, CancelledException
 from scripts.ui import DirectionView
+
+from game.constants import brand_color
+from game.actions import new_nation, new_city, new_army, new_fleet
+
+from world.map import move_in_direction
+from world.cities import City
+from world.structures import Link, structure_types
+from world.world import nation_list
 
 logger = logging.getLogger(__name__)
 

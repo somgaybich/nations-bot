@@ -2,6 +2,10 @@ import pygame
 import json
 import os
 from math import sqrt, sin, cos, pi, radians
+import asyncio
+
+from game.nations import Tile
+from scripts.database import init_db, get_db
 
 pygame.init()
 os.environ['SDL_VIDEO_WINDOW_POS'] = "50,80"
@@ -160,194 +164,198 @@ def draw_ui(surface):
 
 # ===== MAIN LOOP =====
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+async def main():
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            # ==========================
+            #   MOUSE INPUT
+            # ==========================
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_down = True
+                mx, my = pygame.mouse.get_pos()
+                q, r = pixel_to_hex(mx - OFFSET_X * CAMERA_ZOOM, my - OFFSET_Y * CAMERA_ZOOM)
+
+                # Left click = paint with current brush
+                if event.button == 1 and not pygame.key.get_pressed()[pygame.K_SPACE]:
+                    if current_brush is None:
+                        for qq, rr in hex_range(q, r, BRUSH_RADIUS):
+                            terrain.pop((qq, rr), None)
+                    else:
+                        for qq, rr in hex_range(q, r, BRUSH_RADIUS):
+                            print(f"Wrote to hex {qq, rr}")
+                            if (qq, rr) in terrain:
+                                terrain[(qq, rr)]["terrain"] = current_brush
+                            else:
+                                terrain.update({
+                                    (qq, rr): {"terrain": current_brush}
+                                })
+
+                # Right click = always erase
+                if event.button == 3:
+                    terrain.pop((q, r), None)
+                
+                # Holding space + left click = start panning
+                if event.button == 1 and pygame.key.get_pressed()[pygame.K_SPACE]:
+                    panning = True
+                    pan_start = pygame.mouse.get_pos()
+                    camera_start = (CAMERA_X, CAMERA_Y)
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button in (1, 3):
+                    mouse_down = False
+                if event.button == 1 and panning:
+                    panning = False
+
+            # ==========================
+            #   KEY INPUT
+            # ==========================
+            if event.type == pygame.KEYDOWN:
+                mods = event.mod
+
+                # Save
+                if event.key == pygame.K_s:
+                    json.dump({str(k): v for k, v in terrain.items()}, open(terrain_file, "w"), indent=2)
+                    print(f"Saved {terrain_file}")
+
+                def choose_variant(base_name):
+                    if mods & pygame.KMOD_SHIFT:
+                        coast_name = f"{base_name}_coast"
+                        if coast_name in colors:
+                            return coast_name
+                        else:
+                            print(f"No coast variant for '{base_name}'.")
+                            return base_name
+                    return base_name
+
+                # ==== Brush selection ====
+                if event.key == pygame.K_1:
+                    current_brush = "ocean"
+
+                elif event.key == pygame.K_2:
+                    current_brush = choose_variant("plains")
+                elif event.key == pygame.K_3:
+                    current_brush = choose_variant("forest")
+
+                elif event.key == pygame.K_4:
+                    current_brush = choose_variant("desert")
+
+                elif event.key == pygame.K_5:
+                    current_brush = choose_variant("mountains")
+
+                elif event.key == pygame.K_6:
+                    current_brush = "high_mountains"
+
+                elif event.key == pygame.K_0:
+                    current_brush = None
+                
+                # ==== Brush size ====
+                elif event.key == pygame.K_LEFTBRACKET:
+                    BRUSH_RADIUS = max(0, BRUSH_RADIUS - 1)
+
+                elif event.key == pygame.K_RIGHTBRACKET:
+                    BRUSH_RADIUS = min(5, BRUSH_RADIUS + 1)
+
+                # ==== Alignment ====
+                # Size
+                elif event.key == pygame.K_EQUALS:  # + key
+                    HEX_SIZE += ADJUST_STEP
+                elif event.key == pygame.K_MINUS:   # - key
+                    HEX_SIZE = max(1, HEX_SIZE - ADJUST_STEP)
+
+                # OFFSET_X
+                elif event.key == pygame.K_RIGHT:
+                    OFFSET_X += ADJUST_STEP
+                elif event.key == pygame.K_LEFT:
+                    OFFSET_X -= ADJUST_STEP
+
+                # OFFSET_Y
+                elif event.key == pygame.K_DOWN:
+                    OFFSET_Y += ADJUST_STEP
+                elif event.key == pygame.K_UP:
+                    OFFSET_Y -= ADJUST_STEP
+                
+            # ==== Zoom ====
+            if event.type == pygame.MOUSEWHEEL:
+                if event.y >0:
+                    CAMERA_ZOOM = min(MAX_ZOOM, CAMERA_ZOOM * ZOOM_STEP)
+                else:
+                    CAMERA_ZOOM = max(MIN_ZOOM, CAMERA_ZOOM / ZOOM_STEP)
 
         # ==========================
-        #   MOUSE INPUT
+        #   DRAG PAINTING
         # ==========================
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_down = True
+        if mouse_down and not pygame.key.get_pressed()[pygame.K_SPACE]:
             mx, my = pygame.mouse.get_pos()
             q, r = pixel_to_hex(mx - OFFSET_X * CAMERA_ZOOM, my - OFFSET_Y * CAMERA_ZOOM)
 
-            # Left click = paint with current brush
-            if event.button == 1 and not pygame.key.get_pressed()[pygame.K_SPACE]:
+            # Left drag = paint
+            if pygame.mouse.get_pressed()[0]:
                 if current_brush is None:
                     for qq, rr in hex_range(q, r, BRUSH_RADIUS):
                         terrain.pop((qq, rr), None)
                 else:
                     for qq, rr in hex_range(q, r, BRUSH_RADIUS):
-                        print(f"Wrote to hex {qq, rr}")
-                        if (qq, rr) in terrain:
-                            terrain[(qq, rr)]["terrain"] = current_brush
-                        else:
-                            terrain.update({
-                                (qq, rr): {"terrain": current_brush}
-                            })
+                        terrain[(qq, rr)]["terrain"] = current_brush
 
-            # Right click = always erase
-            if event.button == 3:
+            # Right drag = erase
+            if pygame.mouse.get_pressed()[2]:
                 terrain.pop((q, r), None)
-            
-            # Holding space + left click = start panning
-            if event.button == 1 and pygame.key.get_pressed()[pygame.K_SPACE]:
-                panning = True
-                pan_start = pygame.mouse.get_pos()
-                camera_start = (CAMERA_X, CAMERA_Y)
 
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button in (1, 3):
-                mouse_down = False
-            if event.button == 1 and panning:
-                panning = False
+        # ==== Pan ====
+        if panning:
+            mx, my = pygame.mouse.get_pos()
+            dx = (mx - pan_start[0]) / CAMERA_ZOOM
+            dy = (my - pan_start[1]) / CAMERA_ZOOM
+            CAMERA_X = camera_start[0] + dx
+            CAMERA_Y = camera_start[1] + dy
 
         # ==========================
-        #   KEY INPUT
+        #   DRAW
         # ==========================
-        if event.type == pygame.KEYDOWN:
-            mods = event.mod
+        # background world rectangle spans from (-SCREEN_W/2, -SCREEN_H/2) to (+SCREEN_W/2, +SCREEN_H/2)
+        bg_w = int(SCREEN_W * CAMERA_ZOOM)
+        bg_h = int(SCREEN_H * CAMERA_ZOOM)
+        bg_scaled = pygame.transform.smoothscale(BACKGROUND, (bg_w, bg_h))
 
-            # Save
-            if event.key == pygame.K_s:
-                json.dump({str(k): v for k, v in terrain.items()}, open(terrain_file, "w"), indent=2)
-                print(f"Saved {terrain_file}")
+        # world top-left of the background
+        bg_world_tl_x = -SCREEN_W / 2
+        bg_world_tl_y = -SCREEN_H / 2
 
-            def choose_variant(base_name):
-                if mods & pygame.KMOD_SHIFT:
-                    coast_name = f"{base_name}_coast"
-                    if coast_name in colors:
-                        return coast_name
-                    else:
-                        print(f"No coast variant for '{base_name}'.")
-                        return base_name
-                return base_name
+        # where that world top-left maps on screen
+        bg_screen_x, bg_screen_y = world_to_screen_bg(bg_world_tl_x, bg_world_tl_y)
 
-            # ==== Brush selection ====
-            if event.key == pygame.K_1:
-                current_brush = "ocean"
+        # blit scaled background at that screen position
+        SCREEN.blit(bg_scaled, (int(bg_screen_x), int(bg_screen_y)))
 
-            elif event.key == pygame.K_2:
-                current_brush = choose_variant("plains")
-            elif event.key == pygame.K_3:
-                current_brush = choose_variant("forest")
+        overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+        for (q, r), tile in terrain.items():
+            t = tile['terrain']
+            if not t:
+                continue
 
-            elif event.key == pygame.K_4:
-                current_brush = choose_variant("desert")
+            # compute center in world-space
+            wx, wy = hex_to_pixel(q, r, world=True)
 
-            elif event.key == pygame.K_5:
-                current_brush = choose_variant("mountains")
+            # build world-space corners using actual HEX_SIZE
+            world_corners = [(wx + HEX_SIZE * ux, wy + HEX_SIZE * uy) for (ux, uy) in UNIT_HEX]
 
-            elif event.key == pygame.K_6:
-                current_brush = "high_mountains"
+            # convert corners to screen-space using the exact same transform used for the background
+            screen_corners = [world_to_screen(cx, cy) for (cx, cy) in world_corners]
 
-            elif event.key == pygame.K_0:
-                current_brush = None
-            
-            # ==== Brush size ====
-            elif event.key == pygame.K_LEFTBRACKET:
-                BRUSH_RADIUS = max(0, BRUSH_RADIUS - 1)
+            color = colors[t]
+            pygame.draw.polygon(overlay, color, screen_corners, 0)
+            pygame.draw.polygon(overlay, (0, 0, 0, 255), screen_corners, 1)
 
-            elif event.key == pygame.K_RIGHTBRACKET:
-                BRUSH_RADIUS = min(5, BRUSH_RADIUS + 1)
+        SCREEN.blit(overlay, (0, 0))
+        draw_ui(SCREEN)
 
-            # ==== Alignment ====
-            # Size
-            elif event.key == pygame.K_EQUALS:  # + key
-                HEX_SIZE += ADJUST_STEP
-            elif event.key == pygame.K_MINUS:   # - key
-                HEX_SIZE = max(1, HEX_SIZE - ADJUST_STEP)
+        pygame.display.flip()
 
-            # OFFSET_X
-            elif event.key == pygame.K_RIGHT:
-                OFFSET_X += ADJUST_STEP
-            elif event.key == pygame.K_LEFT:
-                OFFSET_X -= ADJUST_STEP
+    pygame.quit()
 
-            # OFFSET_Y
-            elif event.key == pygame.K_DOWN:
-                OFFSET_Y += ADJUST_STEP
-            elif event.key == pygame.K_UP:
-                OFFSET_Y -= ADJUST_STEP
-            
-        # ==== Zoom ====
-        if event.type == pygame.MOUSEWHEEL:
-            if event.y >0:
-                CAMERA_ZOOM = min(MAX_ZOOM, CAMERA_ZOOM * ZOOM_STEP)
-            else:
-                CAMERA_ZOOM = max(MIN_ZOOM, CAMERA_ZOOM / ZOOM_STEP)
-
-    # ==========================
-    #   DRAG PAINTING
-    # ==========================
-    if mouse_down and not pygame.key.get_pressed()[pygame.K_SPACE]:
-        mx, my = pygame.mouse.get_pos()
-        q, r = pixel_to_hex(mx - OFFSET_X * CAMERA_ZOOM, my - OFFSET_Y * CAMERA_ZOOM)
-
-        # Left drag = paint
-        if pygame.mouse.get_pressed()[0]:
-            if current_brush is None:
-                for qq, rr in hex_range(q, r, BRUSH_RADIUS):
-                    terrain.pop((qq, rr), None)
-            else:
-                for qq, rr in hex_range(q, r, BRUSH_RADIUS):
-                    terrain[(qq, rr)]["terrain"] = current_brush
-
-        # Right drag = erase
-        if pygame.mouse.get_pressed()[2]:
-            terrain.pop((q, r), None)
-
-    # ==== Pan ====
-    if panning:
-        mx, my = pygame.mouse.get_pos()
-        dx = (mx - pan_start[0]) / CAMERA_ZOOM
-        dy = (my - pan_start[1]) / CAMERA_ZOOM
-        CAMERA_X = camera_start[0] + dx
-        CAMERA_Y = camera_start[1] + dy
-
-    # ==========================
-    #   DRAW
-    # ==========================
-    # background world rectangle spans from (-SCREEN_W/2, -SCREEN_H/2) to (+SCREEN_W/2, +SCREEN_H/2)
-    bg_w = int(SCREEN_W * CAMERA_ZOOM)
-    bg_h = int(SCREEN_H * CAMERA_ZOOM)
-    bg_scaled = pygame.transform.smoothscale(BACKGROUND, (bg_w, bg_h))
-
-    # world top-left of the background
-    bg_world_tl_x = -SCREEN_W / 2
-    bg_world_tl_y = -SCREEN_H / 2
-
-    # where that world top-left maps on screen
-    bg_screen_x, bg_screen_y = world_to_screen_bg(bg_world_tl_x, bg_world_tl_y)
-
-    # blit scaled background at that screen position
-    SCREEN.blit(bg_scaled, (int(bg_screen_x), int(bg_screen_y)))
-
-    overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
-    for (q, r), tile in terrain.items():
-        t = tile['terrain']
-        if not t:
-            continue
-
-        # compute center in world-space
-        wx, wy = hex_to_pixel(q, r, world=True)
-
-        # build world-space corners using actual HEX_SIZE
-        world_corners = [(wx + HEX_SIZE * ux, wy + HEX_SIZE * uy) for (ux, uy) in UNIT_HEX]
-
-        # convert corners to screen-space using the exact same transform used for the background
-        screen_corners = [world_to_screen(cx, cy) for (cx, cy) in world_corners]
-
-        color = colors[t]
-        pygame.draw.polygon(overlay, color, screen_corners, 0)
-        pygame.draw.polygon(overlay, (0, 0, 0, 255), screen_corners, 1)
-
-    SCREEN.blit(overlay, (0, 0))
-    draw_ui(SCREEN)
-
-    pygame.display.flip()
-
-pygame.quit()
+if __name__ == "__main__":
+    asyncio.run(main())

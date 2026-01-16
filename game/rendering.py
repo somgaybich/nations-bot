@@ -2,7 +2,9 @@ from PIL import Image
 import logging
 import math
 
-from scripts.nations import tile_list, TileDict, City
+from world.map import TileDict
+from world.cities import City
+from world.world import tile_list
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +108,8 @@ def render_snapshot(corner1, corner2, padding=0):
             pixels[(q, r)] = (px, py)
             min_x = min(min_x, px)
             min_y = min(min_y, py)
-            max_x = max(max_x, px + terrain_sprites[tile.terrain.removesuffix("_coast")].width)
-            max_y = max(max_y, py + terrain_sprites[tile.terrain.removesuffix("_coast")].height)
+            max_x = max(max_x, px + terrain_sprites[tile.terrain.land_biome].width)
+            max_y = max(max_y, py + terrain_sprites[tile.terrain.land_biome].height)
 
         # include padding
         min_x -= padding
@@ -125,7 +127,7 @@ def render_snapshot(corner1, corner2, padding=0):
             px, py = pixels[(q, r)]
             paste_x = int(round(px - min_x))
             paste_y = int(round(py - min_y))
-            terrain_img = terrain_sprites[tile.terrain.removesuffix("_coast")]
+            terrain_img = terrain_sprites[tile.terrain.land_biome]
             output.paste(terrain_img, (paste_x, paste_y), terrain_img)
 
             if isinstance(tile, City):

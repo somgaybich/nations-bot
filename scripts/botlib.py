@@ -4,14 +4,15 @@ import time
 from datetime import datetime, timezone
 from discord.ext import tasks
 
-from scripts.nations import tick, load, load_terrain
-from scripts.constants import json_terrain
+from scripts.load import load_terrain, load
+from game.tick import tick
+from game.constants import json_terrain
 from scripts.database import init_db
 from scripts.database import get_db
 
 logger = logging.getLogger(__name__)
 
-from scripts.constants import OPGUILD_ID
+from game.constants import OPGUILD_ID
 
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):

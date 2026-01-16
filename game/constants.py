@@ -49,13 +49,5 @@ combat_settings = {
     "fort_area_buff": 0.05
 }
 
-# MOVEMENT SETTINGS
-difficulties = {
-    "desert": 2,
-    "forest": 2,
-    "mountains": 2,
-    "high_mountains": 3
-}
-
 OPGUILD_ID = 1458983179099832472
 LOGGING_CHANNEL_ID = 123456789012345678

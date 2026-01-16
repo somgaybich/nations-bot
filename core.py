@@ -3,11 +3,8 @@ import dotenv
 import os
 import tracemalloc
 import logging
-import time
 
-from scripts.constants import json_terrain
-from scripts.database import init_db, get_db
-from scripts.nations import load_terrain, load
+from scripts.database import get_db
 from scripts.log import log_setup
 log_setup()
 

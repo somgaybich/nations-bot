@@ -6,9 +6,9 @@ import json
 import discord
 from discord import Embed, ApplicationContext
 
-from scripts.nations import tick, nation_list
+from game.tick import tick
 from scripts.ui import ConfirmView
-from scripts.constants import brand_color
+from game.constants import brand_color
 from scripts.botlib import sync
 
 logger = logging.getLogger(__name__)
