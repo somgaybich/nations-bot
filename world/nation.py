@@ -17,7 +17,7 @@ class Nation:
     """
     The top object in the hierarchy, which contains all information about a nation.
     """
-    def __init__(self, name: str, userid: int, econ: Econ, cities={}, links=[], tiles=[], military=[], 
+    def __init__(self, name: str, userid: int, econ: "Econ", cities={}, links=[], tiles=[], military=[], 
                  espionage=[], dossier={}, allies=[], color=Color.random()):
         self.name: str = name
         self.userid: int = userid

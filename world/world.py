@@ -56,5 +56,5 @@ class NationDict(dict[int, "Nation"]):
             return super().__getitem__(key)
 
 tile_list: TileDict = TileDict()
-units: list[Unit] = []
+units: list["Unit"] = []
 nation_list: NationDict = NationDict()
