@@ -44,6 +44,11 @@ class TileOutOfBounds(NationsException):
         super().__init__(f"Tried to access {location}, which is outside the map's bounds")
         self.user_message = f"That location is outside the map bounds!"
 
+class TileImpassable(NationsException):
+    def __init__(self, reason: str):
+        super().__init__(f"Unit was unable to move to a tile because {reason}.")
+        self.user_message = reason.capitalize() + "!"
+
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
         super().__init__(f"{action} failed: Tile already has {num_structures} structures")

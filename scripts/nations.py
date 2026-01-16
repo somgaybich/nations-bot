@@ -75,6 +75,8 @@ class Unit:
         new_tile, last_tile = move_in_direction(tile_list[self.location], direction)
         if new_tile.difficulty > self.movement_free:
             raise errors.OutOfMovement()
+        elif new_tile.terrain == "high_mountains" and current_season == 3:
+            raise errors.TileImpassable("armies cannot enter high mountains during winter")
         
         self.location = new_tile.location
         self.movement_free -= new_tile.difficulty
