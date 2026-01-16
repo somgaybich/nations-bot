@@ -43,8 +43,7 @@ async def load():
         )
         nation_list[row["nationid"]].econ = econ
 
-    else:
-        tiles_data = {}
+    tiles_data = await db.load_tiles_rows()
     for row in tiles_data:
         Tile(
             terrain=Terrain(*json.loads(row["terrain"])),
