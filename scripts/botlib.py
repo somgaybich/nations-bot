@@ -4,9 +4,8 @@ import time
 from datetime import datetime, timezone
 from discord.ext import tasks
 
-from scripts.load import load_terrain, load
+from scripts.load import load
 from game.tick import tick
-from game.constants import json_terrain
 from scripts.database import init_db
 from scripts.database import get_db
 
@@ -24,8 +23,6 @@ class NationsBot(discord.Bot):
     async def on_ready(self):
         timer = time.perf_counter()
         await init_db()
-        if json_terrain:
-            await load_terrain()
         await load()
         logger.debug(f"Took {(timer / 1000000):.2f}ms to initialize data")
         timer = time.perf_counter()

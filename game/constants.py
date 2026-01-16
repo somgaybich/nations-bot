@@ -7,10 +7,6 @@ def update_season():
     global current_season
     current_season = (current_season + 1) % 4
 
-# if set to True will load from the json terrain data instead of the database
-# this will erase all tile data in said database, so back up before changing
-json_terrain = True
-
 brand_color = Color(16417064)
 
 # COMBAT SETTINGS

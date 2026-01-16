@@ -5,7 +5,6 @@ from discord import Color
 import scripts.database as db
 
 from game.military import Unit
-from game.constants import json_terrain
 
 from world.map import Tile, Terrain
 from world.structures import Link
@@ -16,30 +15,6 @@ from world.world import tile_list, nation_list, units
 
 logger = logging.getLogger(__name__)
 
-async def load_terrain():
-    """
-    Loads terrain data from tiles.json into the tiles singleton.
-    """
-    try:
-        logger.info("Starting terrain load...")
-        with open("data/tiles.json", "r") as f:
-            terrain_data = json.load(f)
-        
-        for location, tile_info in terrain_data.items():
-            stripped_data = location.strip("()").split(", ")
-            location = (int(stripped_data[0]), int(stripped_data[1]))
-            terrain = tile_info['terrain']
-
-            tile = Tile(terrain, location)
-            tile_list[location] = tile
-            await tile.save()
-
-        logger.info("Terrain load complete")
-        logger.debug(f"[{tile_list}]")
-    except Exception as e:
-        logger.error(f"Failed to load terrain data: {e}")
-        raise
-
 async def load():
     """
     Reloads all game state data and reinstantiates from the database. Use will instantly clear any runtime data not protected by a save.
@@ -47,9 +22,6 @@ async def load():
     logger.warning("Clearing nation data")
     nation_list.clear()
     units.clear()
-    
-    if not json_terrain:
-        tile_list.clear()
     
     logger.info("Starting game data load...")
     nations_data = await db.load_nations_rows()
@@ -71,8 +43,6 @@ async def load():
         )
         nation_list[row["nationid"]].econ = econ
 
-    if not json_terrain:
-        tiles_data = await db.load_tiles_rows()
     else:
         tiles_data = {}
     for row in tiles_data:
