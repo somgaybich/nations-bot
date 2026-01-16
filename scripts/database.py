@@ -7,7 +7,13 @@ logger = logging.getLogger(__name__)
 
 _db: Optional[aiosqlite.Connection] = None
 
-async def init_db():
+async def init_db(file: str = "data/nations.db"):
+    """
+    Creates a new database connection.
+    
+    :param file: Path from the root to the database file.
+    :type file: str
+    """
     logger.info("Starting database connection")
     global _db
     if _db is not None:
