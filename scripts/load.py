@@ -15,15 +15,30 @@ from world.world import tile_list, nation_list, units
 
 logger = logging.getLogger(__name__)
 
-async def load():
+async def load(map_only: bool = False):
     """
     Reloads all game state data and reinstantiates from the database. Use will instantly clear any runtime data not protected by a save.
+
+    :param map_only: Whether to only load the tile data from the database. Will ignore all other game data.
     """
     logger.warning("Clearing nation data")
     nation_list.clear()
     units.clear()
     
     logger.info("Starting game data load...")
+    tiles_data = await db.load_tiles_rows()
+    for row in tiles_data:
+        Tile(
+            terrain=Terrain(*json.loads(row["terrain"])),
+            location=(row["x"], row["y"]),
+            owner=row["owner"],
+            owned=row["owned"],
+            structures=json.loads(row["structures"]) if row["structures"] else [],
+        )
+    if map_only:
+        logger.info("Loaded map data")
+        return
+
     nations_data = await db.load_nations_rows()
     for row in nations_data:
         nation = Nation(
@@ -42,16 +57,6 @@ async def load():
             influence_cap=row["influence_cap"],
         )
         nation_list[row["nationid"]].econ = econ
-
-    tiles_data = await db.load_tiles_rows()
-    for row in tiles_data:
-        Tile(
-            terrain=Terrain(*json.loads(row["terrain"])),
-            location=(row["x"], row["y"]),
-            owner=row["owner"],
-            owned=row["owned"],
-            structures=json.loads(row["structures"]) if row["structures"] else [],
-        )
 
     cities_data = await db.load_cities_rows()
     for row in cities_data:
