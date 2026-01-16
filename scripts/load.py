@@ -102,7 +102,6 @@ async def load():
             path=json.loads(row["path"]),
             owner=row["owner"],
             link_id=row["id"])
-        link.build_free()
     
     logger.info("Loaded game data")
     logger.debug(nation_list)
