@@ -57,7 +57,7 @@ class Structure:
 
 class StructureList(list[Structure]):
     def __init__(self):
-        super.__init__()
+        super().__init__()
     
     def has(self, name: str) -> bool:
         """
