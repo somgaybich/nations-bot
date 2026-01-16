@@ -14,38 +14,40 @@ json_terrain = True
 brand_color = Color(16417064)
 
 # COMBAT SETTINGS
-# normalized probabilities
-ALLY_CONTRIBUTION = 0.5
-BASE_STALEMATE_CHANCE = 0.2
-BASE_CRUSHING_CHANCE = 0.25
-CRUSHING_CHANCE_MODIFIER = 0.75
+combat_settings = {
+    # normalized probabilities
+    "ally_contribution": 0.5,
+    "base_stalemate_chance": 0.2,
+    "base_crushing_chance": 0.25,
+    "crushing_chance_modifier": 0.75,
 
-# multiplied by a roll out of 1
-CRUSH_LOSER_STRENGTH_LOSS = 2
-CRUSH_LOSER_MORALE_LOSS = 1.8
-LOSER_STRENGTH_LOSS = 1.5
-LOSER_MORALE_LOSS = 1.3
-CRUSH_WINNER_STRENGTH_LOSS = 0.3
-CRUSH_WINNER_MORALE_LOSS = 0
-WINNER_STRENGTH_LOSS = 1.0
-WINNER_MORALE_LOSS = 0.7
-STALEMATE_STRENGTH_LOSS = 1.2
-STALEMATE_MORALE_LOSS = 1.0
+    # multiplied by a roll out of 1
+    "crush_loser_strength_loss": 2,
+    "crush_loser_morale_loss": 1.8,
+    "loser_strength_loss": 1.5,
+    "loser_morale_loss": 1.3,
+    "crush_winner_strength_loss": 0.3,
+    "crush_winner_morale_loss": 0,
+    "winner_strength_loss": 1.0,
+    "winner_morale_loss": 0.7,
+    "stalemate_strength_loss": 1.2,
+    "stalemate_morale_loss": 1.0,
 
-# multiplied by a roll out of 100
-CRUSH_STABILITY_MODIFIER = 20
-DECISIVE_STABILITY_MODIFIER = 10
-STALEMATE_STABILITY_MODIFIER = 5
+    # multiplied by a roll out of 100
+    "crush_stability_modifier": 20,
+    "decisive_stability_modifier": 10,
+    "stalemate_stability_modifier": 5,
 
-# normalized probabilities
-HOME_TERRAIN_BUFF = 0.15
-HOME_CITY_BUFF = 0.1
-DESERT_DEBUFF = 0.1
-FOREST_DEBUFF = 0.1
-MOUNTAINS_DEBUFF = 0.15
-HIGH_MOUNTAINS_DEBUFF = 0.20
-FORT_BUFF = 0.15
-FORT_AREA_BUFF = 0.05
+    # normalized probabilities
+    "home_terrain_buff": 0.15,
+    "home_city_buff": 0.1,
+    "desert_debuff": 0.1,
+    "forest_debuff": 0.1,
+    "mountains_debuff": 0.15,
+    "high_mountains_debuff": 0.20,
+    "fort_buff": 0.15,
+    "fort_area_buff": 0.05
+}
 
 # MOVEMENT SETTINGS
 difficulties = {
