@@ -9,7 +9,7 @@ import scripts.database as db
 if TYPE_CHECKING:
     from game.military import Unit
     from game.espionage import Espionage
-    from world.economy import Econ
+    from game.economy import Econ
     from world.structures import Link
     from world.cities import City
 

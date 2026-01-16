@@ -9,8 +9,8 @@ from game.military import Unit
 from world.map import Tile, Terrain
 from world.structures import Link
 from world.cities import City
-from world.nation import Nation
-from world.economy import Econ
+from game.nation import Nation
+from game.economy import Econ
 from world.world import tile_list, nation_list, units
 
 logger = logging.getLogger(__name__)

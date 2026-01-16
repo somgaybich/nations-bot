@@ -10,9 +10,9 @@ from game.military import Unit
 from world.map import Tile, hex_distance
 from world.structures import LinkType, StructureType, Link, Structure
 from world.cities import City
-from world.nation import Nation
+from game.nation import Nation
 from world.world import nation_list, tile_list, units
-from world.economy import Econ
+from game.economy import Econ
 
 async def new_link(path: list[Tile], linktype: LinkType, owner: int, origin: City, destination: City):
     length = len(path)

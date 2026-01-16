@@ -8,7 +8,7 @@ import scripts.errors as errors
 if TYPE_CHECKING:
     from game.military import Unit
     from world.map import Tile
-    from world.nation import Nation
+    from game.nation import Nation
 
 class TileDict(dict[tuple[int, int], "Tile"]):
     """
