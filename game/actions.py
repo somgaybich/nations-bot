@@ -134,17 +134,20 @@ async def new_fleet(name: str, userid: int, city_name: str) -> Unit:
 
     return new_unit
 
-async def new_city(name: str, location: tuple[int, int], owner: int) -> City:
+async def new_city(name: str, location: tuple[int, int], owner: int, capital: bool = False) -> City:
     """
     A helper function for making new cities.
     """
-    if not tile_list[location].terrain.is_land:
+    nation = nation_list[owner]
+    city_tile = tile_list[location]
+
+    if not city_tile.terrain.is_land:
         raise errors.InvalidLocation("Settlement creation", "in ocean tiles")
-    elif tile_list[location].terrain.land_biome == "high_mountains":
+    elif city_tile.terrain.land_biome == "high_mountains":
         raise errors.InvalidLocation("Settlement creation", "in high mountains")
     
     to_be_claimed = []
-    for tile in tile_list[location].area():
+    for tile in city_tile.area():
         if tile.owner == None:
             to_be_claimed.append(tile.location)
         elif tile.owner == owner:
@@ -152,16 +155,36 @@ async def new_city(name: str, location: tuple[int, int], owner: int) -> City:
         # Tile is owned by another player
         else:
             raise errors.NotOwned('Settlement creation', tile.location)
-    
-    nation_list[owner].tiles.append(to_be_claimed)
+
+    if not capital:
+        in_range = False
+        for unit in units:
+            if hex_distance(unit.location, city_tile) <= 1:
+                in_range = True
+                break
+        if not in_range:
+            for city in nation.cities:
+                if hex_distance(city, city_tile) <= 1:
+                    in_range = True
+        if not in_range:
+            raise errors.InvalidLocation("Settlement creation", "too far from settlements or units")
+
+    # This check must be last because it has behavior!
+    if not capital:
+        if nation.econ.influence < 4:
+            raise errors.NotEnoughInfluence('Settlement creation', 4, nation.econ.influence)
+        else:
+            nation.econ.influence -= 4
+
+    nation.tiles.append(to_be_claimed)
     for location in to_be_claimed:
         tile_list[location].owner = owner
         await tile_list[location].save()
 
     new_city = City(terrain=tile_list[location].terrain, name=name, location=location, owner=owner)
-    nation_list[owner].cities[name] = new_city
+    nation.cities[name] = new_city
 
-    await nation_list[owner].save()
+    await nation.save()
     await new_city.save()
     
     return new_city
