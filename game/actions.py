@@ -14,7 +14,7 @@ from game.nation import Nation
 from world.world import nation_list, tile_list, units
 from game.economy import Econ
 
-async def new_link(path: list[Tile], linktype: LinkType, owner: int, origin: City, destination: City):
+async def new_link(path: list[Tile], linktype: LinkType, owner: int, origin: City, destination: City) -> Link:
     length = len(path)
     inf_cost = math.ceil(linktype.inf_cost * length)
     stone_cost = math.ceil(linktype.resource_cost["stone"] * length)
@@ -72,14 +72,17 @@ async def new_link(path: list[Tile], linktype: LinkType, owner: int, origin: Cit
         else:
             tile.structures.append(Structure(linktype, location, destination, owner))
         tile.save()
-    nation.links.append(Link(linktype, origin, destination, path, owner))
+    new_link = Link(linktype, origin, destination, path, owner)
+    nation.links.append(new_link)
 
     await nation.save()
     await econ.save()
     await origin.save()
     await destination.save()
 
-async def new_army(name: str, userid: int, city_name: str):
+    return new_link
+
+async def new_army(name: str, userid: int, city_name: str) -> Unit:
     nation = nation_list[userid]
     city = nation.cities.get(city_name)
     econ = nation.econ
@@ -102,7 +105,9 @@ async def new_army(name: str, userid: int, city_name: str):
     await econ.save()
     await new_unit.save()
 
-async def new_fleet(name: str, userid: int, city_name: str):
+    return new_unit
+
+async def new_fleet(name: str, userid: int, city_name: str) -> Unit:
     nation = nation_list[userid]
     city = nation.cities.get(city_name)
     econ = nation.econ
@@ -127,7 +132,9 @@ async def new_fleet(name: str, userid: int, city_name: str):
     await econ.save()
     await new_unit.save()
 
-async def new_city(name: str, location: tuple[int, int], owner: int):
+    return new_unit
+
+async def new_city(name: str, location: tuple[int, int], owner: int) -> City:
     """
     A helper function for making new cities.
     """
@@ -157,7 +164,7 @@ async def new_city(name: str, location: tuple[int, int], owner: int):
     await nation_list[owner].save()
     await new_city.save()
     
-    return None
+    return new_city
 
 async def new_nation(name: str, userid: int) -> Nation:
     """
@@ -177,7 +184,7 @@ async def new_nation(name: str, userid: int) -> Nation:
     await econ.save()
     return nation
 
-async def new_structure(structure_type: StructureType, location: tuple[int, int], root_city: str, builder: int):
+async def new_structure(structure_type: StructureType, location: tuple[int, int], root_city: str, builder: int) -> Structure:
     nation = nation_list[builder]
     econ = nation.econ
     tile = tile_list[location]
@@ -223,7 +230,8 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
         city.inventory.remove(item)
     econ.influence -= structure_type.inf_cost
 
-    tile.structures.append(Structure(structure_type, location, root_city, builder))
+    new_structure = Structure(structure_type, location, root_city, builder)
+    tile.structures.append(new_structure)
 
     if structure_type.name == "Temple" or structure_type.name == "Grand Temple":
         city.popularity += min(100, round((nation_list[builder].cities[root_city].popularity / 10) + 5))
@@ -232,3 +240,5 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
     await nation.save()
     await city.save()
     await tile.save()
+
+    return new_structure
