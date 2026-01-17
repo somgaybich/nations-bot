@@ -79,8 +79,16 @@ def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
 
     return new_tile, last_tile
 
-def hex_distance(a: Tile, b: Tile) -> int:
-    aq, ar = a.location
+def hex_distance(a: Tile | tuple[int, int], b: Tile | tuple[int, int]) -> int:
+    if isinstance(a, Tile):
+        aq, ar = a.location
+    else:
+        aq, ar = a[0], a[1]
+    
+    if isinstance(b, Tile):
+        bq, br = b.location
+    else:
+        bq, br = b[0], b[1]
     bq, br = b.location
     return (abs(aq - bq)
           + abs(aq + ar - bq - br)
