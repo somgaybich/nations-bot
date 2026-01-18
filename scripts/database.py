@@ -212,7 +212,7 @@ async def save_tile(tile):
             owned = excluded.owned,
             structures = excluded.structures
         """,
-        (x, y, tile.terrain.data, tile.owner, tile.owned, json.dumps(tile.structures))
+        (x, y, tile.terrain.data(), tile.owner, tile.owned, json.dumps(tile.structures))
     )
 
 async def save_tiles(iterable_tiles):
