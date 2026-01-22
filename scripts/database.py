@@ -17,6 +17,7 @@ async def init_db(file: str = "data/nations.db"):
     logger.info("Starting database connection")
     global _db
     if _db is not None:
+        logger.warning("Tried to start database connection when there was already one initialized")
         return
     
     _db = await aiosqlite.connect(file)

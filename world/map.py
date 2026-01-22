@@ -9,15 +9,15 @@ from world.structures import StructureList
 from world.world import tile_list
 
 class Terrain:
-    def __init__(self, land_biome: str, water_biome: str, is_land: bool, is_water: bool, difficulty: int):
-        self.land_biome = land_biome
-        self.water_biome = water_biome
+    def __init__(self, biome: str, is_land: bool, is_water: bool, difficulty: int, straits: list | None = None):
+        self.biome = biome
         self.is_land = is_land
         self.is_water = is_water
         self.difficulty = difficulty
+        self.straits = straits if not straits is None else []
     
     def data(self):
-        return json.dumps([self.land_biome, self.water_biome, self.is_land, self.is_water])
+        return json.dumps([self.biome, self.is_land, self.is_water, self.difficulty, self.straits])
 
 class Tile:
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), owner: str = None, 

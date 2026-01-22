@@ -2,7 +2,7 @@
 .venv/
 .vscode
 logs/
-data/nations.db
-data/nations.db-journal
+data/
 test.py
+map.png
 __pycache__/
