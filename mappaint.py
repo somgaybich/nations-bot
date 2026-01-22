@@ -184,11 +184,11 @@ cooldowns = {}
 UPDATE_COOLDOWN = 2
 
 async def update_tile(location: tuple[int, int]):
-    tile = tile_list[location]
+    tile = tile_list.get(location)
     if current_brush == "strait":
         return
     
-    if location in tile_list:
+    if tile is not None:
         if current_brush == None:
             tile_list.pop(location)
             await get_db().execute("DELETE FROM tiles WHERE (x, y) = (?, ?)", location)
@@ -334,7 +334,7 @@ async def main():
                     # indexed as 0: NE, 1: N, 2: NW ...
 
                     # Apply strait logic for that side here
-                    tile = tile_list[(q, r)]
+                    tile = tile_list.get((q, r))
                     if tile is None:
                         pass
                     elif closest_side not in tile.terrain.straits:
