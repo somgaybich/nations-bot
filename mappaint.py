@@ -257,9 +257,9 @@ async def main():
     MAX_ZOOM = 5.0
 
     global OFFSET_X, OFFSET_Y, HEX_SIZE
-    HEX_SIZE = 7.865
-    OFFSET_X = 5.64  # Offsets are for hex grid alignment
-    OFFSET_Y = 8.6 
+    HEX_SIZE = 7.876
+    OFFSET_X = 5.54  # Offsets are for hex grid alignment
+    OFFSET_Y = 8.30 
 
     RAW_MAP = pygame.image.load("map.png")
 
