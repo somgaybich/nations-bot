@@ -315,40 +315,41 @@ async def main():
                 mouse_down = True
                 mx, my = pygame.mouse.get_pos()
                 q, r = pixel_to_hex(mx, my)
-
-                if current_brush == "strait":
-                    # Compute center of hex in screen coords
-                    hx, hy = hex_to_pixel(q, r)
-
-                    # Compute world-space corners scaled by HEX_SIZE
-                    corners = [(hx + HEX_SIZE * ux, hy + HEX_SIZE * uy) for (ux, uy) in UNIT_HEX]
-
-                    # Compute distance to each hex side
-                    side_distances = [point_to_segment_distance(mx, my,
-                                                                corners[i][0], corners[i][1],
-                                                                corners[(i+1)%6][0], corners[(i+1)%6][1])
-                                    for i in range(6)]
-                    
-                    # Closest side index
-                    closest_side = side_distances.index(min(side_distances))
-                    # indexed as 0: NE, 1: N, 2: NW ...
-
-                    # Apply strait logic for that side here
-                    tile = tile_list.get((q, r))
-                    if tile is None:
-                        pass
-                    elif closest_side not in tile.terrain.straits:
-                        tile.terrain.straits.append(closest_side)
-                        await tile.save()
-                    elif closest_side in tile.terrain.straits:
-                        tile.terrain.straits.remove(closest_side)
-                        await tile.save()
                     
                 # Left click = paint with current brush
                 if event.button == 1 and not pygame.key.get_pressed()[pygame.K_SPACE]:
-                    for qq, rr in hex_range(q, r, brush_radius):
-                        await update_tile((qq, rr))
-                        logger.info(f"Wrote to hex {qq, rr}")
+                    if current_brush == "strait":
+                        # Compute center of hex in screen coords
+                        hx, hy = hex_to_pixel(q, r)
+
+                        # Compute world-space corners scaled by HEX_SIZE
+                        corners = [(hx + HEX_SIZE * ux, hy + HEX_SIZE * uy) for (ux, uy) in UNIT_HEX]
+
+                        # Compute distance to each hex side
+                        side_distances = [point_to_segment_distance(mx, my,
+                                                                    corners[i][0], corners[i][1],
+                                                                    corners[(i+1)%6][0], corners[(i+1)%6][1])
+                                        for i in range(6)]
+                        
+                        # Closest side index
+                        closest_side = side_distances.index(min(side_distances))
+                        # indexed as 0: NE, 1: N, 2: NW ...
+
+                        # Apply strait logic for that side here
+                        tile = tile_list.get((q, r))
+                        if tile is None:
+                            pass
+                        elif closest_side not in tile.terrain.straits:
+                            tile.terrain.straits.append(closest_side)
+                            await tile.save()
+                        elif closest_side in tile.terrain.straits:
+                            tile.terrain.straits.remove(closest_side)
+                            await tile.save()
+                    
+                    else:
+                        for qq, rr in hex_range(q, r, brush_radius):
+                            await update_tile((qq, rr))
+                            logger.info(f"Wrote to hex {qq, rr}")
                 
                 # Left click + space = start panning
                 if event.button == 1 and pygame.key.get_pressed()[pygame.K_SPACE]:
