@@ -220,7 +220,7 @@ async def save_tiles(iterable_tiles):
         await save_tile(tile)
 
 async def load_tiles_rows():
-    async with get_db().execute("SELECT * FROM units") as cursor:
+    async with get_db().execute("SELECT * FROM tiles") as cursor:
         return await cursor.fetchall()
 
 # ---------------
