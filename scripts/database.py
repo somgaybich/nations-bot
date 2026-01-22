@@ -19,7 +19,7 @@ async def init_db(file: str = "data/nations.db"):
     if _db is not None:
         return
     
-    _db = await aiosqlite.connect("data/nations.db")
+    _db = await aiosqlite.connect(file)
     await _db.execute("PRAGMA foreign_keys = ON;")
     _db.row_factory = aiosqlite.Row
 
