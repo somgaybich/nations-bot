@@ -48,7 +48,7 @@ colors = {
     "mediterranean": (120, 170, 90, HEX_OPACITY),    # olive / scrubland
 
     # Continental / cold
-    "humic_continental": (80, 140, 100, HEX_OPACITY),# mixed forest
+    "humid_continental": (80, 140, 100, HEX_OPACITY),# mixed forest
     "subarctic_continental": (60, 110, 90, HEX_OPACITY),
     "cold_steppe": (180, 190, 150, HEX_OPACITY),     # dry cold grassland
     "cold_desert": (210, 215, 200, HEX_OPACITY),     # pale, dusty gray
@@ -405,7 +405,7 @@ async def main():
                     current_brush = "humid_subtropical"
 
                 elif event.key == pygame.K_e:
-                    current_brush = "humic_continental"
+                    current_brush = "humid_continental"
                 
                 elif event.key == pygame.K_r:
                     current_brush = "cold_steppe"
