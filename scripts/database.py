@@ -7,13 +7,20 @@ logger = logging.getLogger(__name__)
 
 _db: Optional[aiosqlite.Connection] = None
 
-async def init_db():
+async def init_db(file: str = "data/nations.db"):
+    """
+    Creates a new database connection.
+    
+    :param file: Path from the root to the database file.
+    :type file: str
+    """
     logger.info("Starting database connection")
     global _db
     if _db is not None:
+        logger.warning("Tried to start database connection when there was already one initialized")
         return
     
-    _db = await aiosqlite.connect("data/nations.db")
+    _db = await aiosqlite.connect(file)
     await _db.execute("PRAGMA foreign_keys = ON;")
     _db.row_factory = aiosqlite.Row
 
@@ -39,6 +46,7 @@ async def init_db():
         strength INTEGER NOT NULL,
         morale INTEGER NOT NULL,
         exp INTEGER NOT NULL,
+        movement_free INTEGER NOT NULL,
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created units table")
@@ -136,10 +144,11 @@ async def save_unit(unit):
         async with get_db().execute(
             """
             INSERT INTO units (
-                name, unit_type, home, x, y,
-                strength, morale, exp, owner
+                name, type, home, x, y,
+                strength, morale, exp, owner,
+                movement_free
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 unit.name,
@@ -151,6 +160,7 @@ async def save_unit(unit):
                 unit.morale,
                 unit.exp,
                 unit.owner,
+                unit.movement_free
             )
         ) as cursor:
             unit.id = cursor.lastrowid
@@ -158,8 +168,9 @@ async def save_unit(unit):
         await get_db().execute(
             """
             UPDATE units
-            SET name = ?, unit_type = ?, home = ?, x = ?, y = ?,
-                strength = ?, morale = ?, exp = ?, owner = ?
+            SET name = ?, type = ?, home = ?, x = ?, y = ?,
+                strength = ?, morale = ?, exp = ?, owner = ?,
+                movement_free = ?
             WHERE id = ?
             """,
             (
@@ -172,6 +183,7 @@ async def save_unit(unit):
                 unit.morale,
                 unit.exp,
                 unit.owner,
+                unit.movement_free,
                 unit.id,
             )
         )
@@ -201,7 +213,7 @@ async def save_tile(tile):
             owned = excluded.owned,
             structures = excluded.structures
         """,
-        (x, y, tile.terrain, tile.owner, tile.owned, json.dumps(tile.structures))
+        (x, y, tile.terrain.data(), tile.owner, tile.owned, json.dumps(tile.structures))
     )
 
 async def save_tiles(iterable_tiles):
@@ -209,7 +221,7 @@ async def save_tiles(iterable_tiles):
         await save_tile(tile)
 
 async def load_tiles_rows():
-    async with get_db().execute("SELECT * FROM units") as cursor:
+    async with get_db().execute("SELECT * FROM tiles") as cursor:
         return await cursor.fetchall()
 
 # ---------------
@@ -251,7 +263,7 @@ async def save_link(link):
             INSERT INTO links (linktype, origin, destination, path, owner)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner)
+            (link.linktype, link.origin.name, link.destination.name, json.dumps(link.path), link.owner)
         ) as cursor:
             link.id = cursor.lastrowid
     else:

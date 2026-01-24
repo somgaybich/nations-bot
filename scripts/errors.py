@@ -29,10 +29,10 @@ class NationIDNotFound(NationsException):
         super().__init__(f"The userid '{userid}' isn't associated with a nation")
         self.user_message = "You don't have a nation!"
 
-class InvalidSystems(NationsException):
-    def __init__(self, reason: str):
-        super().__init__(f"Nation creation failed: Systems were invalid because {reason.lower()}")
-        self.user_message = reason
+class OutOfMovement(NationsException):
+    def __init__(self):
+        super().__init__(f"A unit failed to move because it didn't have enough free movement")
+        self.user_message = "That unit doesn't have enough movement left this season!"
 
 class InvalidLocation(NationsException):
     def __init__(self, action: str, location_type: str):
@@ -43,6 +43,11 @@ class TileOutOfBounds(NationsException):
     def __init__(self, location: tuple[int, int]):
         super().__init__(f"Tried to access {location}, which is outside the map's bounds")
         self.user_message = f"That location is outside the map bounds!"
+
+class TileImpassable(NationsException):
+    def __init__(self, reason: str):
+        super().__init__(f"Unit was unable to move to a tile because {reason}.")
+        self.user_message = reason.capitalize() + "!"
 
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
@@ -74,10 +79,10 @@ class NotOwned(NationsException):
         super().__init__(f"{action} failed: User did not own the tile {location}")
         self.user_message = f"You don't own {location}!"
 
-class NotEnoughEI(NationsException):
+class NotEnoughInfluence(NationsException):
     def __init__(self, action: str, required: int, had: int):
-        super().__init__(f"{action} failed: User needed {required} EI and had {had}")
-        self.user_message = f"You need {required} EI to do that and only have {had}!"
+        super().__init__(f"{action} failed: User needed {required} influence and had {had}")
+        self.user_message = f"You need {required} influence to do that and only have {had}!"
 
 class NotEnoughResources(NationsException):
     def __init__(self, action: str, required: list[str], had: list[str]):

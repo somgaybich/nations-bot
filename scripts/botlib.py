@@ -4,12 +4,14 @@ import time
 from datetime import datetime, timezone
 from discord.ext import tasks
 
-from scripts.nations import tick
+from scripts.load import load
+from game.tick import tick
+from scripts.database import init_db
 from scripts.database import get_db
 
 logger = logging.getLogger(__name__)
 
-from scripts.constants import OPGUILD_ID
+from game.constants import OPGUILD_ID
 
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):
@@ -19,6 +21,10 @@ class NationsBot(discord.Bot):
         super().__init__(**kwargs)
 
     async def on_ready(self):
+        timer = time.perf_counter()
+        await init_db()
+        await load()
+        logger.debug(f"Took {(timer / 1000000):.2f}ms to initialize data")
         timer = time.perf_counter()
         self.load_extension("commands.admin")
         self.load_extension("commands.user")
@@ -32,6 +38,9 @@ class NationsBot(discord.Bot):
         try:
             await get_db().commit()
             logger.info("Committed all database changes")
+        except RuntimeError:
+            # This is raised on startup because the initial database commit always fails
+            logger.debug("Initial commit failed")
         except Exception as e:
             logger.error(f"Unable to commit database: {e}")
             raise
