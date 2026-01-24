@@ -261,7 +261,7 @@ async def main():
     OFFSET_X = 5.54  # Offsets are for hex grid alignment
     OFFSET_Y = 8.30 
 
-    RAW_MAP = pygame.image.load("map.png")
+    RAW_MAP = pygame.image.load("assets\\map.png")
 
     global SCREEN_W, SCREEN_H
     BG_NATIVE_W, BG_NATIVE_H = (n / 5 for n in RAW_MAP.get_size())
