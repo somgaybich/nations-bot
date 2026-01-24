@@ -7,7 +7,7 @@ import scripts.database as db
 from game.military import Unit
 
 from world.map import Tile, Terrain
-from world.structures import Link
+from world.structures import Link, StructureList
 from world.cities import City
 from game.nation import Nation
 from game.economy import Econ
@@ -28,12 +28,15 @@ async def load(map_only: bool = False):
     logger.info("Starting game data load...")
     tiles_data = await db.load_tiles_rows()
     for row in tiles_data:
+        structure_list = StructureList()
+        for structure in json.loads(row["structures"]):
+            structure_list.append(structure)
         tile = Tile(
             terrain=Terrain(*json.loads(row["terrain"])),
             location=(row["x"], row["y"]),
             owner=row["owner"],
             owned=row["owned"],
-            structures=json.loads(row["structures"]) if row["structures"] else [],
+            structures=structure_list,
         )
         tile_list[tile.location] = tile
     if map_only:

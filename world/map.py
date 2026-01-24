@@ -21,12 +21,12 @@ class Terrain:
 
 class Tile:
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), owner: str = None, 
-                 owned: bool = False, structures: StructureList = []):
+                 owned: bool = False, structures: StructureList = StructureList()):
         self.terrain = terrain
         self.location = location
         self.owned = owned
         self.owner = owner
-        self.structures = structures if structures is not [] else StructureList()
+        self.structures = structures
 
         if "simple_rail" in structures:
             self.difficulty = 0.5
