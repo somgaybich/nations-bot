@@ -1,37 +1,22 @@
 from PIL import Image
 import logging
-import math
+from math import sqrt
 
+from world.map import Tile
 from world.cities import City
 from world.world import tile_list, TileDict
 
 logger = logging.getLogger(__name__)
 
-HEX_WIDTH  = 90
-HEX_HEIGHT = 80
-HEX_SIZE = HEX_WIDTH / 2
-X_SPACING = HEX_WIDTH * 3/4
-Y_SPACING = HEX_HEIGHT
+HEX_WIDTH = 78.65
+HEX_HEIGHT = 68.2
+ 
+ANCHOR_Q = -65
+ANCHOR_R = -8
 
-terrain_sprites = {
-    "cold_desert": Image.open("assets/terrain/cold_desert.png").convert("RGBA"),
-    "cold_steppe": Image.open("assets/terrain/cold_steppe.png").convert("RGBA"),
-    "high_mountains": Image.open("assets/terrain/high_mountains.png").convert("RGBA"),
-    "hot_desert": Image.open("assets/terrain/hot_desert.png").convert("RGBA"),
-    "hot_steppe": Image.open("assets/terrain/hot_steppe.png").convert("RGBA"),
-    "humid_continental": Image.open("assets/terrain/humid_continental.png").convert("RGBA"),
-    "humid_subtropical": Image.open("assets/terrain/humid_subtropical.png").convert("RGBA"),
-    "ice_caps": Image.open("assets/terrain/ice_caps.png").convert("RGBA"),
-    "mediterranean": Image.open("assets/terrain/mediterranean.png").convert("RGBA"),
-    "monsoon": Image.open("assets/terrain/monsoon.png").convert("RGBA"),
-    "mountains": Image.open("assets/terrain/mountains.png").convert("RGBA"),
-    "oceanic": Image.open("assets/terrain/oceanic.png").convert("RGBA"),
-    "rainforest": Image.open("assets/terrain/rainforest.png").convert("RGBA"),
-    "savanna": Image.open("assets/terrain/savanna.png").convert("RGBA"),
-    "subarctic_continental": Image.open("assets/terrain/subarctic_continental.png").convert("RGBA"),
-    "tundra": Image.open("assets/terrain/tundra.png").convert("RGBA"),
-    "water": Image.open("assets/terrain/water.png").convert("RGBA")
-}
+source_image = Image.open("assets/map.png").convert("RGBA")
+
+# TODO: Add other link types
 overlay_sprites = {
     "rail_n": Image.open("assets/overlays/rail_n.png").convert("RGBA"),
     "rail_ne": Image.open("assets/overlays/rail_ne.png").convert("RGBA"),
@@ -53,99 +38,110 @@ tier_names = {
     4: "metropolis"
 }
 
-def render_snapshot(corner1, corner2, padding=0) -> Image.Image:
+def n_corner(q, r) -> tuple[int, int]:
     """
-    Makes a map image from a specific screen-space rectangle given by two axial corners.
-    corner1, corner2 are (q, r) axial coordinates (these are the screen-space rectangle corners).
-    Returns a PIL Image.
+    Finds the n-corner (top left) in rectangular image coordinates of a hex given axial coordinates
     """
-    try:
-        # Recompute u/v rectangle here (flat-top)
-        def uv(q, r):
-            return q, r + q / 2
+    return (
+        3/4 * HEX_WIDTH * (q - ANCHOR_Q),
+        1/2 * HEX_HEIGHT * (q - ANCHOR_Q) + HEX_HEIGHT * (r - ANCHOR_R))
 
-        q1, r1 = corner1
-        q2, r2 = corner2
-        u1, v1 = uv(q1, r1)
-        u2, v2 = uv(q2, r2)
+def m_corner(q, r) -> tuple[int, int]:
+    """
+    Finds the m-corner (bottom right) in rectangular image coordinates of a hex given axial coordinates
+    """
+    return (
+        3/4 * HEX_WIDTH * (q - ANCHOR_Q + 1) + 1/4 * HEX_WIDTH,
+        1/2 * HEX_HEIGHT * (q - ANCHOR_Q + 2) + HEX_HEIGHT * (r - ANCHOR_R)
+    )
 
-        u_min, u_max = min(u1, u2), max(u1, u2)
-        v_min, v_max = min(v1, v2), max(v1, v2)
+def snapshot_corners(corner1, corner2) -> Image.Image:
+    """
+    Takes a rectangular snapshot of the source image based on
+    axial hex coordinates.
+    """
 
-        # conservative q range (integers)
-        q_min = math.ceil(u_min)
-        q_max = math.floor(u_max)
+    q1, r1 = corner1
+    q2, r2 = corner2
 
-        # collect tiles whose (u,v) lies inside the rectangle
-        selected = TileDict()
-        for key, tile in tile_list.items():
-            # defend against bad keys
-            try:
-                q, r = key
-            except:
-                raise
+    x_min, y_min = n_corner(q1, r1)
+    x_max, y_max = m_corner(q2, r2)
 
-            u = q
-            v = r + q / 2.0
-            if u_min <= u <= u_max and v_min <= v <= v_max:
-                selected[(q, r)] = tile
+    snapshot = source_image.crop((x_min, y_min, x_max, y_max))
 
-        if not selected:
-            # nothing selected — return an empty transparent image small enough to display
-            return Image.new("RGBA", (int(HEX_SIZE), int(HEX_SIZE)))
+    for location, tile in tile_list.items():
+        qt, rt = location
 
-        # compute pixel positions for every selected tile using a consistent formula
-        # we'll use axial_to_pixel with an arbitrary r baseline (0), and then shift by min_x/min_y
-        def axial_to_pixel_raw(q, r, q_origin):
-            # raw pixel coords (floating) using q_origin to make x small
-            x = HEX_SIZE * (1.5 * (q - q_origin))
-            y = HEX_SIZE * (math.sqrt(3)/2 * (q - q_origin) + math.sqrt(3) * r)
-            return x, y
+        n_x, n_y = n_corner(qt, rt)
+        m_x, m_y = m_corner(qt, rt)
+        # This is the bounds of the overlay sprite on the cropped map
+        box=(int(n_x - x_min), int(n_y - y_min))
 
-        # choose q_origin = q_min to keep numbers small
-        q_origin = q_min
+        # The tile's top-left corner and bottom-right corner are in the snapshot bounds
+        # (Half-represented tiles, like those on the vertical edges, don't get overlays)
+        if x_min <= n_x and x_max >= m_x and y_min <= n_y and y_max >= m_y:
+            logger.info(f"{(qt, rt)} is in the range of the snapshot!")
 
-        pixels = {}
-        min_x = float("inf")
-        min_y = float("inf")
-        max_x = -float("inf")
-        max_y = -float("inf")
-
-        for (q, r), tile in selected.items():
-            px, py = axial_to_pixel_raw(q, r, q_origin)
-            # tile sprite likely has its own origin; if your sprites are anchored so the hex center
-            # is at (0,0) in the sprite, you may need additional offsets here.
-            pixels[(q, r)] = (px, py)
-            min_x = min(min_x, px)
-            min_y = min(min_y, py)
-            max_x = max(max_x, px + terrain_sprites[tile.terrain.biome].width)
-            max_y = max(max_y, py + terrain_sprites[tile.terrain.biome].height)
-
-        # include padding
-        min_x -= padding
-        min_y -= padding
-        max_x += padding
-        max_y += padding
-
-        width_px  = int(math.ceil(max_x - min_x))
-        height_px = int(math.ceil(max_y - min_y))
-
-        output = Image.new("RGBA", (width_px, height_px))
-
-        # paste each tile offset by (-min_x, -min_y)
-        for (q, r), tile in selected.items():
-            px, py = pixels[(q, r)]
-            paste_x = int(round(px - min_x))
-            paste_y = int(round(py - min_y))
-            terrain_img = terrain_sprites[tile.terrain.biome]
-            output.paste(terrain_img, (paste_x, paste_y), terrain_img)
+            if tile.structures.has("Simple Rail"):
+                for area_tile in tile.area():
+                    if area_tile.structures.has("Simple Rail"):
+                        direction = tile.direction_to(area_tile)
+                        sprite = overlay_sprites["rail_" + direction]
+                        snapshot.paste(
+                            im=sprite,
+                            box=box,
+                            mask=sprite
+                        )
+            if tile.structures.has("Quality Rail"):
+                for area_tile in tile.area():
+                    if area_tile.structures.has("Quality Rail"):
+                        direction = tile.direction_to(area_tile)
+                        sprite = overlay_sprites["qrail_" + direction]
+                        snapshot.paste(
+                            im=sprite,
+                            box=box,
+                            mask=sprite
+                        )
+            if tile.structures.has("Stone Road"):
+                for area_tile in tile.area():
+                    if area_tile.structures.has("Stone Road"):
+                        direction = tile.direction_to(area_tile)
+                        sprite = overlay_sprites["road_" + direction]
+                        snapshot.paste(
+                            im=sprite,
+                            box=box,
+                            mask=sprite
+                        )
+            if tile.structures.has("Sea Route"):
+                for area_tile in tile.area():
+                    if area_tile.structures.has("Sea Route"):
+                        direction = tile.direction_to(area_tile)
+                        sprite = overlay_sprites["searoute_" + direction]
+                        snapshot.paste(
+                            im=sprite,
+                            box=box,
+                            mask=sprite
+                        )
 
             if isinstance(tile, City):
-                city_tier = tier_names[tile.tier]
-                overlay_img = overlay_sprites[city_tier]
-                output.paste(overlay_img, (paste_x, paste_y), overlay_img)
-        return output
+                logger.info(f"{(qt, rt)} is a city!")
+                snapshot.paste(
+                    im=overlay_sprites[tier_names[4]],
+                    box=box,
+                    mask=overlay_sprites[tier_names[4]]
+                )
+            
+    return snapshot
 
-    except Exception as e:
-        logger.error(f"Failed to render map: {e}")
-        raise
+def snapshot_center(hex: Tile | tuple[int, int]) -> Image.Image:
+    """
+    Takes a single hex coordinate and takes a screenshot of the area q +- 5, r +- 1 around that hex
+    """
+    if isinstance(hex, Tile):
+        q, r = hex.location
+    elif isinstance(hex, tuple) and isinstance(hex[0], int) and isinstance(hex[1], int):
+        q, r = hex
+    else:
+        raise TypeError("Invalid snapshot center: Not a tile or coordinate")
+
+    return snapshot_corners((q-5, r-1), (q+5, r+1))

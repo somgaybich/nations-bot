@@ -73,6 +73,31 @@ class Tile:
             result |= tile.area()
         return result
 
+    def direction_to(self, target: "Tile") -> str | None:
+        """
+        Takes a tile and returns the name of the direction to that tile.
+        If there is no direct path, returns None.
+        """
+        q, r = target.location
+        
+        difference_tuple = (q - self.location[0], r - self.location[1])
+        if not -1 < difference_tuple[0] < 1 or not -1 < difference_tuple[1] < 1:
+            return None
+
+        match difference_tuple:
+            case (-1, 0):
+                return "nw"
+            case (0, -1):
+                return "n"
+            case (1, 1):
+                return "ne"
+            case (1, 0):
+                return "se"
+            case (0, 1):
+                return "s"
+            case (-1, 1):
+                return "sw"
+        
 def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
     last_tile = current_tile
     new_tile: Tile = getattr(current_tile, direction)()
