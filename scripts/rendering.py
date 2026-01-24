@@ -2,9 +2,8 @@ from PIL import Image
 import logging
 import math
 
-from world.map import TileDict
 from world.cities import City
-from world.world import tile_list
+from world.world import tile_list, TileDict
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +14,23 @@ X_SPACING = HEX_WIDTH * 3/4
 Y_SPACING = HEX_HEIGHT
 
 terrain_sprites = {
-    "ocean": Image.open("assets/terrain/ocean.png").convert("RGBA"),
-    "plains": Image.open("assets/terrain/plains.png").convert("RGBA"),
-    "forest": Image.open("assets/terrain/forest.png").convert("RGBA"),
-    "desert": Image.open("assets/terrain/desert.png").convert("RGBA"),
-    "mountains": Image.open("assets/terrain/mountains.png").convert("RGBA"),
+    "cold_desert": Image.open("assets/terrain/cold_desert.png").convert("RGBA"),
+    "cold_steppe": Image.open("assets/terrain/cold_steppe.png").convert("RGBA"),
     "high_mountains": Image.open("assets/terrain/high_mountains.png").convert("RGBA"),
+    "hot_desert": Image.open("assets/terrain/hot_desert.png").convert("RGBA"),
+    "hot_steppe": Image.open("assets/terrain/hot_steppe.png").convert("RGBA"),
+    "humid_continental": Image.open("assets/terrain/humid_continental.png").convert("RGBA"),
+    "humid_subtropical": Image.open("assets/terrain/humid_subtropical.png").convert("RGBA"),
+    "ice_caps": Image.open("assets/terrain/ice_caps.png").convert("RGBA"),
+    "mediterranean": Image.open("assets/terrain/mediterranean.png").convert("RGBA"),
+    "monsoon": Image.open("assets/terrain/monsoon.png").convert("RGBA"),
+    "mountains": Image.open("assets/terrain/mountains.png").convert("RGBA"),
+    "oceanic": Image.open("assets/terrain/oceanic.png").convert("RGBA"),
+    "rainforest": Image.open("assets/terrain/rainforest.png").convert("RGBA"),
+    "savanna": Image.open("assets/terrain/savanna.png").convert("RGBA"),
+    "subarctic_continental": Image.open("assets/terrain/subarctic_continental.png").convert("RGBA"),
+    "tundra": Image.open("assets/terrain/tundra.png").convert("RGBA"),
+    "water": Image.open("assets/terrain/water.png").convert("RGBA")
 }
 overlay_sprites = {
     "rail_n": Image.open("assets/overlays/rail_n.png").convert("RGBA"),
@@ -43,7 +53,7 @@ tier_names = {
     4: "metropolis"
 }
 
-def render_snapshot(corner1, corner2, padding=0):
+def render_snapshot(corner1, corner2, padding=0) -> Image.Image:
     """
     Makes a map image from a specific screen-space rectangle given by two axial corners.
     corner1, corner2 are (q, r) axial coordinates (these are the screen-space rectangle corners).
