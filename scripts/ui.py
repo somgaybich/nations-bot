@@ -19,28 +19,22 @@ class DirectionView(discord.ui.View):
         max_values=1,
         options=[
             discord.SelectOption(
-                label="N",
-                value="n"
+                label="N"
             ),
             discord.SelectOption(
-                label="NW",
-                value="nw"
+                label="NW"
             ),
             discord.SelectOption(
-                label="SW",
-                value="sw"
+                label="SW"
             ),
             discord.SelectOption(
-                label="S",
-                value="s"
+                label="S"
             ),
             discord.SelectOption(
-                label="SE",
-                value="se"
+                label="SE"
             ),
             discord.SelectOption(
-                label="NE",
-                value="ne"
+                label="NE"
             ),
             discord.SelectOption(
                 label="Back"

@@ -73,7 +73,7 @@ class Unit:
     # TODO: Implement straits
     async def move(self, direction: str):
         from world.world import units
-        new_tile, last_tile = move_in_direction(tile_list[self.location], direction)
+        new_tile, last_tile = move_in_direction(tile_list[self.location], direction.lower())
         if new_tile.difficulty > self.movement_free:
             raise errors.OutOfMovement()
         if new_tile.terrain.biome == "high_mountains" and current_season == 3:
