@@ -45,7 +45,7 @@ class Tile:
         return tile_list[(self.location[0] - 1, self.location[1])]
 
     def sw(self) -> "Tile":
-        return tile_list[(self.location[0] - 1, self.location[1] - 1)]
+        return tile_list[(self.location[0] - 1, self.location[1] + 1)]
 
     def s(self) -> "Tile":
         return tile_list[(self.location[0], self.location[1] + 1)]
