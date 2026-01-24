@@ -125,10 +125,11 @@ def snapshot_corners(corner1, corner2) -> Image.Image:
 
             if isinstance(tile, City):
                 logger.info(f"{(qt, rt)} is a city!")
+                sprite=overlay_sprites[tier_names[tile.tier]]
                 snapshot.paste(
-                    im=overlay_sprites[tier_names[4]],
+                    im=sprite,
                     box=box,
-                    mask=overlay_sprites[tier_names[4]]
+                    mask=sprite
                 )
             
     return snapshot
