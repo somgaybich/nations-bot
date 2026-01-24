@@ -92,7 +92,7 @@ class UserCog(discord.Cog):
             map_image = rendering.snapshot_center((location_x, location_y))
             map_image.save("data/snapshot.png")
 
-            await ctx.interaction.response.send_message(file=discord.File("data/snapshot.png"))
+            await ctx.interaction.response.send_message(file=discord.File("data/snapshot.png"), ephemeral=True)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
