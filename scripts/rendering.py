@@ -4,12 +4,12 @@ from math import sqrt
 
 from world.map import Tile
 from world.cities import City
-from world.world import tile_list, TileDict
+from world.world import tile_list, nation_list
 
 logger = logging.getLogger(__name__)
 
-HEX_WIDTH = 78.65
-HEX_HEIGHT = 68.2
+HEX_WIDTH = 78.7
+HEX_HEIGHT = 68.22
  
 ANCHOR_Q = -65
 ANCHOR_R = -8
@@ -29,6 +29,7 @@ overlay_sprites = {
     "town": Image.open("assets/overlays/town.png").convert("RGBA"),
     "city": Image.open("assets/overlays/city.png").convert("RGBA"),
     "metropolis": Image.open("assets/overlays/metropolis.png").convert("RGBA"),
+    "hex_mask": Image.open("assets/overlays/hex_mask.png").convert("RGBA").getchannel("A")
 }
 tier_names = {
     0: "outpost",
@@ -81,6 +82,15 @@ def snapshot_corners(corner1, corner2) -> Image.Image:
         # (Half-represented tiles, like those on the vertical edges, don't get overlays)
         if x_min <= n_x and x_max >= m_x and y_min <= n_y and y_max >= m_y:
             logger.info(f"{(qt, rt)} is in the range of the snapshot!")
+
+            if tile.owner != None:
+                mask = overlay_sprites["hex_mask"]
+                logger.info(f"{(qt, rt)} is owned by {tile.owner}!")
+                snapshot.paste(
+                    im=nation_list[tile.owner].color.to_rgb(),
+                    box=box,
+                    mask=mask
+                )
 
             if tile.structures.has("Simple Rail"):
                 for area_tile in tile.area():
