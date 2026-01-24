@@ -144,7 +144,7 @@ async def save_unit(unit):
         async with get_db().execute(
             """
             INSERT INTO units (
-                name, unit_type, home, x, y,
+                name, type, home, x, y,
                 strength, morale, exp, owner,
                 movement_free
             )
@@ -168,7 +168,7 @@ async def save_unit(unit):
         await get_db().execute(
             """
             UPDATE units
-            SET name = ?, unit_type = ?, home = ?, x = ?, y = ?,
+            SET name = ?, type = ?, home = ?, x = ?, y = ?,
                 strength = ?, morale = ?, exp = ?, owner = ?,
                 movement_free = ?
             WHERE id = ?
