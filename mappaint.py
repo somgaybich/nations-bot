@@ -302,6 +302,28 @@ async def main():
     await init_db(file=terrain_file)
     await load(map_only=True)
 
+    # for tile in tile_list.values():
+    #     match tile.terrain.biome:
+    #         case "hot_desert":
+    #             tile.terrain.difficulty = 2
+    #         case "cold_desert":
+    #             tile.terrain.difficulty = 2
+    #         case "rainforest":
+    #             tile.terrain.difficulty = 3
+    #         case "monsoon":
+    #             tile.terrain.difficulty = 2
+    #         case "mountains":
+    #             tile.terrain.difficulty = 2
+    #         case "high_mountains":
+    #             tile.terrain.difficulty = 3
+    #         case "oceanic":
+    #             tile.terrain.difficulty = 2
+    #         case "ice_caps":
+    #             tile.terrain.difficulty = 2
+    #         case _:
+    #             tile.terrain.difficulty = 1
+    #     await tile.save()
+
     running = True
     while running:
         for event in pygame.event.get():
