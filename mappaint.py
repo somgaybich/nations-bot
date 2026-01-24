@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 pygame.init()
 os.environ['SDL_VIDEO_WINDOW_POS'] = "50,80"
 
-# Note: x in [-65, 64] & y in [-73, 72]
-
 COAST_BRIGHTENING = 80
 def coast_color(color: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
     return (min(255, color[0] + COAST_BRIGHTENING),
