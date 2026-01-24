@@ -97,7 +97,7 @@ async def new_army(name: str, userid: int, city_name: str) -> Unit:
         base_strength = 1.3
 
     econ.influence -= 1
-    new_unit = Unit(name=name, type="army", location=city.location, strength=base_strength, movement_free=3)
+    new_unit = Unit(name=name, type="army", location=city.location, strength=base_strength, movement_free=3, owner=userid, home=city_name)
     nation.military[name] = new_unit
     units.append(new_unit)
 
@@ -124,7 +124,7 @@ async def new_fleet(name: str, userid: int, city_name: str) -> Unit:
         base_strength = 1.3
     
     econ.influence -= 2
-    new_unit = Unit(name=name, type="fleet", location=city.location, strength=base_strength, movement_free=6)
+    new_unit = Unit(name=name, type="fleet", location=city.location, strength=base_strength, movement_free=6, owner=userid, home=city_name)
     nation.military[name] = new_unit
     units.append(new_unit)
 
