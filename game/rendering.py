@@ -108,8 +108,8 @@ def render_snapshot(corner1, corner2, padding=0):
             pixels[(q, r)] = (px, py)
             min_x = min(min_x, px)
             min_y = min(min_y, py)
-            max_x = max(max_x, px + terrain_sprites[tile.terrain.land_biome].width)
-            max_y = max(max_y, py + terrain_sprites[tile.terrain.land_biome].height)
+            max_x = max(max_x, px + terrain_sprites[tile.terrain.biome].width)
+            max_y = max(max_y, py + terrain_sprites[tile.terrain.biome].height)
 
         # include padding
         min_x -= padding
@@ -127,7 +127,7 @@ def render_snapshot(corner1, corner2, padding=0):
             px, py = pixels[(q, r)]
             paste_x = int(round(px - min_x))
             paste_y = int(round(py - min_y))
-            terrain_img = terrain_sprites[tile.terrain.land_biome]
+            terrain_img = terrain_sprites[tile.terrain.biome]
             output.paste(terrain_img, (paste_x, paste_y), terrain_img)
 
             if isinstance(tile, City):

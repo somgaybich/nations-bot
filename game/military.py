@@ -69,13 +69,14 @@ class Unit:
         
         # TODO: Incorporate effectiveness loss due to command hierarchy
         return eff
-        
+    
+    # TODO: Implement straits
     async def move(self, direction: str):
         from world.world import units
         new_tile, last_tile = move_in_direction(tile_list[self.location], direction)
         if new_tile.difficulty > self.movement_free:
             raise errors.OutOfMovement()
-        if new_tile.terrain.land_biome == "high_mountains" and current_season == 3:
+        if new_tile.terrain.biome == "high_mountains" and current_season == 3:
             raise errors.TileImpassable("armies cannot enter high mountains during winter")
         if not new_tile.terrain.is_land and self.type == "army":
             raise errors.TileImpassable("armies cannot enter water tiles")

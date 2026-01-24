@@ -143,7 +143,7 @@ async def new_city(name: str, location: tuple[int, int], owner: int, capital: bo
 
     if not city_tile.terrain.is_land:
         raise errors.InvalidLocation("Settlement creation", "in ocean tiles")
-    elif city_tile.terrain.land_biome == "high_mountains":
+    elif city_tile.terrain.biome == "high_mountains":
         raise errors.InvalidLocation("Settlement creation", "in high mountains")
     
     to_be_claimed = []
@@ -223,8 +223,8 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
     if structure_type.usable_in == ["city"]:
         if not isinstance(tile, City):
             raise errors.InvalidLocation(f"{structure_type.name} creation", f"in unsettled tiles")
-    elif tile.terrain.land_biome not in structure_type.usable_in:
-        raise errors.InvalidLocation(f"{structure_type.name} creation", f"in {tile.terrain.land_biome} tiles")
+    elif tile.terrain.biome not in structure_type.usable_in:
+        raise errors.InvalidLocation(f"{structure_type.name} creation", f"in {tile.terrain.biome} tiles")
     if tile not in city.area() and city.tier != 4:
         raise errors.InvalidLocation(f"{structure_type.name} creation", "outide the settlement's range")
     if tile not in city.metroarea() and city.tier == 4:
