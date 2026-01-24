@@ -6,6 +6,7 @@ from discord import ApplicationContext, Embed
 
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException
+import scripts.rendering as rendering
 from scripts.ui import DirectionView
 
 from game.constants import brand_color
@@ -80,6 +81,23 @@ class UserCog(discord.Cog):
             raise
         except Exception as e:
             logger.error(f"Error getting nation profile for {target.name}: {e}")
+            await error(ctx.interaction)
+            raise
+
+    @discord.slash_command(description="Get a map of a location's surroundings!")
+    @discord.option("location_x", input_type=int, description="The x-coordinate (1st on the map) of the hex to show.")
+    @discord.option("location_y", input_type=int, description="The y-coordinate (2nd on the map) of the hex to show.")
+    async def map(self, ctx: ApplicationContext, location_x: int, location_y: int):
+        try:
+            map_image = rendering.snapshot_center((location_x, location_y))
+            map_image.save("data/snapshot.png")
+
+            await ctx.interaction.response.send_message(file=discord.File("data/snapshot.png"))
+        except NationsException as e:
+            await error(ctx.interaction, e.user_message)
+            raise
+        except Exception as e:
+            logger.error(f"Failed to render map snapshot for {ctx.interaction.user.name} at location {(location_x, location_y)}: {e}")
             await error(ctx.interaction)
             raise
 

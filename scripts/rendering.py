@@ -81,11 +81,8 @@ def snapshot_corners(corner1, corner2) -> Image.Image:
         # The tile's top-left corner and bottom-right corner are in the snapshot bounds
         # (Half-represented tiles, like those on the vertical edges, don't get overlays)
         if x_min <= n_x and x_max >= m_x and y_min <= n_y and y_max >= m_y:
-            logger.info(f"{(qt, rt)} is in the range of the snapshot!")
-
             if tile.owner != None:
                 mask = overlay_sprites["hex_mask"]
-                logger.info(f"{(qt, rt)} is owned by {tile.owner}!")
                 snapshot.paste(
                     im=nation_list[tile.owner].color.to_rgb(),
                     box=box,
@@ -134,7 +131,6 @@ def snapshot_corners(corner1, corner2) -> Image.Image:
                         )
 
             if isinstance(tile, City):
-                logger.info(f"{(qt, rt)} is a city!")
                 sprite=overlay_sprites[tier_names[tile.tier]]
                 snapshot.paste(
                     im=sprite,
