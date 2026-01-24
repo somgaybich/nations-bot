@@ -193,7 +193,6 @@ class UserCog(discord.Cog):
         #TODO: Add confirmation
         new_link = Link(origin=origin, destination=current_tile.name, owner=ctx.interaction.user.id, 
                         linktype=("simple railroad" if level=="simple" else "quality railroad"))
-        new_link.build()
         await response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
     # ----- MILITARY COMMANDS ----- #
