@@ -49,6 +49,7 @@ async def load(map_only: bool = False):
             name=row["name"],
             userid=row["id"],
             dossier=json.loads(row["dossier"]),
+            econ=None,
             color=Color(row["color"])
         )
         nation_list[row["id"]] = nation
