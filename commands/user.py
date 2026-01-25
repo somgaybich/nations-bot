@@ -6,7 +6,7 @@ import random
 from discord import ApplicationContext, Embed
 from PIL import ImageColor
 
-from scripts.response import response, error
+from scripts.response import interaction_response, interacton_error, followup_error
 from scripts.errors import NationsException, CancelledException
 import scripts.rendering as rendering
 from scripts.ui import DirectionView, ConfirmView
@@ -62,7 +62,7 @@ class UserCog(discord.Cog):
                 
                 confirm_future = asyncio.Future()
                 confirm_view = ConfirmView(confirm_future)
-                followup = await ctx.followup.send(
+                followup_msg = await ctx.followup.send(
                     embed=Embed(
                         color=brand_color,
                         title="Confirm placement",
@@ -85,13 +85,15 @@ class UserCog(discord.Cog):
             await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id, capital=True)
             logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await followup_msg.delete()
+            await followup_error(ctx.followup, e.user_message)
             raise
         except Exception as e:
+            await followup_msg.delete()
             logger.error(f"Failed to create new nation for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction)
+            await followup_error(ctx.followup)
             raise
-        await followup.delete()
+        await followup_msg.delete()
         
         await ctx.interaction.followup.send(
             embed=Embed(
@@ -114,11 +116,11 @@ class UserCog(discord.Cog):
             nation = nation_list[target.id]
             await ctx.interaction.response.send_message(embed=nation.profile())
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.error(f"Error getting nation profile for {target.name}: {e}")
-            await error(ctx.interaction)
+            await interacton_error(ctx.interaction)
             raise
 
     @discord.slash_command(description="Get a map of a location's surroundings!")
@@ -133,11 +135,11 @@ class UserCog(discord.Cog):
             await ctx.interaction.response.send_message(file=discord.File(map_filepath), ephemeral=True)
             os.remove(map_filepath)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.error(f"Failed to render map snapshot for {ctx.interaction.user.name} at location {(location_x, location_y)}: {e}")
-            await error(ctx.interaction)
+            await interacton_error(ctx.interaction)
             raise
 
     # ----- MILITARY COMMANDS ----- #
@@ -152,14 +154,14 @@ class UserCog(discord.Cog):
         try:
             await new_army(name, ctx.interaction.user.id, city)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.error(f"Failed to create new army for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction)
+            await interacton_error(ctx.interaction)
             raise
         
-        await response(ctx.interaction, "Created!", f"New army {name} started training in {city}")
+        await interaction_response(ctx.interaction, "Created!", f"New army {name} started training in {city}")
 
     @military.command(description="Builds a new fleet")
     @discord.default_permissions(administrator=True)
@@ -169,14 +171,14 @@ class UserCog(discord.Cog):
         try:
             await new_fleet(name, ctx.interaction.user.id, city)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.error(f"Failed to create new fleet for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction)
+            await interacton_error(ctx.interaction)
             raise
         
-        await response(ctx.interaction, "Created!", f"New fleet {name} started training in {city}")
+        await interaction_response(ctx.interaction, "Created!", f"New fleet {name} started training in {city}")
 
     # ----- BUILD COMMANDS ----- #
 
@@ -196,14 +198,14 @@ class UserCog(discord.Cog):
 
             structure_types[upgrade].build(city.location, city, nation.econ)
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.error(f"Failed to build {upgrade}: {e}")
-            await error(ctx.interaction)
+            await interacton_error(ctx.interaction)
             raise
         
-        await response(ctx.interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
+        await interaction_response(ctx.interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
         logger.info(f"Someone built a {upgrade.lower()}!")
 
     @build.command(description="Builds a new railroad")
@@ -211,8 +213,8 @@ class UserCog(discord.Cog):
     @discord.option("origin", input_type=str, description="The city the railroad starts in.")
     @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
     async def rail(self, ctx: ApplicationContext, origin: str, level: str):
-        ctx.interaction.response.defer()
-        ctx.interaction.followup.send("")
+        await ctx.interaction.response.defer()
+        followup_msg: discord.WebhookMessage = await ctx.followup.send(content="Thinking...")
         finished = False
         current_tile = nation_list[ctx.interaction.user.id].cities[origin]
         last_tile = None
@@ -221,6 +223,7 @@ class UserCog(discord.Cog):
                 # TODO: Add a map image showing current railroad progress
                 direction_future = asyncio.Future()
                 await ctx.interaction.followup.edit_message(embed=Embed(
+                    message_id=followup_msg.id,
                     color=brand_color,
                     title="Choose a direction",
                     description="Select a direction for your railway to head next."
@@ -235,22 +238,22 @@ class UserCog(discord.Cog):
                         if last_tile is not None:
                             current_tile, last_tile = last_tile, None
                         else:
-                            await error(ctx.interaction, "You can't go back any further!")
+                            await interacton_error(ctx.interaction, "You can't go back any further!")
                     case "Cancel":
                         raise CancelledException("Railroad building")
                 
                 if isinstance(current_tile, City):
                     finished = True
-
         except Exception as e:
             logger.error(f"Failed to build railroad for {ctx.interaction.user.name}: {e}")
-            await error(ctx.interaction, e.user_message if isinstance(e, NationsException) else None)
+            await followup_msg.delete()
+            await followup_error(ctx.followup, e.user_message if isinstance(e, NationsException) else "")
             raise
 
         #TODO: Add confirmation
         new_link = Link(origin=origin, destination=current_tile.name, owner=ctx.interaction.user.id, 
                         linktype=("simple railroad" if level=="simple" else "quality railroad"))
-        await response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
+        await interaction_response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
     # ----- MILITARY COMMANDS ----- #
 
@@ -265,9 +268,9 @@ class UserCog(discord.Cog):
             nation_list[ctx.interaction.user.id].dossier[title] = text
             await nation_list[ctx.interaction.user.id].save()
             logger.info(f"{ctx.interaction.user.name} changed their profile's {title} block to {text}")
-            await response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
+            await interaction_response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
         except NationsException as e:
-            await error(ctx.interaction, e.user_message)
+            await interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.warning(f"Failed to change dossier for {ctx.interaction.user.name}: {e}")
@@ -281,9 +284,9 @@ class UserCog(discord.Cog):
             nation_list[ctx.interaction.user.id].color = discord.Colour.from_rgb(ImageColor.getrgb(hex))
             await nation_list[ctx.interaction.user.id].save()
             logger.info(f"{ctx.interaction.user.name} changed their nation color to '{hex}'")
-            await response(ctx.interaction, f"Color changed!", f"Your nation color has been changed to '{hex}'")
+            await interaction_response(ctx.interaction, f"Color changed!", f"Your nation color has been changed to '{hex}'")
         except NationsException as e:
-            error(ctx.interaction, e.user_message)
+            interacton_error(ctx.interaction, e.user_message)
             raise
         except Exception as e:
             logger.warning(f"Failed to change color for {ctx.interaction.user.name}: {e}")

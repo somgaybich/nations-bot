@@ -1,4 +1,4 @@
-from discord import Interaction, Embed
+from discord import Interaction, Embed, Webhook
 import logging
 
 from game.constants import brand_color, LOGGING_CHANNEL_ID
@@ -6,9 +6,32 @@ from scripts.botlib import bot
 
 logger = logging.getLogger(__name__)
 
-async def response(interaction: Interaction, title: str, message: str, ephemeral=False, footer=None, view=None):
+async def followup_response(followup: Webhook, title: str, message: str, ephemeral=False, footer=None, view=None):
     """
-    Sends a message to the user in the standard format.
+    Sends a followup message through the given webhook in the standard format.
+    """
+    try:
+        if footer is not None:
+            await followup.send(embed=Embed(
+            color=brand_color,
+            title=title,
+            description=message
+            ).set_footer(
+                text=footer
+            ), ephemeral=ephemeral, view=view)
+        else:
+            await followup.send(embed=Embed(
+            color=brand_color,
+            title=title,
+            description=message
+            ), ephemeral=ephemeral, view=view)
+    except Exception as e:
+        logger.error(f"Failed to send response message: {e}")
+        raise
+
+async def interaction_response(interaction: Interaction, title: str, message: str, ephemeral=False, footer=None, view=None):
+    """
+    Sends a message responding to the given interaction in the standard format.
     """
     try:
         if footer is not None:
@@ -29,8 +52,29 @@ async def response(interaction: Interaction, title: str, message: str, ephemeral
         logger.error(f"Failed to send response message: {e}")
         raise
 
-# TODO: Optionally take a message instead of an interaction for followup interactions
-async def error(interaction: Interaction, message = ""):
+async def followup_error(followup: Webhook, message = ""):
+    """
+    Used to report errors in followup responses. A message can be optionally attached if the nature of the error is known.
+    Because followups can only send a new message, the original should be deleted.
+    """
+    try:
+        if message != "":
+            await followup.send(embed=Embed(
+                color=brand_color,
+                title="Oops!",
+                description=message
+            ), ephemeral=True)
+        else:
+            await followup.send(embed=Embed(
+                color=brand_color,
+                title="Oops!",
+                description="There was a problem processing that command! Ping @madaman and she will take care of it as soon as possible."
+            ), ephemeral=True)
+    except Exception as e:
+        logger.error(f"Failed to send error message: {e}")
+        raise
+
+async def interacton_error(interaction: Interaction, message = ""):
     """
     Used to report general errors. A message can be optionally attached if the nature of the error is known.
     """
