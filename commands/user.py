@@ -3,6 +3,7 @@ import asyncio
 import discord
 import random
 from discord import ApplicationContext, Embed
+from PIL import ImageColor
 
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException
@@ -236,15 +237,13 @@ class UserCog(discord.Cog):
 
     @nation.command(description="Changes the color associated with your nation.")
     @discord.default_permissions(administrator=True)
-    @discord.option("red", input_type=int, description="The red value of the new color")
-    @discord.option("green", input_type=int, description="The green value of the new color")
-    @discord.option("blue", input_type=int, description="The blue value of the new color")
-    async def color(self, ctx: ApplicationContext, red: int, green: int, blue: int):
+    @discord.option("hex", input_type=str, description="The hex value of the new color")
+    async def color(self, ctx: ApplicationContext, hex: str):
         try:
-            nation_list[ctx.interaction.user.id].color = discord.Colour.from_rgb(red, green, blue)
+            nation_list[ctx.interaction.user.id].color = discord.Colour.from_rgb(ImageColor.getrgb(hex))
             await nation_list[ctx.interaction.user.id].save()
-            logger.info(f"{ctx.interaction.user.name} changed their nation color to ({red}, {green}, {blue})")
-            response(ctx.interaction, f"Color changed!", f"Your nation color has been changed to ({red}, {green}, {blue})")
+            logger.info(f"{ctx.interaction.user.name} changed their nation color to '{hex}'")
+            await response(ctx.interaction, f"Color changed!", f"Your nation color has been changed to '{hex}'")
         except NationsException as e:
             error(ctx.interaction, e.user_message)
             raise
