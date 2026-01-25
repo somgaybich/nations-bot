@@ -38,7 +38,7 @@ async def error(interaction: Interaction, message = ""):
             await interaction.response.send_message(embed=Embed(
                 color=brand_color,
                 title="Oops!",
-                description=f"There was a problem processing your request! {message}"
+                description=message
             ), ephemeral=True)
         else:
             await interaction.response.send_message(embed=Embed(
