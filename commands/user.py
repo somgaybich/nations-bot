@@ -111,7 +111,7 @@ class UserCog(discord.Cog):
     @discord.option("city", input_type=str, description="The city to train in.")
     async def newarmy(self, ctx: ApplicationContext, name: str, city: str):
         try:
-            new_army(name, ctx.interaction.user.id, city)
+            await new_army(name, ctx.interaction.user.id, city)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
@@ -128,7 +128,7 @@ class UserCog(discord.Cog):
     @discord.option("city", input_type=str, description="The city to train in.")
     async def fleet(self, ctx: ApplicationContext, name: str, city: str):
         try:
-            new_fleet(name, ctx.interaction.user.id, city)
+            await new_fleet(name, ctx.interaction.user.id, city)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
@@ -226,7 +226,7 @@ class UserCog(discord.Cog):
             nation_list[ctx.interaction.user.id].dossier[title] = text
             await nation_list[ctx.interaction.user.id].save()
             logger.info(f"{ctx.interaction.user.name} changed their profile's {title} block to {text}")
-            response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
+            await response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
