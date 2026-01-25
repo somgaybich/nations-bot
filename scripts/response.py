@@ -29,6 +29,7 @@ async def response(interaction: Interaction, title: str, message: str, ephemeral
         logger.error(f"Failed to send response message: {e}")
         raise
 
+# TODO: Optionally take a message instead of an interaction for followup interactions
 async def error(interaction: Interaction, message = ""):
     """
     Used to report general errors. A message can be optionally attached if the nature of the error is known.

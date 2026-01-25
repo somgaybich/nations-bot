@@ -1,3 +1,4 @@
+import os
 import logging
 import asyncio
 import discord
@@ -8,7 +9,7 @@ from PIL import ImageColor
 from scripts.response import response, error
 from scripts.errors import NationsException, CancelledException
 import scripts.rendering as rendering
-from scripts.ui import DirectionView
+from scripts.ui import DirectionView, ConfirmView
 
 from game.constants import brand_color
 from game.actions import new_nation, new_city, new_army, new_fleet
@@ -51,6 +52,33 @@ class UserCog(discord.Cog):
     @discord.option("capital_y", input_type=int, description="The y-coordinate (2nd on the map) of your capital tile.")
     async def start(self, ctx: ApplicationContext, name: str, capital_name: str, capital_x: int, capital_y: int):
         try:
+            await ctx.interaction.response.defer()
+
+            virtual_snapshot = rendering.snapshot_center(capital_x, capital_y, {(capital_x, capital_y): "metropolis"})
+            map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
+            virtual_snapshot.save(map_filepath)
+            with open(map_filepath, "rb") as f:
+                snapshot_file = discord.File(map_filepath, filename="snapshot.png")
+                
+                confirm_future = asyncio.Future()
+                confirm_view = ConfirmView(confirm_future)
+                followup = await ctx.followup.send(
+                    embed=Embed(
+                        color=brand_color,
+                        title="Confirm placement",
+                        description="Your capital will go here. Are you sure?"
+                    ).set_image(
+                        url="attachment://snapshot.png"
+                    ),
+                    file=snapshot_file,
+                    view=confirm_view,
+                    wait=True
+                )
+            await asyncio.wait([confirm_future])
+            confirmation = confirm_future.result()
+            if confirmation in ["No", None]:
+                raise CancelledException("Nation creation")
+
             logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
             await new_nation(name, ctx.interaction.user.id)
             logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
@@ -63,8 +91,16 @@ class UserCog(discord.Cog):
             logger.error(f"Failed to create new nation for {ctx.interaction.user.name}: {e}")
             await error(ctx.interaction)
             raise
+        await followup.delete()
         
-        await response(ctx.interaction, "Welcome!", "Welcome to Nations: New World! You now have access to all game commands. Check out the user guide for help!")
+        await ctx.interaction.followup.send(
+            embed=Embed(
+                color=brand_color,
+                title="Welcome!",
+                description="Welcome to Nations: New World! You now have access to all game commands. Check out the #manual for help!"
+            ),
+            ephemeral=True
+        )
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
 
     @discord.slash_command(description="Show a user's profile")
@@ -91,9 +127,11 @@ class UserCog(discord.Cog):
     async def map(self, ctx: ApplicationContext, location_x: int, location_y: int):
         try:
             map_image = rendering.snapshot_center((location_x, location_y))
-            map_image.save("data/snapshot.png")
+            map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
+            map_image.save(map_filepath)
 
-            await ctx.interaction.response.send_message(file=discord.File("data/snapshot.png"), ephemeral=True)
+            await ctx.interaction.response.send_message(file=discord.File(map_filepath), ephemeral=True)
+            os.remove(map_filepath)
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
             raise
