@@ -54,7 +54,7 @@ class UserCog(discord.Cog):
             logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
             await new_nation(name, ctx.interaction.user.id)
             logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
-            await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id)
+            await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id, capital=True)
             logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
         except NationsException as e:
             await error(ctx.interaction, e.user_message)
