@@ -14,10 +14,10 @@ from scripts.ui import DirectionView, ConfirmView
 from game.constants import brand_color
 from game.actions import new_nation, new_city, new_army, new_fleet
 
-from world.map import move_in_direction
+from world.map import Tile, move_in_direction
 from world.cities import City
-from world.structures import Link, structure_types
-from world.world import nation_list
+from world.structures import Link, structure_types, link_types
+from world.world import nation_list, TileDict
 
 logger = logging.getLogger(__name__)
 
@@ -262,26 +262,45 @@ class UserCog(discord.Cog):
     @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
     async def rail(self, ctx: ApplicationContext, origin: str, level: str):
         await ctx.interaction.response.defer()
-        followup_msg: discord.WebhookMessage = await ctx.followup.send(content="Thinking...")
         finished = False
+        followup_msg: discord.WebhookMessage = None
         current_tile = nation_list[ctx.interaction.user.id].cities[origin]
         last_tile = None
+        path: list[Tile] = []
+
+        map_filepath = "data/snapshot" + ctx.interaction.user.id
+
         try:
             while not finished:
+                q, r = current_tile.location
+                # TODO: This way of doing the overlays won't work because rail sprites are separated by direction
+                # We'll likely have to do the entire direction determination step as it's done in rendering.snapshot_corners
+                overlays = {}
+                for tile in path + [current_tile]:
+                    overlays.update({
+                        tile.location: "rail" if level == "simple" else "qrail"
+                    })
+                snapshot = rendering.snapshot_center(q, r, overlays=overlays)
+                snapshot.save(map_filepath)
                 # TODO: Add a map image showing current railroad progress
                 direction_future = asyncio.Future()
-                await ctx.interaction.followup.edit_message(embed=Embed(
-                    message_id=followup_msg.id,
-                    color=brand_color,
-                    title="Choose a direction",
-                    description="Select a direction for your railway to head next."
-                ), view=DirectionView(direction_future, timeout=60))
-                await asyncio.wait([direction_future])
+                with open(map_filepath, "rb"):
+                    map_file = discord.File(map_filepath, filename="snapshot.png")
+                    followup_msg = await ctx.followup.send(embed=Embed(
+                        color=brand_color,
+                        title="Choose a direction",
+                        description="Select a direction for your railway to head next."
+                    ).set_image(
+                        url="attachment://snapshot.png"
+                    ), view=DirectionView(direction_future, timeout=60),
+                    file=map_file)
+                    await asyncio.wait([direction_future])
                 
                 direction = direction_future.result()
                 match direction:
                     case direction if direction in ("n", "nw", "sw", "s", "se", "ne"):
                         current_tile, last_tile = move_in_direction(current_tile, direction)
+                        path.append(last_tile)
                     case "Back":
                         if last_tile is not None:
                             current_tile, last_tile = last_tile, None
@@ -289,9 +308,14 @@ class UserCog(discord.Cog):
                             await interacton_error(ctx.interaction, "You can't go back any further!")
                     case "Cancel":
                         raise CancelledException("Railroad building")
+                    case None:
+                        raise CancelledException("Railroad building")
                 
+                await followup_msg.delete()
+
                 if isinstance(current_tile, City):
                     finished = True
+                    path.append(current_tile)
         except Exception as e:
             logger.error(f"Failed to build railroad for {ctx.interaction.user.name}: {e}")
             await followup_msg.delete()
@@ -299,8 +323,12 @@ class UserCog(discord.Cog):
             raise
 
         #TODO: Add confirmation
-        new_link = Link(origin=origin, destination=current_tile.name, owner=ctx.interaction.user.id, 
-                        linktype=("simple railroad" if level=="simple" else "quality railroad"))
+        new_link = Link(
+            origin=origin,
+            destination=current_tile.name,
+            owner=ctx.interaction.user.id, 
+            linktype=link_types["simple_rail"] if level=="simple" else link_types["quality_rail"]
+        )
         await interaction_response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
     # ----- MILITARY COMMANDS ----- #
