@@ -65,7 +65,7 @@ async def load(map_only: bool = False):
 
     cities_data = await db.load_cities_rows()
     for row in cities_data:
-        nation_list[row["owner"]].cities[row["name"]] = City(
+        new_city = City(
             terrain=tile_list[(row["x"], row["y"])].terrain,
             name=row["name"],
             influence=row["influence"],
@@ -75,6 +75,8 @@ async def load(map_only: bool = False):
             stability=row["stability"],
             inventory=json.loads(row["inventory"]),
         )
+        nation_list[row["owner"]].cities[row["name"]] = new_city
+        tile_list[(row["x"], row["y"])] = new_city
 
     units_data = await db.load_units_rows()
     for row in units_data:
