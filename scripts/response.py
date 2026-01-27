@@ -11,20 +11,18 @@ async def followup_response(followup: Webhook, title: str, message: str, ephemer
     Sends a followup message through the given webhook in the standard format.
     """
     try:
+        embed = Embed(
+            color=brand_color,
+            title=title,
+            description=message
+        )
         if footer is not None:
-            await followup.send(embed=Embed(
-            color=brand_color,
-            title=title,
-            description=message
-            ).set_footer(
-                text=footer
-            ), ephemeral=ephemeral, view=view)
+            embed.set_footer(footer)
+
+        if view is not None:
+            await followup.send(embed=embed, view=view, ephemeral=ephemeral)
         else:
-            await followup.send(embed=Embed(
-            color=brand_color,
-            title=title,
-            description=message
-            ), ephemeral=ephemeral, view=view)
+            await followup.send(embed=embed, ephemeral=ephemeral)
     except Exception as e:
         logger.error(f"Failed to send response message: {e}")
         raise
@@ -34,20 +32,20 @@ async def interaction_response(interaction: Interaction, title: str, message: st
     Sends a message responding to the given interaction in the standard format.
     """
     try:
+        embed = Embed(
+            color=brand_color,
+            title=title,
+            description=message
+            )
+        
         if footer is not None:
-            await interaction.response.send_message(embed=Embed(
-            color=brand_color,
-            title=title,
-            description=message
-            ).set_footer(
-                text=footer
-            ), ephemeral=ephemeral, view=view)
+            embed.set_footer(footer)
+        
+        if view is not None:
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=ephemeral)
         else:
-            await interaction.response.send_message(embed=Embed(
-            color=brand_color,
-            title=title,
-            description=message
-            ), ephemeral=ephemeral, view=view)
+            await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+
     except Exception as e:
         logger.error(f"Failed to send response message: {e}")
         raise
@@ -58,18 +56,11 @@ async def followup_error(followup: Webhook, message = ""):
     Because followups can only send a new message, the original should be deleted.
     """
     try:
-        if message != "":
-            await followup.send(embed=Embed(
-                color=brand_color,
-                title="Oops!",
-                description=message
-            ), ephemeral=True)
-        else:
-            await followup.send(embed=Embed(
-                color=brand_color,
-                title="Oops!",
-                description="There was a problem processing that command! Ping @madaman and she will take care of it as soon as possible."
-            ), ephemeral=True)
+        await followup.send(embed=Embed(
+            color=brand_color,
+            title="Oops!",
+            description=message if message != "" else "There was a problem processing that command! Ping @madaman and she will take care of it as soon as possible."
+        ), ephemeral=True)
     except Exception as e:
         logger.error(f"Failed to send error message: {e}")
         raise
@@ -79,18 +70,11 @@ async def interacton_error(interaction: Interaction, message = ""):
     Used to report general errors. A message can be optionally attached if the nature of the error is known.
     """
     try:
-        if message != "":
-            await interaction.response.send_message(embed=Embed(
-                color=brand_color,
-                title="Oops!",
-                description=message
-            ), ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=Embed(
-                color=brand_color,
-                title="Oops!",
-                description="There was a problem processing your request! Ping @madaman and she will take care of it as soon as possible."
-            ), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(
+            color=brand_color,
+            title="Oops!",
+            description=message if message != "" else "There was a problem processing your request! Ping @madaman and she will take care of it as soon as possible."
+        ), ephemeral=True)
     except Exception as e:
         logger.error(f"Failed to send error message: {e}")
         raise
