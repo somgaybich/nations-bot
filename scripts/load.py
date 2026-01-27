@@ -73,7 +73,6 @@ async def load(map_only: bool = False):
             location=(row["x"], row["y"]),
             owner=row["owner"],
             stability=row["stability"],
-            popularity=row["popularity"],
             inventory=json.loads(row["inventory"]),
         )
 
