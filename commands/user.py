@@ -185,6 +185,55 @@ class UserCog(discord.Cog):
     build = discord.SlashCommandGroup("build", description="Build structures")
 
     @build.command(description="Builds a new city")
+    @discord.default_permissions(administrator=True)
+    @discord.option("name", input_type=str, description="The name of your new city")
+    @discord.option("x", input_type=int, description="The x-coordinate (1st on the map) of your new city")
+    @discord.option("y", input_type=int, description="The y-coordinate (2nd on the map) of your new city")
+    async def city(self, ctx: ApplicationContext, name: str, x: int, y: int):
+        await ctx.interaction.response.defer()
+        followup_msg: discord.WebhookMessage = None
+        
+        try:
+            virtual_snapshot = rendering.snapshot_center(x, y, {(x, y): "metropolis"})
+            map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
+            virtual_snapshot.save(map_filepath)
+
+            with open(map_filepath, "rb") as f:
+                snapshot_file = discord.File(map_filepath, filename="snapshot.png")
+                
+                confirm_future = asyncio.Future()
+                confirm_view = ConfirmView(confirm_future)
+                followup_msg = await ctx.followup.send(
+                    embed=Embed(
+                        color=brand_color,
+                        title="Confirm placement",
+                        description="Your new city will go here. Are you sure?"
+                    ).set_image(
+                        url="attachment://snapshot.png"
+                    ),
+                    file=snapshot_file,
+                    view=confirm_view,
+                    wait=True
+                )
+            await asyncio.wait([confirm_future])
+            confirmation = confirm_future.result()
+            if confirmation in ["No", None]:
+                raise CancelledException("Nation creation")
+            
+            logger.debug(f"Making new city for {ctx.interaction.user.name}...")
+            await new_city(name, (x, y), ctx.interaction.user.id)
+        except NationsException as e:
+            await followup_error(ctx.followup, e.user_message)
+            raise
+        except Exception as e:
+            logger.error(f"Failed to build new city '{name}' at {(x, y)}: {e}")
+            await followup_error(ctx.followup)
+            raise
+        
+        await followup_msg.delete()
+        await followup_response(ctx.followup, title="Built!", message=f"Your city '{name}' was built at {(x, y)}")
+
+
     @build.command(description="Builds a new upgrade in a city")
     @discord.default_permissions(administrator=True)
     @discord.option("cityname", input_type=str, description="The name of the city to build the upgrade in")
