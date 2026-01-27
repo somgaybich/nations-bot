@@ -6,7 +6,7 @@ import random
 from discord import ApplicationContext, Embed
 from PIL import ImageColor
 
-from scripts.response import interaction_response, interacton_error, followup_error
+from scripts.response import interaction_response, followup_response, interacton_error, followup_error
 from scripts.errors import NationsException, CancelledException
 import scripts.rendering as rendering
 from scripts.ui import DirectionView, ConfirmView
@@ -53,6 +53,7 @@ class UserCog(discord.Cog):
     async def start(self, ctx: ApplicationContext, name: str, capital_name: str, capital_x: int, capital_y: int):
         try:
             await ctx.interaction.response.defer()
+            followup_msg: discord.WebhookMessage = None
 
             virtual_snapshot = rendering.snapshot_center(capital_x, capital_y, {(capital_x, capital_y): "metropolis"})
             map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
@@ -93,14 +94,11 @@ class UserCog(discord.Cog):
             logger.error(f"Failed to create new nation for {ctx.interaction.user.name}: {e}")
             await followup_error(ctx.followup)
             raise
-        await followup_msg.delete()
         
-        await ctx.interaction.followup.send(
-            embed=Embed(
-                color=brand_color,
-                title="Welcome!",
-                description="Welcome to Nations: New World! You now have access to all game commands. Check out the #manual for help!"
-            ),
+        await followup_msg.delete()
+        await followup_response(
+            ctx.followup, "Welcome!", 
+            message="Welcome to Nations: New World! You now have access to all game commands. Check out the #manual for help!",
             ephemeral=True
         )
         logger.info(f"{ctx.interaction.user.name} started a new nation, {name}")
