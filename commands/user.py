@@ -184,6 +184,7 @@ class UserCog(discord.Cog):
 
     build = discord.SlashCommandGroup("build", description="Build structures")
 
+    @build.command(description="Builds a new city")
     @build.command(description="Builds a new upgrade in a city")
     @discord.default_permissions(administrator=True)
     @discord.option("cityname", input_type=str, description="The name of the city to build the upgrade in")
