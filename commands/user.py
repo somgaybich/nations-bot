@@ -126,7 +126,7 @@ class UserCog(discord.Cog):
     @discord.option("location_y", input_type=int, description="The y-coordinate (2nd on the map) of the hex to show.")
     async def map(self, ctx: ApplicationContext, location_x: int, location_y: int):
         try:
-            map_image = rendering.snapshot_center((location_x, location_y))
+            map_image = rendering.snapshot_center(location_x, location_y)
             map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
             map_image.save(map_filepath)
 
