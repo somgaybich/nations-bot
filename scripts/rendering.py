@@ -89,17 +89,6 @@ def snapshot_corners(corner1, corner2, overlays: dict = {}) -> Image.Image:
                     mask=mask
                 )
 
-            # Allows for custom overlays in specific locations
-            if location in overlays.keys():
-                sprite = overlay_sprites[overlays[location]]
-                snapshot.paste(
-                    im=sprite,
-                    box=box,
-                    mask=sprite
-                )
-                # Tiles with custom overlays will be skipped!
-                continue
-
             if tile.structures.has("Simple Rail"):
                 for area_tile in tile.area():
                     if area_tile.structures.has("Simple Rail"):
@@ -142,7 +131,17 @@ def snapshot_corners(corner1, corner2, overlays: dict = {}) -> Image.Image:
                         )
 
             if isinstance(tile, City):
+                logger.debug(f"{location} is a city!")
                 sprite=overlay_sprites[tier_names[tile.tier]]
+                snapshot.paste(
+                    im=sprite,
+                    box=box,
+                    mask=sprite
+                )
+            
+            # Allows for custom overlays in specific locations
+            if location in overlays.keys():
+                sprite = overlay_sprites[overlays[location]]
                 snapshot.paste(
                     im=sprite,
                     box=box,
