@@ -263,7 +263,6 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
     tile.structures.append(new_structure)
 
     if structure_type.name == "Temple" or structure_type.name == "Grand Temple":
-        city.popularity += min(100, round((nation_list[builder].cities[root_city].popularity / 10) + 5))
         city.stability += min(100, round((nation_list[builder].cities[root_city].stability / 20) + 5))
 
     await nation.save()
