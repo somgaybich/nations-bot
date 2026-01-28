@@ -231,6 +231,7 @@ class UserCog(discord.Cog):
         await followup_msg.delete()
         await followup_response(ctx.followup, title="Built!", message=f"Your city '{name}' was built at {(x, y)}")
 
+
     @build.command(description="Builds a new upgrade in a city")
     @discord.default_permissions(administrator=True)
     @discord.option("cityname", input_type=str, description="The name of the city to build the upgrade in")
@@ -272,8 +273,6 @@ class UserCog(discord.Cog):
         try:
             while not finished:
                 q, r = current_tile.location
-                # TODO: This way of doing the overlays won't work because rail sprites are separated by direction
-                # We'll likely have to do the entire direction determination step as it's done in rendering.snapshot_corners
                 overlays = {}
                 for tile in path + [current_tile]:
                     overlays.update({
@@ -281,7 +280,7 @@ class UserCog(discord.Cog):
                     })
                 snapshot = rendering.snapshot_center(q, r, overlays=overlays)
                 snapshot.save(map_filepath)
-                # TODO: Add a map image showing current railroad progress
+
                 direction_future = asyncio.Future()
                 with open(map_filepath, "rb"):
                     map_file = discord.File(map_filepath, filename="snapshot.png")
@@ -321,7 +320,6 @@ class UserCog(discord.Cog):
             await followup_error(ctx.followup, e.user_message if isinstance(e, NationsException) else "")
             raise
 
-        #TODO: Add confirmation
         new_link = Link(
             origin=origin,
             destination=current_tile.name,
