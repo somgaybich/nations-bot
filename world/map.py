@@ -28,9 +28,9 @@ class Tile:
         self.owner = owner
         self.structures = structures
 
-        if "simple_rail" in structures:
+        if structures.has("Simple Rail"):
             self.difficulty = 0.5
-        elif "quality_rail" in structures:
+        elif structures.has("Quality Rail"):
             self.difficulty = 0.25
         else:
             self.difficulty = terrain.difficulty

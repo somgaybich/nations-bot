@@ -23,7 +23,7 @@ class Econ:
         nation = nation_list[self.nationid]
         for city in nation.cities.values():
             cap += city.tier + 1
-            if "district" in city.structures:
+            if city.structures.has("District"):
                 cap += 2
             
             luxuries = city.luxury_count()

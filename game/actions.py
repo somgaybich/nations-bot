@@ -216,6 +216,7 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
     nation = nation_list[builder]
     econ = nation.econ
     tile = tile_list[location]
+    structures = tile.structures
     city = nation.cities[root_city]
     if len(city.structures) == 2 and not city.tier >= 2:
         raise errors.TooManyStructures(f"{structure_type.name} creation", 2)
@@ -237,22 +238,18 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
     if not structure_type.tier_req == 0 and location == city.location and not admin_mode:
         if tile.tier < structure_type.tier_req:
             raise errors.CityTierTooLow(f"{structure_type.name} creation", tile.tier, structure_type.tier_req)
-        
+
     if structure_type.prereq != '':
         for city in nation.cities.values():
             if city.structures.has(structure_type.name):
                 raise errors.TooManyUniqueStructures(structure_type.name)
 
         # This check must always be last because it has behavior attached!
-        for structure in tile.structures:
-            index = 0
-            if structure.structure_type.name == structure_type.prereq:
-                tile.structures.remove(structure)
-                break
-            else:
-                index += 1
-                if index == len(tile.structures):
-                    raise errors.MissingStructure(structure_type.name + " creation", structure_type.name)
+        if structures.has(structure_type.prereq):
+            prereq_index = next((i for i, struct in enumerate(structures) if struct.name == structure_type.prereq), -1)
+            structures.remove(prereq_index)
+        else:
+            raise errors.MissingStructure(f"{structure_type.name} creation", structure_type.prereq)
 
     if not admin_mode:
         for item in structure_type.resource_cost:
