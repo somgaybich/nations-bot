@@ -4,7 +4,6 @@ logger = logging.getLogger(__name__)
 
 import scripts.database as db
 
-from world.structures import link_types
 from world.world import nation_list
 
 class Econ:
@@ -38,7 +37,7 @@ class Econ:
             match link.linktype.name:
                 case "Stone Road":
                     cap += 1
-                    
+
                 case "Simple Rail":
                     if link.origin.structures.has("Central Station"):
                         cap += 2
