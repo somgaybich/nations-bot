@@ -4,6 +4,7 @@ logger = logging.getLogger(__name__)
 
 import scripts.database as db
 
+from world.structures import link_types
 from world.world import nation_list
 
 class Econ:
@@ -34,15 +35,43 @@ class Econ:
             cap += luxuries
         
         for link in nation.links:
-            match link.linktype:
-                case "stone":
+            match link.linktype.name:
+                case "Stone Road":
                     cap += 1
-                case "sea":
-                    cap += 1
-                case "simple_rail":
+                    
+                case "Simple Rail":
+                    if link.origin.structures.has("Central Station"):
+                        cap += 2
+                    elif link.origin.structures.has("Station"):
+                        cap += 1
+
+                    if link.destination.structures.has("Central Station"):
+                        cap += 2
+                    elif link.destination.structures.has("Station"):
+                        cap += 1
+
                     cap += 3
-                case "quality_rail":
+
+                case "Quality Rail":
+                    if link.origin.structures.has("Central Station"):
+                        cap += 2
+                    elif link.origin.structures.has("Station"):
+                        cap += 1
+
+                    if link.destination.structures.has("Central Station"):
+                        cap += 2
+                    elif link.destination.structures.has("Station"):
+                        cap += 1
+
                     cap += 5
+
+                case "Sea Route":
+                    if link.origin.structures.has("Port") and link.destination.structures.has("Port"):
+                        cap += 4
+                    elif link.origin.structures.has("Port") or link.origin.structures.has("Port"):
+                        cap += 2
+                    
+                    cap += 3
             
             structures = nation.cities[link.origin].structures + nation.cities[link.destination].structures
             for structure in structures:
