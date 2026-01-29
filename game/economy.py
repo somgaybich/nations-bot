@@ -23,7 +23,7 @@ class Econ:
         nation = nation_list[self.nationid]
         for city in nation.cities.values():
             cap += city.tier + 1
-            if "district" in city.structures:
+            if city.structures.has("District"):
                 cap += 2
             
             luxuries = city.luxury_count()
@@ -34,15 +34,43 @@ class Econ:
             cap += luxuries
         
         for link in nation.links:
-            match link.linktype:
-                case "stone":
+            match link.linktype.name:
+                case "Stone Road":
                     cap += 1
-                case "sea":
-                    cap += 1
-                case "simple_rail":
+
+                case "Simple Rail":
+                    if link.origin.structures.has("Central Station"):
+                        cap += 2
+                    elif link.origin.structures.has("Station"):
+                        cap += 1
+
+                    if link.destination.structures.has("Central Station"):
+                        cap += 2
+                    elif link.destination.structures.has("Station"):
+                        cap += 1
+
                     cap += 3
-                case "quality_rail":
+
+                case "Quality Rail":
+                    if link.origin.structures.has("Central Station"):
+                        cap += 2
+                    elif link.origin.structures.has("Station"):
+                        cap += 1
+
+                    if link.destination.structures.has("Central Station"):
+                        cap += 2
+                    elif link.destination.structures.has("Station"):
+                        cap += 1
+
                     cap += 5
+
+                case "Sea Route":
+                    if link.origin.structures.has("Port") and link.destination.structures.has("Port"):
+                        cap += 4
+                    elif link.origin.structures.has("Port") or link.origin.structures.has("Port"):
+                        cap += 2
+                    
+                    cap += 3
             
             structures = nation.cities[link.origin].structures + nation.cities[link.destination].structures
             for structure in structures:

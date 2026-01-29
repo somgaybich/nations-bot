@@ -56,8 +56,8 @@ def m_corner(q, r) -> tuple[int, int]:
         1/2 * HEX_HEIGHT * (q - ANCHOR_Q + 2) + HEX_HEIGHT * (r - ANCHOR_R)
     )
 
-def snapshot_corners(corner1, corner2) -> Image.Image:
-    """
+def snapshot_corners(corner1, corner2, overlays: dict = {}) -> Image.Image:
+    """{
     Takes a rectangular snapshot of the source image based on
     axial hex coordinates.
     """
@@ -131,7 +131,17 @@ def snapshot_corners(corner1, corner2) -> Image.Image:
                         )
 
             if isinstance(tile, City):
+                logger.debug(f"{location} is a city!")
                 sprite=overlay_sprites[tier_names[tile.tier]]
+                snapshot.paste(
+                    im=sprite,
+                    box=box,
+                    mask=sprite
+                )
+            
+            # Allows for custom overlays in specific locations
+            if location in overlays.keys():
+                sprite = overlay_sprites[overlays[location]]
                 snapshot.paste(
                     im=sprite,
                     box=box,
@@ -140,15 +150,8 @@ def snapshot_corners(corner1, corner2) -> Image.Image:
             
     return snapshot
 
-def snapshot_center(hex: Tile | tuple[int, int]) -> Image.Image:
+def snapshot_center(q, r, overlays: dict = {}) -> Image.Image:
     """
     Takes a single hex coordinate and takes a screenshot of the area q +- 5, r +- 1 around that hex
     """
-    if isinstance(hex, Tile):
-        q, r = hex.location
-    elif isinstance(hex, tuple) and isinstance(hex[0], int) and isinstance(hex[1], int):
-        q, r = hex
-    else:
-        raise TypeError("Invalid snapshot center: Not a tile or coordinate")
-
-    return snapshot_corners((q-5, r-1), (q+5, r+1))
+    return snapshot_corners((q-5, r-1), (q+5, r+1), overlays)

@@ -11,7 +11,7 @@ from scripts.database import get_db
 
 logger = logging.getLogger(__name__)
 
-from game.constants import OPGUILD_ID
+from game.constants import OPGUILD_ID, admin_mode
 
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):
@@ -31,6 +31,8 @@ class NationsBot(discord.Bot):
         await sync(self)
         logger.debug(f"Took {(timer / 1000000):.2f}ms to set up commands")
         logger.info("Setup complete!")
+        if admin_mode:
+            logger.warning("Started in admin mode!")
 
     @tasks.loop(minutes=5)
     async def db_commit(self):

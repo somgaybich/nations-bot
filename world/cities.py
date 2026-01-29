@@ -10,17 +10,17 @@ from world.structures import StructureList
 class City(Tile):
     def __init__(self, terrain: str, name: str, influence: int = 0, tier: int = 0, location: tuple[int, int] = (0, 0), 
                  owner: str = None, structures: StructureList = StructureList(), 
-                 stability: int = 80, popularity: int = 65, inventory: list[str] = []):
+                 stability: int = 80, inventory: list[str] = []):
         super().__init__(terrain, location, owner, True, structures)
         self.name = name
         self.influence = influence
         self.tier = tier
         self.stability = stability
-        self.popularity = popularity
         self.inventory = inventory
 
     async def save(self):
         await db.save_city(self)
+        await db.save_tile(self)
     
     def luxury_count(self) -> int:
         luxuries = []

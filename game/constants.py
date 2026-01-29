@@ -9,6 +9,8 @@ def update_season():
 
 brand_color = Color(16417064)
 
+admin_mode = True
+
 # COMBAT SETTINGS
 combat_settings = {
     # normalized probabilities

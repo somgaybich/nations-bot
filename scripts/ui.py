@@ -5,13 +5,13 @@ from game.constants import brand_color
 
 class DirectionView(discord.ui.View):
     def __init__(self, future: asyncio.Future):
-        super().__init__()
+        super().__init__(timeout=60)
         self.future = future
 
     async def on_timeout(self):
         self.disable_all_items()
-        await self.message.edit(content="You took too long to select a direction!", view=self)
-        raise TimeoutError("User took too long to select a direction")
+        if not self.future.done():
+            self.future.set_result(None)
 
     @discord.ui.select(
         placeholder = "Choose a direction!",
@@ -44,14 +44,16 @@ class DirectionView(discord.ui.View):
             )
         ]
     )
-    async def select_callback(self, select, interaction):
-        self.future.set_result(select)
+    async def select_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
+        self.disable_all_items()
+        
+        if not self.future.done():
+            self.future.set_result(select.values[0])
 
 class ConfirmView(discord.ui.View):
     def __init__(self, future: asyncio.Future):
         super().__init__(timeout=10)
         self.future = future
-        self.message: discord.Message | None = None
     
     async def on_timeout(self):
         self.disable_all_items()

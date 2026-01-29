@@ -16,8 +16,8 @@ class StructureType:
         self.usable_in = usable_in
         self.inf_cost = inf_cost
         self.resource_cost = resource_cost
-        self.name = name
-        self.prereq = prereq # An structure that needs to be built first
+        self.name = name # Note that this is the capitalized and spaced version
+        self.prereq = prereq # A structure that needs to be built first
         self.tier_req = tier_req # The city tier that the structure needs to be built in
 
 class LinkType:
