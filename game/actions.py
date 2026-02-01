@@ -7,13 +7,20 @@ import scripts.errors as errors
 
 from game.constants import admin_mode
 from game.military import Unit
+from game.nation import Nation
+from game.economy import Econ
+from game.authority import Authority
 
 from world.map import Tile, hex_distance
 from world.structures import LinkType, StructureType, Link, Structure
 from world.cities import City
-from game.nation import Nation
 from world.world import nation_list, tile_list, units
-from game.economy import Econ
+
+async def new_authority(default_name: str, owner: int):
+    """
+    Creates, but does NOT bind or save the authority; these should be done AFTER selection or generation
+    """
+    return Authority(owner, default_name)
 
 async def new_link(path: list[Tile], linktype: LinkType, owner: int, origin: City, destination: City) -> Link:
     length = len(path)
@@ -186,6 +193,7 @@ async def new_city(name: str, location: tuple[int, int], owner: int, capital: bo
 
     new_city = City(terrain=tile_list[location].terrain, name=name, location=location, owner=owner)
     nation.cities[name] = new_city
+    nation.authorities[nation.name].cities.append(new_city)
 
     tile_list[location] = new_city
 
@@ -205,7 +213,14 @@ async def new_nation(name: str, userid: int) -> Nation:
             raise errors.UserHasNation(userid)
     
     econ = Econ(userid)
-    nation = Nation(name=name, userid=userid, econ=econ)
+    gov_authority = Authority(nationid=userid, name=name, authtype="Government", cap=3)
+    nation = Nation(
+        name=name, 
+        userid=userid, 
+        econ=econ,
+        authorities={
+            name: gov_authority
+        })
     nation_list[userid] = nation
     
     await nation.save()

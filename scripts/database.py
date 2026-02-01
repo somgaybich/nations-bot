@@ -101,6 +101,18 @@ async def init_db(file: str = "data/nations.db"):
         """)
     logger.debug("Created economies table")
 
+    await _db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS authorities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            nationid INTEGER NOT NULL,
+            authtype TEXT NOT NULL,
+            cap INTEGER NOT NULL,
+            cities TEXT NOT NULL)
+        """)
+    logger.debug("Created authorities table")
+
     await _db.commit()
     logger.info("Database started")
 
@@ -193,6 +205,52 @@ async def delete_unit(unit):
 
 async def load_units_rows():
     async with get_db().execute("SELECT * FROM units") as cursor:
+        return await cursor.fetchall()
+
+# ---------------
+
+async def save_authority(authority):
+    logger.debug(f"Saving authority at {authority.id}")
+    if authority.id is None:
+        async with get_db().execute(
+            """
+            INSERT INTO authorities (
+                name, nationid, authtype, cap,
+                cities
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                authority.name,
+                authority.nationid,
+                authority.authtype,
+                authority.cap
+            )
+        ) as cursor: 
+            authority.id = cursor.lastrowid
+    else:
+        await get_db().execute(
+            """
+            UPDATE authorities
+            SET name = ?, nationid = ?, authtype = ?, cap = ?, cities = ?
+            WHERE id = ?
+            """,
+            (
+                authority.name,
+                authority.nationid,
+                authority.authtype,
+                authority.cap,
+                authority.cities,
+                authority.id
+            )
+        )
+
+async def delete_authority(authority):
+    if authority.id is not None:
+        await get_db().execute("DELETE FROM authorities WHERE id = ?", (authority.id))
+
+async def load_authorities_rows():
+    async with get_db().execute("SELECT * FROM authorities") as cursor:
         return await cursor.fetchall()
 
 # ---------------

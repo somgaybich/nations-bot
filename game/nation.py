@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from game.military import Unit
     from game.espionage import Espionage
     from game.economy import Econ
+    from game.authority import Authority
     from world.structures import Link
     from world.cities import City
 
@@ -18,7 +19,7 @@ class Nation:
     The top object in the hierarchy, which contains all information about a nation.
     """
     def __init__(self, name: str, userid: int, econ: "Econ", cities={}, links=[], tiles=[], military={}, 
-                 espionage=[], dossier={}, allies=[], color=Color.random()):
+                 espionage=[], dossier={}, allies=[], authorities={}, color=Color.random()):
         self.name: str = name
         self.userid: int = userid
         self.econ: "Econ" = econ
@@ -29,6 +30,7 @@ class Nation:
         self.espionage: list["Espionage"] = espionage
         self.dossier: dict = dossier
         self.allies: list[int] = allies
+        self.authorities: dict[str, Authority] = authorities
         self.color: Color = color
     
     async def save(self):

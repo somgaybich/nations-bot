@@ -11,6 +11,16 @@ brand_color = Color(16417064)
 
 admin_mode = True
 
+authority_cap_modifiers = {
+    "oligarchic": 2,
+    "centralist": 0,
+    "industrial": 1,
+    "militaristic": 2,
+    "aristocratic": -2,
+    "populist": -1,
+    "legalist": 2,
+}
+
 # COMBAT SETTINGS
 combat_settings = {
     # normalized probabilities
