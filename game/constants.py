@@ -22,7 +22,16 @@ authority_cap_modifiers = {
     "legalist": 2,
 }
 
-OVER_CAP_STABILITY_LOSS = 0.5
+authority_settings = {
+    "over_cap_stability_loss": 0.15,
+    "max_oligarchy_stability_loss": 0.2,
+    "olgigarchy_stability_decay": 0.25
+}
+
+# This must inherently scale such that at tier 4 subtracting it from the max returns 0
+authority_settings.update({
+    "oligarchy_stability_loss_factor": authority_settings["max_oligarchy_stability_loss"] / 4
+})
 
 # COMBAT SETTINGS
 combat_settings = {

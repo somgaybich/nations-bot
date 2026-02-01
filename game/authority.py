@@ -4,12 +4,14 @@ import random
 
 logger = logging.getLogger(__name__)
 
-from game.constants import authority_cap_modifiers
+from game.constants import authority_cap_modifiers, authority_settings
 
 import scripts.database as db
 
+if TYPE_CHECKING:
+    from world.cities import City
+
 # Authority concepts:
-# Oligarch - Higher inf incomes from city base and districts / lower tier cities are less stable
 # Centralist - Links can move an extra resource / are more expensive
 # Industrial - Higher inf incomes from links / they move 1 less resource
 # Militaristic - Effectiveness bonus for units from and in administered area / lower base stability
@@ -43,3 +45,11 @@ class Authority:
     
     def __str__(self):
         return f"{self.name} is a {self.authtype} authority from {self.cities[0]}."
+    
+    async def add_city(self, city: "City"):
+        self.cities.append(city.name)
+        city.authority = self.name
+
+        if self.authtype == "oligarch":
+            stability_change = authority_settings["max_oligarchy_stability_loss"] - (city.tier * authority_settings["oligarchy_stability_loss_factor"])
+            city.stability -= stability_change

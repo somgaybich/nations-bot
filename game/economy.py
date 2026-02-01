@@ -22,9 +22,15 @@ class Econ:
         cap = 1
         nation = nation_list[self.nationid]
         for city in nation.cities.values():
+            authority = nation.authorities[city.authority]
+            
             cap += city.tier + 1
+            if authority.authtype == "oligarchic":
+                cap += 1
             if city.structures.has("District"):
                 cap += 2
+                if authority.authtype == "oligarchic":
+                    cap += 1
             
             luxuries = city.luxury_count()
             if city.tier == 3:

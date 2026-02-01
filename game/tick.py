@@ -1,7 +1,7 @@
 import logging
 
 from world.world import nation_list
-from game.constants import OVER_CAP_STABILITY_LOSS, update_season
+from game.constants import authority_settings, update_season
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,10 @@ async def tick():
             authority = nation.authorities[city.authority]
             cap_gap = authority.cap - len(authority.cities)
             if cap_gap < 0:
-                city.stability += cap_gap * OVER_CAP_STABILITY_LOSS
+                city.stability += cap_gap * authority_settings["over_cap_stability_loss"]
+            if authority.authtype == "oligarchic":
+                stability_change = authority_settings["olgigarchy_stability_decay"] * (authority_settings["max_oligarchy_stability_loss"] - (city.tier * authority_settings["oligarchy_stability_loss_factor"]))
+                city.stability -= stability_change
 
             await city.save()
 
