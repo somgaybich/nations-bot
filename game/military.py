@@ -58,7 +58,6 @@ class Unit:
                     eff -= combat_settings["mountains_debuff"]
                 case "high_mountains":
                     eff -= combat_settings["high_mountains_debuff"]
-                #TODO: Update when more terrain types are added
         if "fort" in location.structures:
             eff += combat_settings["fort_buff"]
         else:
@@ -67,10 +66,8 @@ class Unit:
                     eff += combat_settings["fort_area_buff"]
                     break
         
-        # TODO: Incorporate effectiveness loss due to command hierarchy
         return eff
     
-    # TODO: Implement straits
     async def move(self, direction: str):
         from world.world import units
         new_tile, last_tile = move_in_direction(tile_list[self.location], direction.lower())
