@@ -193,7 +193,7 @@ async def new_city(name: str, location: tuple[int, int], owner: int, capital: bo
 
     new_city = City(terrain=tile_list[location].terrain, name=name, location=location, owner=owner)
     nation.cities[name] = new_city
-    nation.authorities[nation.name].cities.append(new_city)
+    nation.authorities[nation.name].cities.append(new_city.name)
 
     tile_list[location] = new_city
 
