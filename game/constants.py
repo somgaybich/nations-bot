@@ -14,7 +14,6 @@ admin_mode = True
 # AUTHORITY SETTINGS
 authority_cap_modifiers = {
     "oligarchic": 2,
-    "centralist": 0,
     "industrial": 1,
     "militaristic": 2,
     "aristocratic": -2,

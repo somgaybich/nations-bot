@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from world.cities import City
 
 # Authority concepts:
-# Centralist - Links can move an extra resource / are more expensive
 # Industrial - Higher inf incomes from links / they move 1 less resource
 # Militaristic - Effectiveness bonus for units from and in administered area / lower base stability
 # Aristocratic - Cities with luxuries will gain stability / those without will lose it
