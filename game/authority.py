@@ -25,6 +25,7 @@ class Authority:
         self.nationid = nationid
         self.name = name
         self.cities = cities
+        self.id = id
 
         if authtype is None:
             self.authtype = random.choice(authority_cap_modifiers.keys())
