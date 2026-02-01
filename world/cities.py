@@ -6,17 +6,23 @@ import scripts.database as db
 
 from world.map import Tile
 from world.structures import StructureList
+from world.world import nation_list
 
 class City(Tile):
     def __init__(self, terrain: str, name: str, influence: int = 0, tier: int = 0, location: tuple[int, int] = (0, 0), 
-                 stability: int = 80, inventory: list[str] = []):
                  owner: int = None, structures: StructureList = StructureList(), 
+                 stability: int = 80, inventory: list[str] = [], authority: str = None):
         super().__init__(terrain, location, owner, True, structures)
         self.name = name
         self.influence = influence
         self.tier = tier
         self.stability = stability
         self.inventory = inventory
+        
+        if authority == None:
+            self.authority = nation_list[owner].name
+        else:
+            self.authority = authority
 
     async def save(self):
         await db.save_city(self)

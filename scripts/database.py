@@ -76,6 +76,7 @@ async def init_db(file: str = "data/nations.db"):
         inventory TEXT NOT NULL,
         owner INTEGER NOT NULL,
         structures TEXT NOT NULL,
+        authority TEXT NOT NULL,
         PRIMARY KEY (x, y))
     """)
     logger.debug("Created cities table")
@@ -289,9 +290,9 @@ async def save_city(city):
     await get_db().execute(
         """
         INSERT INTO cities (
-        x, y, name, influence, tier, stability, inventory, owner, structures
+        x, y, name, influence, tier, stability, inventory, owner, structures, authority
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             name = excluded.name,
             influence = excluded.influence,
@@ -299,10 +300,11 @@ async def save_city(city):
             stability = excluded.stability,
             inventory = excluded.inventory,
             owner = excluded.owner,
-            structures = excluded.structures
+            structures = excluded.structures,
+            authority = excluded.authority
         """,
         (x, y, city.name, city.influence, city.tier, city.stability, 
-         json.dumps(city.inventory), city.owner, json.dumps(city.structures))
+         json.dumps(city.inventory), city.owner, json.dumps(city.structures), city.authority)
     )
 
 async def load_cities_rows():

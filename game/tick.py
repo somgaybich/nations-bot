@@ -12,14 +12,12 @@ async def tick():
         for city in nation.cities.values():
             city.tier = city.calculate_tier()
 
-            await city.save()
-        
-        for authority in nation.authorities.values():
+            authority = nation.authorities[city.authority]
             cap_gap = authority.cap - len(authority.cities)
             if cap_gap < 0:
-                for auth_city in authority.cities:
-                    # Stability loss scales multiplicatively the more over capacity an authority is
-                    nation.cities[auth_city].stability += cap_gap * OVER_CAP_STABILITY_LOSS 
+                city.stability += cap_gap * OVER_CAP_STABILITY_LOSS
+
+            await city.save()
 
         nation.econ.influence_cap = nation.econ.calculate_cap()
         nation.econ.influence = nation.econ.influence_cap
