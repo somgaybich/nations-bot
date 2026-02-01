@@ -1,7 +1,7 @@
 import logging
 
 from world.world import nation_list
-from game.constants import update_season
+from game.constants import OVER_CAP_STABILITY_LOSS, update_season
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +14,13 @@ async def tick():
 
             await city.save()
         
+        for authority in nation.authorities.values():
+            cap_gap = authority.cap - len(authority.cities)
+            if cap_gap < 0:
+                for auth_city in authority.cities:
+                    # Stability loss scales multiplicatively the more over capacity an authority is
+                    nation.cities[auth_city].stability += cap_gap * OVER_CAP_STABILITY_LOSS 
+
         nation.econ.influence_cap = nation.econ.calculate_cap()
         nation.econ.influence = nation.econ.influence_cap
         

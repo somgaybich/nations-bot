@@ -213,7 +213,7 @@ async def new_nation(name: str, userid: int) -> Nation:
             raise errors.UserHasNation(userid)
     
     econ = Econ(userid)
-    gov_authority = Authority(nationid=userid, name=name, authtype="Government", cap=3)
+    gov_authority = Authority(nationid=userid, name=name, authtype="government", cap=3)
     nation = Nation(
         name=name, 
         userid=userid, 

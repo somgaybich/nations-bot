@@ -11,6 +11,7 @@ brand_color = Color(16417064)
 
 admin_mode = True
 
+# AUTHORITY SETTINGS
 authority_cap_modifiers = {
     "oligarchic": 2,
     "centralist": 0,
@@ -20,6 +21,8 @@ authority_cap_modifiers = {
     "populist": -1,
     "legalist": 2,
 }
+
+OVER_CAP_STABILITY_LOSS = 0.5
 
 # COMBAT SETTINGS
 combat_settings = {
