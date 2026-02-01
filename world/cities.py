@@ -9,8 +9,8 @@ from world.structures import StructureList
 
 class City(Tile):
     def __init__(self, terrain: str, name: str, influence: int = 0, tier: int = 0, location: tuple[int, int] = (0, 0), 
-                 owner: str = None, structures: StructureList = StructureList(), 
                  stability: int = 80, inventory: list[str] = []):
+                 owner: int = None, structures: StructureList = StructureList(), 
         super().__init__(terrain, location, owner, True, structures)
         self.name = name
         self.influence = influence

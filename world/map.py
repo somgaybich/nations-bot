@@ -20,7 +20,7 @@ class Terrain:
         return json.dumps([self.biome, self.is_land, self.is_water, self.difficulty, self.straits])
 
 class Tile:
-    def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), owner: str = None, 
+    def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), owner: int = None, 
                  owned: bool = False, structures: StructureList = StructureList()):
         self.terrain = terrain
         self.location = location
