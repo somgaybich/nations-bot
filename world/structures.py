@@ -12,13 +12,15 @@ class StructureType:
     """
     Contains data about a particular type of structure.
     """
-    def __init__(self, usable_in: list, inf_cost: int, resource_cost: list[str], name: str, prereq: str = '', tier_req: int = 0):
+    def __init__(self, usable_in: list, inf_cost: int, resource_cost: list[str], name: str, 
+                 prereq: str = '', tier_req: int = 0, resource_prod: str = ''):
         self.usable_in = usable_in
         self.inf_cost = inf_cost
         self.resource_cost = resource_cost
         self.name = name # Note that this is the capitalized and spaced version
         self.prereq = prereq # A structure that needs to be built first
         self.tier_req = tier_req # The city tier that the structure needs to be built in
+        self.resource_prod = resource_prod # Resource produced when built
 
 class LinkType:
     def __init__(self, oceanic: str, inf_cost: int, resource_cost: dict[str, int], name: str):
@@ -69,6 +71,7 @@ class StructureList(list[Structure]):
         return False
 
 structure_types = {
+    # City structures
     "temple": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
@@ -106,7 +109,8 @@ structure_types = {
         inf_cost=2, 
         resource_cost=["stone", "fuel"], 
         name="Smeltery"),
-    "port": StructureType(usable_in=["city"], 
+    "port": StructureType(
+        usable_in=["city"], 
         inf_cost=2, 
         resource_cost=["stone", "lumber"], 
         name="Port"),
@@ -114,7 +118,57 @@ structure_types = {
         usable_in=["city"], 
         inf_cost=2, 
         resource_cost=["metal", "fuel"], 
-        name="Foundry", tier_req=2),
+        name="Foundry",
+        tier_req=2),
+
+    # Resource Structures
+    "aqueduct": StructureType(
+        usable_in=["coastal"],
+        inf_cost=1,
+        name="Aqueduct"
+    ),
+    "farm": StructureType(
+        usable_in=["arable"],
+        inf_cost=1,
+        name="Farm",
+        resource_prod="grain"
+    ),
+    "orchard": StructureType(
+        usable_in=["arable"],
+        inf_cost=1,
+        name="Orchard",
+        resource_prod="fruit"
+    ),
+    "pasture": StructureType(
+        usable_in=["non-mountain"],
+        inf_cost=1,
+        name="Pasture",
+        resource_prod="meat"
+    ),
+    "fishery": StructureType(
+        usable_in=["coastal"],
+        inf_cost=1,
+        name="Fishery",
+        resource_prod="fish"
+    ),
+    "forester": StructureType(
+        usable_in=["arable"],
+        inf_cost=1,
+        name="Forester",
+        resource_prod="wood"
+    ),
+    "quarry": StructureType(
+        usable_in=["mountain"],
+        inf_cost=2,
+        name="Quarry",
+        resource_prod="stone"
+    ),
+    "mine": StructureType(
+        usable_in=["mountain"],
+        inf_cost=2,
+        name="Mine",
+        resource_prod="fuel"
+    )
 }
 
 link_types = {

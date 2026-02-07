@@ -86,7 +86,14 @@ class NotEnoughResources(NationsException):
     def __init__(self, action: str, required: list[str], had: list[str]):
         super().__init__(f"{action} failed: Needed {required} but only had {had}")
         missing_resources = ""
-        for resource in required:
-            if not resource in had:
-                missing_resources += resource + ", "
+        for resource in list(set(required)):
+            diff = required.count(resource) - had.count(resource)
+            if diff > 0:
+                for n in range(diff):
+                    missing_resources += resource + ", "
         self.user_message = f"You don't have the resources! {missing_resources} was missing."
+
+class ResourcesDeployed(NationsException):
+    def __init__(self, action: str, resource: str):
+        super.__init__(f"{action} failed: '{resource}' was in use")
+        self.user_message = f"You don't have enough resources! {resource.capitalize()} is being consumed somewhere, and its source needs to change production types. You'll have to cancel transport, scrap structures, or move resources here to counterract this."

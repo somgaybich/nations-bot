@@ -68,5 +68,9 @@ combat_settings = {
     "fort_area_buff": 0.05
 }
 
+arable_biomes = ["monsoon", "savanna", "humid_subtropical", "mediterranean", "humid_continental", "subarctic_continental"]
+dry_biomes = ["hot_steppe", "hot_desert", "cold_steppe", "cold_desert"]
+
+
 OPGUILD_ID = 1458983179099832472
 LOGGING_CHANNEL_ID = 123456789012345678

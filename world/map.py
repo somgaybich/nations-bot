@@ -3,6 +3,8 @@ import json
 
 logger = logging.getLogger(__name__)
 
+from game.constants import arable_biomes, dry_biomes
+
 import scripts.database as db
 
 from world.structures import StructureList
@@ -97,6 +99,36 @@ class Tile:
                 return "s"
             case (-1, 1):
                 return "sw"
+        
+    def is_arable(self) -> bool:
+        """
+        Checks whether a tile meets the requirements for arability.
+        """
+        if self.terrain.biome in arable_biomes:
+            return True
+
+        # If the biome isn't in arable or dry biomes, this tile cannot be arable
+        if self.terrain.biome not in dry_biomes:
+            return False
+
+        # But if it is dry, it can be arable if it's given water...
+        if self.is_coastal():
+            return True
+        for area_tile in self.area():
+            if area_tile.structures.has("aqueduct"):
+                return True
+
+        # This tile satisfies none of the conditions
+        return False
+
+    def is_coastal(self) -> bool:
+        """
+        Returns True if self.terrain.is_water and self.terrain.is_land.
+        """
+        if self.terrain.is_water and self.terrain.is_land:
+            return True
+        else:
+            return False
         
 def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
     last_tile = current_tile

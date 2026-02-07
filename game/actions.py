@@ -233,26 +233,53 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
     tile = tile_list[location]
     structures = tile.structures
     city = nation.cities[root_city]
+
     if len(city.structures) == 2 and not city.tier >= 2:
         raise errors.TooManyStructures(f"{structure_type.name} creation", 2)
     if len(city.structures) == 3 and not city.tier == 4:
         raise errors.TooManyStructures(f"{structure_type.name} creation", 3)
+    
     if structure_type.resource_cost not in city.inventory and not admin_mode:
         raise errors.NotEnoughResources(f"{structure_type.name} creation", structure_type.resource_cost, city.inventory)
     if nation_list[builder].econ.influence < structure_type.inf_cost and not admin_mode:
         raise errors.NotEnoughInfluence(f"{structure_type.name} creation", structure_type.inf_cost, econ.influence)
-    if structure_type.usable_in == ["city"]:
-        if not isinstance(tile, City):
-            raise errors.InvalidLocation(f"{structure_type.name} creation", f"in unsettled tiles")
-    elif tile.terrain.biome not in structure_type.usable_in:
-        raise errors.InvalidLocation(f"{structure_type.name} creation", f"in {tile.terrain.biome} tiles")
-    if tile not in city.area() and city.tier != 4:
-        raise errors.InvalidLocation(f"{structure_type.name} creation", "outide the settlement's range")
-    if tile not in city.metroarea() and city.tier == 4:
-        raise errors.InvalidLocation(f"{structure_type.name} creation", "outide the settlement's range")
+    
+    if "city" in structure_type.usable_in:
+        if tile not in city.area() and city.tier != 4:
+            raise errors.InvalidLocation(f"{structure_type.name} creation", "outide the settlement's range")
+        if tile not in city.metroarea() and city.tier == 4:
+            raise errors.InvalidLocation(f"{structure_type.name} creation", "outide the settlement's range")
+    if "arable" in structure_type.usable_in:
+        if not tile.is_arable():
+            raise errors.InvalidLocation(f"{structure_type.name} creation", "in a non-arable tile")
+    if "coastal" in structure_type.usable_in:
+        if not tile.is_coastal():
+            raise errors.InvalidLocation(f"{structure_type.name} creation", "in a non-coastal tile")
+    if "non-mountain" in structure_type.usable_in:
+        if tile.terrain.biome in ["high_mountains", "mountains"]:
+            raise errors.InvalidLocation(f"{structure_type.name} creation", "in a mountainous tile")
+    if "mountain" in structure_type.usable_in:
+        if not tile.terrain.biome in ["high_mountains", "mountains"]:
+            raise errors.InvalidLocation(f"{structure_type.name} creation", "in a non-mountainous tile")
+        
     if not structure_type.tier_req == 0 and location == city.location and not admin_mode:
         if tile.tier < structure_type.tier_req:
             raise errors.CityTierTooLow(f"{structure_type.name} creation", tile.tier, structure_type.tier_req)
+
+    if structure_type.name == "Charcoal Pit":
+        for structure in city.structures:
+            if structure.structure_type.name == "Forester":
+                if not "wood" in city.inventory:
+                    raise errors.ResourcesDeployed(f"{structure_type.name} creation", "wood")
+                city.inventory.remove("wood")
+                city.inventory.append("fuel")
+    if structure_type.name == "Smeltery":
+        for structure in city.structures:
+            if structure.structure_type.name == "mine":
+                if not "fuel" in city.inventory:
+                    raise errors.ResourcesDeployed(f"{structure_type.name} creation", "fuel")
+                city.inventory.remove("fuel")
+                city.inventory.append("metal")
 
     if structure_type.prereq != '':
         for city in nation.cities.values():
@@ -273,6 +300,9 @@ async def new_structure(structure_type: StructureType, location: tuple[int, int]
 
     new_structure = Structure(structure_type, location, root_city, builder)
     tile.structures.append(new_structure)
+
+    if structure_type.resource_prod != '':
+        city.inventory.append(structure_type.resource_prod)
 
     if structure_type.name == "Temple" or structure_type.name == "Grand Temple":
         city.stability += min(100, round((nation_list[builder].cities[root_city].stability / 20) + 5))
