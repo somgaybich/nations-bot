@@ -186,7 +186,6 @@ async def new_city(name: str, location: tuple[int, int], owner: int, capital: bo
         else:
             nation.econ.influence -= 4
 
-    nation.tiles.append(to_be_claimed)
     for claim_location in to_be_claimed:
         tile_list[claim_location].owner = owner
         await tile_list[claim_location].save()

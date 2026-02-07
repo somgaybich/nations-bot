@@ -25,7 +25,6 @@ class Nation:
         self.econ: "Econ" = econ
         self.cities: dict[str, "City"] = cities
         self.links: list["Link"] = links
-        self.tiles: list[tuple[int, int]] = tiles
         self.military: dict[str, "Unit"] = military
         self.espionage: list["Espionage"] = espionage
         self.dossier: dict = dossier
