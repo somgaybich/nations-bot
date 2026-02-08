@@ -1,17 +1,21 @@
 import logging
 import json
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-from game.constants import arable_biomes, dry_biomes
+if TYPE_CHECKING:
+    from world.structures import Structure, Link
+
+from game.constants import arable_biomes, dry_biomes, link_difficulties
 
 import scripts.database as db
 
-from world.structures import StructureList
 from world.world import tile_list
 
 class Terrain:
-    def __init__(self, biome: str, is_land: bool, is_water: bool, difficulty: int, straits: list | None = None):
+    def __init__(self, biome: str, is_land: bool, is_water: bool, 
+                 difficulty: int, straits: list | None = None):
         self.biome = biome
         self.is_land = is_land
         self.is_water = is_water
@@ -19,24 +23,25 @@ class Terrain:
         self.straits = straits if not straits is None else []
     
     def data(self):
-        return json.dumps([self.biome, self.is_land, self.is_water, self.difficulty, self.straits])
+        return json.dumps([self.biome, self.is_land, self.is_water, 
+                           self.difficulty, self.straits])
 
 class Tile:
-    def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), owner: int = None, 
-                 owned: bool = False, structures: StructureList = StructureList()):
+    def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
+                 owner: int = None, owned: bool = False, 
+                 structure: "Structure" = None, 
+                 link_structures: list["Link"] = []):
         self.terrain = terrain
         self.location = location
         self.owned = owned
         self.owner = owner
-        self.structures = structures
+        self.structure = structure
+        self.link_structures = link_structures
 
-        if structures.has("Simple Rail"):
-            self.difficulty = 0.5
-        elif structures.has("Quality Rail"):
-            self.difficulty = 0.25
-        else:
-            self.difficulty = terrain.difficulty
-    
+        # The smallest link difficulty will become the tile difficulty, without one the terrain difficulty is used
+        values = (link_difficulties.get(link.linktype.name) for link in link_structures)
+        self.difficulty = min(values, default=self.terrain.difficulty)
+
     async def save(self):
         await db.save_tile(self)
     
@@ -83,7 +88,8 @@ class Tile:
         q, r = target.location
         
         difference_tuple = (q - self.location[0], r - self.location[1])
-        if not -1 < difference_tuple[0] < 1 or not -1 < difference_tuple[1] < 1:
+        if (not -1 < difference_tuple[0] < 1 
+            or not -1 < difference_tuple[1] < 1):
             return None
 
         match difference_tuple:
@@ -99,7 +105,7 @@ class Tile:
                 return "s"
             case (-1, 1):
                 return "sw"
-        
+
     def is_arable(self) -> bool:
         """
         Checks whether a tile meets the requirements for arability.
@@ -107,15 +113,16 @@ class Tile:
         if self.terrain.biome in arable_biomes:
             return True
 
-        # If the biome isn't in arable or dry biomes, this tile cannot be arable
         if self.terrain.biome not in dry_biomes:
+            # Tile isn't in arable or dry biomes
+            # This tile cannot be arable
             return False
 
         # But if it is dry, it can be arable if it's given water...
         if self.is_coastal():
             return True
         for area_tile in self.area():
-            if area_tile.structures.has("aqueduct"):
+            if area_tile.structure == "Aqueduct":
                 return True
 
         # This tile satisfies none of the conditions

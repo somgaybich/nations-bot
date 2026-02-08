@@ -6,9 +6,10 @@ logger = logging.getLogger(__name__)
 import scripts.errors as errors
 
 if TYPE_CHECKING:
+    from game.nation import Nation
     from game.military import Unit
     from world.map import Tile
-    from game.nation import Nation
+    from world.structures import Structure
 
 class TileDict(dict[tuple[int, int], "Tile"]):
     """
@@ -27,4 +28,5 @@ class NationDict(dict[int, "Nation"]):
 
 tile_list: TileDict = TileDict()
 units: list["Unit"] = []
+structures: list["Structure"] = []
 nation_list: NationDict = NationDict()

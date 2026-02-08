@@ -1,14 +1,15 @@
 import json
 import logging
+import ast
 from discord import Color
 
 import scripts.database as db
 
 from game.military import Unit
+from game.resources import Resource
 
 from world.map import Tile, Terrain
-from world.structures import Link, StructureList
-from world.cities import City
+from world.structures import Link, Structure, City, structure_types
 from game.nation import Nation
 from game.economy import Econ
 from world.world import tile_list, nation_list, units
@@ -28,15 +29,58 @@ async def load(map_only: bool = False):
     logger.info("Starting game data load...")
     tiles_data = await db.load_tiles_rows()
     for row in tiles_data:
-        structure_list = StructureList()
-        for structure in json.loads(row["structures"]):
-            structure_list.append(structure)
+        structure_data = json.loads(row["structure"])
+        structure = None
+        if "name" in structure_data:
+            decoded_inventory = []
+            inventory_data = json.loads(structure_data['inventory'])
+            for item_data in inventory_data:
+                origin = ast.literal_eval(item_data['origin'])
+                encoded_path = ast.literal_eval(item_data['path'])
+
+                decoded_item = Resource(
+                    name=item_data['name'],
+                    origin=ast.literal_eval(item_data['origin']),
+                    located_at=item_data['located_at'],
+                    # We keep the path encoded for now
+                    # The links don't exist yet to actually bind them
+                    path=encoded_path
+                )
+            structure = City(
+                name=structure_data['name'],
+                tier=structure_data['tier'],
+                location=(structure_data['x'], structure_data['y']),
+                owner=structure_data['owner'],
+                stability=structure_data['stability'],
+                inventory=json.loads(structure_data['inventory']),
+                authority=structure_data['authority']
+            )
+        elif structure_data != {}:
+            structure = Structure(
+                structure_type=structure_types[structure_data['structure_type']],
+                location=json.loads(structure_data['x'], structure_data['y']),
+                root_city=structure_data['root_city'],
+                builder=structure_data['builder']
+            )
+
+        link_structures = []
+        if row['link_structures'] is not None:
+            link_structures_data = json.loads(row['link_structures'])
+            for link_structure in link_structures_data:
+                link_structures.append(Structure(
+                    structure_type=link_structure['structure_type'],
+                    location=(link_structure['x'], link_structure['y']),
+                    root_city=link_structure['root_city'],
+                    builder=link_structure['builder']
+                ))
+
         tile = Tile(
             terrain=Terrain(*json.loads(row["terrain"])),
             location=(row["x"], row["y"]),
             owner=row["owner"],
             owned=row["owned"],
-            structures=structure_list,
+            structure=structure,
+            link_structures=link_structures
         )
         tile_list[tile.location] = tile
     if map_only:
@@ -62,21 +106,6 @@ async def load(map_only: bool = False):
             influence_cap=row["influence_cap"],
         )
         nation_list[row["nationid"]].econ = econ
-
-    cities_data = await db.load_cities_rows()
-    for row in cities_data:
-        new_city = City(
-            terrain=tile_list[(row["x"], row["y"])].terrain,
-            name=row["name"],
-            influence=row["influence"],
-            tier=row["tier"],
-            location=(row["x"], row["y"]),
-            owner=row["owner"],
-            stability=row["stability"],
-            inventory=json.loads(row["inventory"]),
-        )
-        nation_list[row["owner"]].cities[row["name"]] = new_city
-        tile_list[(row["x"], row["y"])] = new_city
 
     units_data = await db.load_units_rows()
     for row in units_data:
@@ -113,6 +142,18 @@ async def load(map_only: bool = False):
             path=json.loads(row["path"]),
             owner=row["owner"],
             link_id=row["id"])
-    
+        
+        nation_list[link.owner].links.append(link)
+
+        for city in nation_list[link.owner].cities.values():
+            for item in city.inventory:
+                for encoded_link in item.path:
+                    if encoded_link == link.encode():
+                        item.path[item.path.index(encoded_link)] = link
+                
+                for link in item.path:
+                    if not isinstance(link, Link):
+                        logger.warning(f"{link} was not properly decoded!")
+
     logger.info("Loaded game data")
     logger.debug(nation_list)

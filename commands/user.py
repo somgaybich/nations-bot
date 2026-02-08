@@ -12,12 +12,11 @@ import scripts.rendering as rendering
 from scripts.ui import DirectionView, ConfirmView
 
 from game.constants import brand_color
-from game.actions import new_nation, new_city, new_army, new_fleet
+from game.actions import new_nation, new_city, new_army, new_fleet, new_link
 
 from world.map import Tile, move_in_direction
-from world.cities import City
-from world.structures import Link, structure_types, link_types
-from world.world import nation_list, TileDict
+from world.structures import City, structure_types, link_types
+from world.world import nation_list
 
 logger = logging.getLogger(__name__)
 
@@ -320,12 +319,14 @@ class UserCog(discord.Cog):
             await followup_error(ctx.followup, e.user_message if isinstance(e, NationsException) else "")
             raise
 
-        new_link = Link(
+        await new_link(
+            path=path,
+            linktype=link_types["simple_rail"] if level=="simple" else link_types["quality_rail"],
+            owner=ctx.interaction.user.id,
             origin=origin,
-            destination=current_tile.name,
-            owner=ctx.interaction.user.id, 
-            linktype=link_types["simple_rail"] if level=="simple" else link_types["quality_rail"]
+            destination=current_tile.name
         )
+
         await interaction_response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
 
     # ----- MILITARY COMMANDS ----- #

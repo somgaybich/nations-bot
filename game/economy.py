@@ -10,7 +10,8 @@ class Econ:
     """
     Represents a nation's economy.
     """
-    def __init__(self, nationid: int, influence: int = 2, influence_cap: int = 2):
+    def __init__(self, nationid: int, influence: int = 2, 
+                 influence_cap: int = 2):
         self.nationid = nationid
         self.influence = influence
         self.influence_cap = influence_cap
@@ -27,7 +28,7 @@ class Econ:
             cap += city.tier + 1
             if authority.authtype == "oligarchic":
                 cap += 1
-            if city.structures.has("District"):
+            if "District" in city.structure_types():
                 cap += 2
                 if authority.authtype == "oligarchic":
                     cap += 1
@@ -45,44 +46,39 @@ class Econ:
                     cap += 1
 
                 case "Simple Rail":
-                    if link.origin.structures.has("Central Station"):
+                    if "Central Station" in link.origin.structure_types():
                         cap += 2
-                    elif link.origin.structures.has("Station"):
+                    elif "Station" in link.origin.structure_types():
                         cap += 1
 
-                    if link.destination.structures.has("Central Station"):
+                    if "Central Station" in link.destination.structure_types():
                         cap += 2
-                    elif link.destination.structures.has("Station"):
+                    elif "Station" in link.destination.structure_types():
                         cap += 1
 
                     cap += 3
 
-                case "Quality Rail":
-                    if link.origin.structures.has("Central Station"):
+                case "Simple Rail":
+                    if "Central Station" in link.origin.structure_types():
                         cap += 2
-                    elif link.origin.structures.has("Station"):
+                    elif "Station" in link.origin.structure_types():
                         cap += 1
 
-                    if link.destination.structures.has("Central Station"):
+                    if "Central Station" in link.destination.structure_types():
                         cap += 2
-                    elif link.destination.structures.has("Station"):
+                    elif "Station" in link.destination.structure_types():
                         cap += 1
 
                     cap += 5
 
                 case "Sea Route":
-                    if link.origin.structures.has("Port") and link.destination.structures.has("Port"):
+                    if ("Port" in link.origin.structure_types() 
+                        and "Port" in link.destination.structure_types()):
                         cap += 4
-                    elif link.origin.structures.has("Port") or link.origin.structures.has("Port"):
+                    elif ("Port" in link.origin.structure_types() 
+                        or "Port" in link.destination.structure_types()):
                         cap += 2
                     
                     cap += 3
-            
-            structures = nation.cities[link.origin].structures + nation.cities[link.destination].structures
-            for structure in structures:
-                if structure == "station" and link.linktype == "simple_rail" or link.linktype == "quality_rail":
-                    cap += 1
-                if structure == "port" and link.linktype == "sea":
-                    cap += 2
 
-        return 1
+        return cap

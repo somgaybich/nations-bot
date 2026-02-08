@@ -49,8 +49,13 @@ class TileImpassable(NationsException):
 
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
-        super().__init__(f"{action} failed: Tile already has {num_structures} structures")
-        self.user_message = f"That tile can't hold any more structures!"
+        super().__init__(f"{action} failed: City already has {num_structures} structures")
+        self.user_message = f"That settlement can't hold any more structures!"
+
+class TIleAlreadyHadStructure(NationsException):
+    def __init__(self, action: str, location: tuple[int, int]):
+        super().__init__(f"{action} failed: '{location}' already has a structure")
+        self.user_message = f"That tile already has a structure!"
 
 class TooManyUniqueStructures(NationsException):
     def __init__(self, structure: str):

@@ -7,7 +7,7 @@ import scripts.errors as errors
 from game.constants import combat_settings, current_season
 
 from world.map import Tile, move_in_direction
-from world.cities import City
+from world.structures import City
 from world.world import nation_list, tile_list
 
 class Unit:
@@ -16,9 +16,10 @@ class Unit:
     Strength & morale are on [0, 100], exp is positive
     Type is in ["army", "fleet"]
     """
-    def __init__(self, name: str, type: str, home: str, owner: int, movement_free: int, 
-                 location: tuple[int, int] = (0, 0), strength: int = 1, morale: int = 1, 
-                 exp: int = 0, unit_id: int | None = None):
+    def __init__(self, name: str, type: str, home: str, owner: int, 
+                 movement_free: int, location: tuple[int, int] = (0, 0), 
+                 strength: int = 1, morale: int = 1, exp: int = 0, 
+                 unit_id: int | None = None):
         self.id = unit_id # IDs aren't guaranteed if the initial save fails!
         self.name = name
         self.type = type
@@ -38,15 +39,15 @@ class Unit:
         eff = base_eff
 
         home_city = nation_list[self.owner].cities[self.home]
-        location = tile_list[location]
-        battle_terrain = location.terrain
-        home_terrain = home_city.terrain
+        tile = tile_list[location]
+        battle_terrain = tile.terrain
+        home_tile = tile_list[home_city.location]
         
-        if battle_terrain == home_terrain:
+        if battle_terrain == home_tile.terrain.biome:
             eff += combat_settings["home_terrain_buff"]
-        if location in home_city.area() or (location in home_city.metroarea() and home_city.tier == 4):
+        if (tile in home_city.developed_area()):
             eff += combat_settings["home_city_buff"]
-            if location == home_city:
+            if tile == home_city:
                 eff += combat_settings["home_city_buff"]
         elif attacking:
             match battle_terrain:
@@ -58,11 +59,11 @@ class Unit:
                     eff -= combat_settings["mountains_debuff"]
                 case "high_mountains":
                     eff -= combat_settings["high_mountains_debuff"]
-        if "fort" in location.structures:
+        if tile.structure.structure_type.name == "Fort":
             eff += combat_settings["fort_buff"]
         else:
-            for tile in location.area():
-                if "fort" in tile.structures:
+            for tile in tile.area():
+                if tile.structure.structure_type.name == "Fort":
                     eff += combat_settings["fort_area_buff"]
                     break
         
@@ -70,7 +71,8 @@ class Unit:
     
     async def move(self, direction: str):
         from world.world import units
-        new_tile, last_tile = move_in_direction(tile_list[self.location], direction.lower())
+        new_tile, last_tile = move_in_direction(tile_list[self.location], 
+                                                direction.lower())
         if new_tile.difficulty > self.movement_free:
             raise errors.OutOfMovement()
         if new_tile.terrain.biome == "high_mountains" and current_season == 3:
@@ -84,7 +86,9 @@ class Unit:
         self.movement_free -= new_tile.difficulty
 
         for unit in units:
-            if unit.location == new_tile.location and unit.owner != self.owner and not unit.owner in nation_list[self.owner].allies:
+            if (unit.location == new_tile.location 
+                and unit.owner != self.owner and 
+                not unit.owner in nation_list[self.owner].allies):
                 await self.attack(unit, last_tile)
         
         await self.save()
@@ -102,7 +106,8 @@ class Unit:
         
         effectivenesses = {}
         for tile in retreat_candidates:
-            effectivenesses[tile.location] = self.effectiveness()
+            effectivenesses[tile.location] = self.effectiveness(False, 
+                                                                tile.location)
         best_tile = max(effectivenesses, key=effectivenesses.get)
         self.location = best_tile
 
@@ -113,8 +118,10 @@ class Unit:
         self.morale = max(0.0, self.strength - combat_settings["crush_loser_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
-            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["crush_stability_modifier"])
+            if (isinstance(tile.structure, City) 
+                and (tile_list[battle_location] in tile.structure.developed_area()) 
+                and tile.structure.builder == self.owner):
+                tile.structure.stability = min(100, tile.structure.stability + scaled_impact * combat_settings["crush_stability_modifier"])
                 await tile.save()
         
         await self.retreat()
@@ -126,8 +133,10 @@ class Unit:
         self.morale = max(0.0, self.strength - combat_settings["loser_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
-            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["decisive_stability_modifier"])
+            if (isinstance(tile.structure, City) 
+                and (tile_list[battle_location] in tile.structure.developed_area()) 
+                and tile.structure.builder == self.owner):
+                tile.structure.stability = min(100, tile.structure.stability + scaled_impact * combat_settings["decisive_stability_modifier"])
                 await tile.save()
 
         await self.retreat()
@@ -139,8 +148,10 @@ class Unit:
         self.morale = max(0.0, self.strength - combat_settings["winner_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
-            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["decisive_stability_modifier"])
+            if (isinstance(tile.structure, City) 
+                and (tile_list[battle_location] in tile.structure.developed_area()) 
+                and tile.owner == self.owner):
+                tile.structure.stability = min(100, tile.structure.stability + scaled_impact * combat_settings["decisive_stability_modifier"])
                 await tile.save()
         
         self.movement_free = 0
@@ -150,8 +161,10 @@ class Unit:
         self.morale = max(0.0, self.strength - combat_settings["crush_winner_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
-            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["crush_stability_modifier"])
+            if (isinstance(tile.structure, City) 
+                and (tile_list[battle_location] in tile.structure.developed_area()) 
+                and tile.owner == self.owner):
+                tile.structure.stability = min(100, tile.structure.stability + scaled_impact * combat_settings["crush_stability_modifier"])
                 await tile.save()
           
     async def stalemate(self, scaled_impact, battle_location):
@@ -159,8 +172,10 @@ class Unit:
         self.morale = max(0.0, self.strength - combat_settings["stalemate_morale_loss"] * scaled_impact)
 
         for tile in tile_list[battle_location].metroarea():
-            if isinstance(tile, City) and (tile_list[battle_location] in tile.developed_area()) and tile.owner == self.owner:
-                tile.stability = min(100, tile.stability + scaled_impact * combat_settings["stalemate_stability_modifier"])
+            if (isinstance(tile.structure, City) 
+                and (tile_list[battle_location] in tile.structure.developed_area()) 
+                and tile.owner == self.owner):
+                tile.structure.stability = min(100, tile.structure.stability + scaled_impact * combat_settings["stalemate_stability_modifier"])
                 await tile.save()
         
         self.movement_free = 0
@@ -179,12 +194,16 @@ class Unit:
             for unit in units:
                 if unit.location == tile.location:
                     # This unit is in a neighboring tile!
-                    if unit.owner == self.owner or unit.owner in nation_list[self.owner].allies:
+                    if (unit.owner == self.owner 
+                        or unit.owner in nation_list[self.owner].allies):
                         attacking_team.append(unit)
-                        self_allies_eff += unit.effectiveness(True, self.location)
-                    elif unit.owner == target.owner or unit.owner in nation_list[target.owner].allies:
+                        self_allies_eff += unit.effectiveness(True, 
+                                                              self.location)
+                    elif (unit.owner == target.owner 
+                          or unit.owner in nation_list[target.owner].allies):
                         defending_team.append(unit)
-                        target_allies_eff += unit.effectiveness(False, self.location)
+                        target_allies_eff += unit.effectiveness(False, 
+                                                                self.location)
         
         self_eff += combat_settings["ally_contribution"] * self_allies_eff
         target_eff += combat_settings["ally_contribution"] * target_allies_eff

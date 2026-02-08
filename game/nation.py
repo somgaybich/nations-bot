@@ -11,8 +11,7 @@ if TYPE_CHECKING:
     from game.espionage import Espionage
     from game.economy import Econ
     from game.authority import Authority
-    from world.structures import Link
-    from world.cities import City
+    from world.structures import Link, City
 
 class Nation:
     """
@@ -29,7 +28,7 @@ class Nation:
         self.espionage: list["Espionage"] = espionage
         self.dossier: dict = dossier
         self.allies: list[int] = allies
-        self.authorities: dict[str, Authority] = authorities
+        self.authorities: dict[str, "Authority"] = authorities
         self.color: Color = color
     
     async def save(self):

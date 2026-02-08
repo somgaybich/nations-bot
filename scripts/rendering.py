@@ -2,8 +2,7 @@ from PIL import Image
 import logging
 from math import sqrt
 
-from world.map import Tile
-from world.cities import City
+from world.structures import City
 from world.world import tile_list, nation_list
 
 logger = logging.getLogger(__name__)

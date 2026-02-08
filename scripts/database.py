@@ -59,27 +59,11 @@ async def init_db(file: str = "data/nations.db"):
         terrain TEXT NOT NULL,
         owner INTEGER,
         owned BOOLEAN,
-        structures TEXT,
+        structure TEXT,
+        link_structures TEXT,
         PRIMARY KEY (x, y))
     """)
     logger.debug("Created tiles table")
-
-    await _db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS cities (
-        x INTEGER NOT NULL,
-        y INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        influence INTEGER NOT NULL,
-        tier INTEGER NOT NULL,
-        stability INTEGER NOT NULL,
-        inventory TEXT NOT NULL,
-        owner INTEGER NOT NULL,
-        structures TEXT NOT NULL,
-        authority TEXT NOT NULL,
-        PRIMARY KEY (x, y))
-    """)
-    logger.debug("Created cities table")
 
     await _db.execute(
     """
@@ -256,22 +240,62 @@ async def load_authorities_rows():
 
 # ---------------
 
+def encode_link_structures(link_structure_list) -> list:
+    encoded_link_structures = []
+    for link_structure in link_structure_list:
+        encoded_link_structures.append({
+            "structure_type": link_structure.structure_type.name,
+            "x": link_structure.location[0],
+            "y": link_structure.location[1],
+            "root_city": link_structure.root_city,
+            "builder": link_structure.builder
+        })
+    return encoded_link_structures
+
+def encode_structure(structure) -> dict:
+    if hasattr(structure, "name"):
+        # This structure is a City
+        encoded_inventory = []
+        for item in structure.inventory:
+            encoded_inventory.append(item.encode())
+        return {
+            "name": structure.name,
+            "tier": structure.tier,
+            "x": structure.location[0],
+            "y": structure.location[1],
+            "owner": structure.owner,
+            "stability": structure.stability,
+            "inventory": encoded_inventory,
+            "authority": structure.authority
+        }
+    else:
+        return {
+            "structure_type": structure.structure_type.name,
+            "x": structure.location[0],
+            "y": structure.location[1],
+            "root_city": structure.root_city,
+            "builder": structure.builder
+        }
+
 async def save_tile(tile):
     logger.debug(f"Saving tile at {tile.location}")
     x, y = tile.location
     await get_db().execute(
         """
         INSERT INTO tiles (
-        x, y, terrain, owner, owned, structures
+        x, y, terrain, owner, owned, structure, link_structures
         )
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,
             owned = excluded.owned,
-            structures = excluded.structures
+            structure = excluded.structure,
+            link_structures = excluded.link_structures
         """,
-        (x, y, tile.terrain.data(), tile.owner, tile.owned, json.dumps(tile.structures))
+        (x, y, tile.terrain.data(), tile.owner, tile.owned, 
+         encode_structure(tile.structure),
+         encode_link_structures(tile.link_structures))
     )
 
 async def save_tiles(iterable_tiles):
@@ -280,35 +304,6 @@ async def save_tiles(iterable_tiles):
 
 async def load_tiles_rows():
     async with get_db().execute("SELECT * FROM tiles") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
-async def save_city(city):
-    logger.debug(f"Saving city at {city.location}")
-    x, y = city.location
-    await get_db().execute(
-        """
-        INSERT INTO cities (
-        x, y, name, influence, tier, stability, inventory, owner, structures, authority
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(x, y) DO UPDATE SET
-            name = excluded.name,
-            influence = excluded.influence,
-            tier = excluded.tier,
-            stability = excluded.stability,
-            inventory = excluded.inventory,
-            owner = excluded.owner,
-            structures = excluded.structures,
-            authority = excluded.authority
-        """,
-        (x, y, city.name, city.influence, city.tier, city.stability, 
-         json.dumps(city.inventory), city.owner, json.dumps(city.structures), city.authority)
-    )
-
-async def load_cities_rows():
-    async with get_db().execute("SELECT * FROM cities") as cursor:
         return await cursor.fetchall()
 
 # ---------------

@@ -9,7 +9,7 @@ from game.constants import authority_cap_modifiers, authority_settings
 import scripts.database as db
 
 if TYPE_CHECKING:
-    from world.cities import City
+    from world.structures import City
 
 # Authority concepts:
 # Industrial - Higher inf incomes from links / they move 1 less resource
@@ -22,7 +22,8 @@ class Authority:
     """
     A body that controls city administration.
     """
-    def __init__(self, nationid: int, name: str, authtype: str = None, cap: int = 0, cities: list[str] = [], id=int):
+    def __init__(self, nationid: int, name: str, authtype: str = None, 
+                 cap: int = 0, cities: list[str] = [], id=int):
         self.nationid = nationid
         self.name = name
         self.cities = cities
@@ -35,7 +36,8 @@ class Authority:
 
         if cap == 0:
             random_cap = random.randint(1, 5)
-            self.cap = max(1, random_cap + authority_cap_modifiers[self.authtype])
+            modded_cap = random_cap + authority_cap_modifiers[self.authtype]
+            self.cap = max(1, modded_cap)
         else:
             self.cap = cap
     
