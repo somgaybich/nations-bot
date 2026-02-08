@@ -89,46 +89,46 @@ def snapshot_corners(corner1, corner2, overlays: dict = {}) -> Image.Image:
                     mask=mask
                 )
 
-            if tile.structures.has("Simple Rail"):
-                for area_tile in tile.area():
-                    if area_tile.structures.has("Simple Rail"):
-                        direction = tile.direction_to(area_tile)
-                        sprite = overlay_sprites["rail_" + direction]
-                        snapshot.paste(
-                            im=sprite,
-                            box=box,
-                            mask=sprite
-                        )
-            if tile.structures.has("Quality Rail"):
-                for area_tile in tile.area():
-                    if area_tile.structures.has("Quality Rail"):
-                        direction = tile.direction_to(area_tile)
-                        sprite = overlay_sprites["qrail_" + direction]
-                        snapshot.paste(
-                            im=sprite,
-                            box=box,
-                            mask=sprite
-                        )
-            if tile.structures.has("Stone Road"):
-                for area_tile in tile.area():
-                    if area_tile.structures.has("Stone Road"):
-                        direction = tile.direction_to(area_tile)
-                        sprite = overlay_sprites["road_" + direction]
-                        snapshot.paste(
-                            im=sprite,
-                            box=box,
-                            mask=sprite
-                        )
-            if tile.structures.has("Sea Route"):
-                for area_tile in tile.area():
-                    if area_tile.structures.has("Sea Route"):
-                        direction = tile.direction_to(area_tile)
-                        sprite = overlay_sprites["searoute_" + direction]
-                        snapshot.paste(
-                            im=sprite,
-                            box=box,
-                            mask=sprite
-                        )
+            # if tile.structure.structure_type.name == "Simple Rail":
+            #     for area_tile in tile.area():
+            #         if area_tile.structures.has("Simple Rail"):
+            #             direction = tile.direction_to(area_tile)
+            #             sprite = overlay_sprites["rail_" + direction]
+            #             snapshot.paste(
+            #                 im=sprite,
+            #                 box=box,
+            #                 mask=sprite
+            #             )
+            # if tile.structures.has("Quality Rail"):
+            #     for area_tile in tile.area():
+            #         if area_tile.structures.has("Quality Rail"):
+            #             direction = tile.direction_to(area_tile)
+            #             sprite = overlay_sprites["qrail_" + direction]
+            #             snapshot.paste(
+            #                 im=sprite,
+            #                 box=box,
+            #                 mask=sprite
+            #             )
+            # if tile.structures.has("Stone Road"):
+            #     for area_tile in tile.area():
+            #         if area_tile.structures.has("Stone Road"):
+            #             direction = tile.direction_to(area_tile)
+            #             sprite = overlay_sprites["road_" + direction]
+            #             snapshot.paste(
+            #                 im=sprite,
+            #                 box=box,
+            #                 mask=sprite
+            #             )
+            # if tile.structures.has("Sea Route"):
+            #     for area_tile in tile.area():
+            #         if area_tile.structures.has("Sea Route"):
+            #             direction = tile.direction_to(area_tile)
+            #             sprite = overlay_sprites["searoute_" + direction]
+            #             snapshot.paste(
+            #                 im=sprite,
+            #                 box=box,
+            #                 mask=sprite
+            #             )
 
             if isinstance(tile, City):
                 logger.debug(f"{location} is a city!")
