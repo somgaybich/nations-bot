@@ -376,6 +376,21 @@ async def new_structure(structure_type: StructureType,
 
     return new_structure
 
+def trim_path_to_city(path: list[Link], city: City):
+    """
+    Removes links so that the path ends at `city`.
+    Assumes the path is already valid up to that city.
+    """
+    for i, link in enumerate(path):
+        if link.origin == city:
+            # city is the start of this link → keep everything before it
+            del path[i:]
+            return
+        if link.destination == city:
+            # city is the end of this link → keep through this link
+            del path[i+1:]
+            return
+
 async def transfer_resource(origin_name: str, origin_owner: int,
                             destination_name: str, destination_owner: int,
                             resource_name: str):
@@ -420,4 +435,13 @@ async def transfer_resource(origin_name: str, origin_owner: int,
 
     origin_city.inventory.remove(resource)
     destination_city.inventory.append(resource)
-    resource.path.append(transfer_link)
+    
+    visited_cities: set = set()
+    for link in resource.path:
+        visited_cities.add(link.origin)
+        visited_cities.add(link.destination)
+        
+    if destination_city in visited_cities:
+        trim_path_to_city(resource.path, destination_city)
+    else:
+        resource.path.append(transfer_link)
