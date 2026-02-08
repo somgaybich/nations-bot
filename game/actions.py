@@ -375,3 +375,49 @@ async def new_structure(structure_type: StructureType,
     await tile.save()
 
     return new_structure
+
+async def transfer_resource(origin_name: str, origin_owner: int,
+                            destination_name: str, destination_owner: int,
+                            resource_name: str):
+    """
+    Safely moves a resource from one city to another. Keep in mind there must be a direct link between the two cities; pathfinding is not tried.
+    
+    :param origin_name: The name of the origin city.
+    :type origin_name: str
+    :param origin_owner: The id of the origin city's nation.
+    :type origin_owner: int
+    :param destination_name: The name of the destination city.
+    :type destination_name: str
+    :param destination_owner: The id of the destination city's nation.
+    :type destination_owner: int
+    :param resource_name: The name of the resource to be transferred.
+    :type resource_name: str
+    """
+    origin_nation = nation_list[origin_owner]
+    origin_city = origin_nation.cities[origin_name]
+    destination_nation = nation_list[destination_owner]
+    destination_city = destination_nation.cities[destination_name]
+
+    resource = origin_city.find_resource(resource_name)
+    if resource is None:
+        raise errors.NotEnoughResources(f"{resource_name} transfer",
+                                        [resource_name],
+                                        [])
+    if resource.used_in is not None:
+        raise errors.ResourcesDeployed(f"{resource_name} transfer", 
+                                       resource_name)
+    
+    transfer_link = None
+    for link in origin_nation.links:
+        if link.origin == origin_city and link.destination == destination_city:
+            transfer_link = link
+    for link in destination_nation.links:
+        if link.origin == origin_city and link.destination == destination_city:
+            transfer_link = link
+
+    if transfer_link is None:
+        raise errors.MissingStructure(f"{resource} transfer", "link")
+
+    origin_city.inventory.remove(resource)
+    destination_city.inventory.append(resource)
+    resource.path.append(transfer_link)

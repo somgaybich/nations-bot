@@ -62,14 +62,6 @@ class City(Structure):
 
     async def save(self):
         await db.save_tile(tile_list[self.location])
-    
-    def remove_resource(self, resource_name: str):
-        """
-        Removes a resource from a city's inventory.
-        This should not be used in consumption, only for resource transfers.
-        """
-        resource = self.find_resource(resource_name)
-        self.inventory.remove(resource)
 
     def find_resource(self, resource_name: str) -> "Resource":
         """
