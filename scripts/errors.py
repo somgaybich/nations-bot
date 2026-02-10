@@ -1,3 +1,8 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from world.structures import Link
+
 class NationsException(Exception):
     """
     A parent class for all custom exceptions invoked by nations. Should never be invoked directly.
@@ -11,6 +16,7 @@ class CancelledException(NationsException):
     def __init__(self, action: str):
         super().__init__(f"{action} cancelled by user.")
         self.user_message = "This action was cancelled."
+
 
 class NationNameInUse(NationsException):
     def __init__(self, name: str):
@@ -26,6 +32,7 @@ class NationIDNotFound(NationsException):
     def __init__(self, userid: int):
         super().__init__(f"The userid '{userid}' isn't associated with a nation")
         self.user_message = "You don't have a nation!"
+
 
 class OutOfMovement(NationsException):
     def __init__(self):
@@ -47,6 +54,7 @@ class TileImpassable(NationsException):
         super().__init__(f"Unit was unable to move to a tile because {reason}.")
         self.user_message = reason.capitalize() + "!"
 
+
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
         super().__init__(f"{action} failed: City already has {num_structures} structures")
@@ -67,10 +75,12 @@ class MissingStructure(NationsException):
         super().__init__(f"{action} failed: Tile is missing required structure '{structure}'")
         self.user_message = f"{action} needs a {structure} to be built first!"
 
+
 class DoesNotExist(NationsException):
     def __init__(self, object_type: str, action: str, name: str):
         super().__init__(f"{action} failed: {object_type} '{name}' does not exist")
         self.user_message = f"Couldn't find a {object_type} at {name}!"
+
 
 class CityTierTooLow(NationsException):
     def __init__(self, action: str, tier: int, required: int):
@@ -81,6 +91,7 @@ class NotOwned(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
         super().__init__(f"{action} failed: User did not own the tile {location}")
         self.user_message = f"You don't own {location}!"
+
 
 class NotEnoughInfluence(NationsException):
     def __init__(self, action: str, required: int, had: int):
@@ -100,5 +111,10 @@ class NotEnoughResources(NationsException):
 
 class ResourcesDeployed(NationsException):
     def __init__(self, action: str, resource: str):
-        super.__init__(f"{action} failed: '{resource}' was in use")
+        super().__init__(f"{action} failed: '{resource}' was in use")
         self.user_message = f"You don't have enough resources! {resource.capitalize()} is being consumed somewhere, and its source needs to change production types. You'll have to cancel transport, scrap structures, or move resources here to counterract this."
+
+class LinkOverburdened(NationsException):
+    def __init__(self, action: str, link: "Link"):
+        super().__init__(f"{action} failed: link from {link.origin.name} to {link.destination.name} is overburdened")
+        self.user_message = f"The link from {link.origin.name} to {link.destination.name} is already moving as many resources as it can!"

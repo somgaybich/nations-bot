@@ -15,7 +15,7 @@ from game.resources import Resource
 from world.map import Tile, hex_distance
 from world.structures import (LinkType, StructureType, Link, 
                               Structure, City)
-from world.world import nation_list, tile_list, units, structures
+from world.world import nation_list, tile_list, units, structures, links
 
 # TODO: new_link expects origin and destination to be cities, 
 # how do we fetch those now ???
@@ -381,15 +381,24 @@ def trim_path_to_city(path: list[Link], city: City):
     Removes links so that the path ends at `city`.
     Assumes the path is already valid up to that city.
     """
+    removed_links = []
     for i, link in enumerate(path):
         if link.origin == city:
             # city is the start of this link → keep everything before it
+            removed_links = path[i:]
             del path[i:]
-            return
+            break
         if link.destination == city:
             # city is the end of this link → keep through this link
+            removed_links = path[i+1:]
             del path[i+1:]
-            return
+            break
+    else:
+        path_name = [(link.origin, link.destination) for link in path]
+        raise ValueError(f"City '{city.name}' not found in path {path_name}")
+    
+    for link in removed_links:
+        link.transferred -= 1
 
 async def transfer_resource(origin_name: str, origin_owner: int,
                             destination_name: str, destination_owner: int,
@@ -421,21 +430,11 @@ async def transfer_resource(origin_name: str, origin_owner: int,
     if resource.used_in is not None:
         raise errors.ResourcesDeployed(f"{resource_name} transfer", 
                                        resource_name)
-    
-    transfer_link = None
-    for link in origin_nation.links:
-        if link.origin == origin_city and link.destination == destination_city:
-            transfer_link = link
-    for link in destination_nation.links:
-        if link.origin == origin_city and link.destination == destination_city:
-            transfer_link = link
 
+    transfer_link = links.find(origin_name, destination_name)
     if transfer_link is None:
         raise errors.MissingStructure(f"{resource} transfer", "link")
 
-    origin_city.inventory.remove(resource)
-    destination_city.inventory.append(resource)
-    
     visited_cities: set = set()
     for link in resource.path:
         visited_cities.add(link.origin)
@@ -444,4 +443,17 @@ async def transfer_resource(origin_name: str, origin_owner: int,
     if destination_city in visited_cities:
         trim_path_to_city(resource.path, destination_city)
     else:
+        capacity = transfer_link.linktype.tier - transfer_link.transferred
+        if "Port" in transfer_link.origin.structure_types():
+            capacity += 1
+        if "Port" in transfer_link.destination.structure_types():
+            capacity += 1
+        
+        if capacity < 1:
+            raise errors.LinkOverburdened(f"{resource} transfer", 
+                                          transfer_link)
         resource.path.append(transfer_link)
+        transfer_link.transferred += 1
+
+    origin_city.inventory.remove(resource)
+    destination_city.inventory.append(resource)

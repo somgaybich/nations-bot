@@ -12,7 +12,7 @@ from world.map import Tile, Terrain
 from world.structures import Link, Structure, City, structure_types
 from game.nation import Nation
 from game.economy import Econ
-from world.world import tile_list, nation_list, units
+from world.world import tile_list, nation_list, units, links
 
 logger = logging.getLogger(__name__)
 
@@ -141,8 +141,10 @@ async def load(map_only: bool = False):
             destination=destination,
             path=json.loads(row["path"]),
             owner=row["owner"],
-            link_id=row["id"])
+            link_id=row["id"],
+            transferred=row['resources_transferred'])
         
+        links.append(link)
         nation_list[link.owner].links.append(link)
 
         for city in nation_list[link.owner].cities.values():

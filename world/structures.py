@@ -147,17 +147,19 @@ class Link:
     
     :var linktype: A LinkType object.
     :var origin: The name of the city the link starts in. 
-    :var destination: The name of the city the link ends in. Note that order doesn't matter, but may effect pathfinding.
+    :var destination: The name of the city the link ends in.
     :var path: The list of locations which make up this link.
     :var owner: The userid of the nation which owns this link.
     """
     def __init__(self, linktype: LinkType, origin: City, destination: City, 
-                 path: list[tuple[int, int]], owner: int, link_id = None):
+                 path: list[tuple[int, int]], owner: int, 
+                 transferred: int = 0, link_id = None):
         self.origin = origin
         self.destination = destination
         self.path = path
         self.owner = owner
         self.linktype = linktype
+        self.transferred = transferred
         self.link_id = link_id
     
     async def save(self):

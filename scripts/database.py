@@ -73,6 +73,7 @@ async def init_db(file: str = "data/nations.db"):
         origin TEXT NOT NULL,
         destination TEXT NOT NULL,
         path TEXT NOT NULL,
+        resources_transferred INTEGER NOT NULL
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created links table")
@@ -313,10 +314,10 @@ async def save_link(link):
     if link.id is None:
         async with get_db().execute(
             """
-            INSERT INTO links (linktype, origin, destination, path, owner)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO links (linktype, origin, destination, path, owner, resources_transferred)
+            VALUES (?, ?, ?, ?, ? ?)
             """,
-            (link.linktype, link.origin.name, link.destination.name, json.dumps(link.path), link.owner)
+            (link.linktype, link.origin.name, link.destination.name, json.dumps(link.path), link.owner, link.resources_transferred)
         ) as cursor:
             link.id = cursor.lastrowid
     else:
