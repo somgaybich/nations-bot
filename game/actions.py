@@ -451,9 +451,9 @@ async def transfer_resource(origin_name: str, origin_owner: int,
 
         origin_auth = origin_nation.authorities[origin_city.authority].authtype
         dest_auth = destination_nation.authorities[destination_city.authority].authtype
-        if origin_auth == "Industrial":
+        if origin_auth == "industrial":
             capacity -= 1
-        elif dest_auth == "Industrial":
+        elif dest_auth == "industrial":
             capacity -= 1
             
         if capacity < 1:

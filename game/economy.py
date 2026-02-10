@@ -43,11 +43,11 @@ class Econ:
         for link in nation.links:
             if link.origin in nation.cities:
                 dest_authority = nation.authorities[link.origin.authority]
-                if (dest_authority.authtype == "Industrial"):
+                if (dest_authority.authtype == "industrial"):
                     cap += 1
             elif link.destination in nation.cities:
                 dest_authority = nation.authorities[link.destination.authority]
-                if (dest_authority.authtype == "Industrial"):
+                if (dest_authority.authtype == "industrial"):
                     cap += 1
                     
             match link.linktype.name:
