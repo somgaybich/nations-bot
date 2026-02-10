@@ -4,7 +4,7 @@ import math
 import scripts.database as db
 import scripts.errors as errors
 
-from game.constants import combat_settings, current_season
+from game.constants import combat_settings, authority_settings, current_season
 
 from world.map import Tile, move_in_direction
 from world.structures import City
@@ -45,11 +45,7 @@ class Unit:
         
         if battle_terrain == home_tile.terrain.biome:
             eff += combat_settings["home_terrain_buff"]
-        if (tile in home_city.developed_area()):
-            eff += combat_settings["home_city_buff"]
-            if tile == home_city:
-                eff += combat_settings["home_city_buff"]
-        elif attacking:
+        else:
             match battle_terrain:
                 case "desert":
                     eff -= combat_settings["desert_debuff"]
@@ -59,6 +55,25 @@ class Unit:
                     eff -= combat_settings["mountains_debuff"]
                 case "high_mountains":
                     eff -= combat_settings["high_mountains_debuff"]
+            
+        if (tile in home_city.developed_area()):
+            eff += combat_settings["home_city_buff"]
+            if tile == home_city:
+                eff += combat_settings["home_city_buff"]
+            
+        allies = nation_list[self.owner].allies
+        allies.append(self.owner)
+        for nationid in allies:
+            nation = nation_list[nationid]
+            for city in nation.cities.values():
+                area = [ctile.location for ctile in city.developed_area()]
+                if location not in area:
+                    continue
+                
+                authority = nation.authorities[city.authority]
+                if authority.authtype == "militaristic":
+                    eff += authority_settings["militaristic_eff_bonus"]
+        
         if tile.structure.structure_type.name == "Fort":
             eff += combat_settings["fort_buff"]
         else:

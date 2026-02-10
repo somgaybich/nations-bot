@@ -50,6 +50,6 @@ class Authority:
         self.cities.append(city.name)
         city.authority = self.name
 
-        if self.authtype == "oligarch":
-            stability_change = authority_settings["max_oligarchy_stability_loss"] - (city.tier * authority_settings["oligarchy_stability_loss_factor"])
+        if self.authtype == "oligarchic" or self.authtype == "militaristic":
+            stability_change = authority_settings["max_auth_stability_loss"] - (city.tier * authority_settings["auth_stability_loss_factor"])
             city.stability -= stability_change
