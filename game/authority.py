@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from world.structures import City
 
 # Authority concepts:
-# Industrial - Higher inf incomes from links / they move 1 less resource
 # Militaristic - Effectiveness bonus for units from and in administered area / lower base stability
 # Aristocratic - Cities with luxuries will gain stability / those without will lose it
 # Populist - Cities gain stability slower over time / are more likely to revolt

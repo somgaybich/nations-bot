@@ -444,11 +444,18 @@ async def transfer_resource(origin_name: str, origin_owner: int,
         trim_path_to_city(resource.path, destination_city)
     else:
         capacity = transfer_link.linktype.tier - transfer_link.transferred
-        if "Port" in transfer_link.origin.structure_types():
+        if "Port" in origin_city.structure_types():
             capacity += 1
-        if "Port" in transfer_link.destination.structure_types():
+        if "Port" in destination_city.structure_types():
             capacity += 1
-        
+
+        origin_auth = origin_nation.authorities[origin_city.authority].authtype
+        dest_auth = destination_nation.authorities[destination_city.authority].authtype
+        if origin_auth == "Industrial":
+            capacity -= 1
+        elif dest_auth == "Industrial":
+            capacity -= 1
+            
         if capacity < 1:
             raise errors.LinkOverburdened(f"{resource} transfer", 
                                           transfer_link)

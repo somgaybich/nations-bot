@@ -41,6 +41,15 @@ class Econ:
             cap += luxuries
         
         for link in nation.links:
+            if link.origin in nation.cities:
+                dest_authority = nation.authorities[link.origin.authority]
+                if (dest_authority.authtype == "Industrial"):
+                    cap += 1
+            elif link.destination in nation.cities:
+                dest_authority = nation.authorities[link.destination.authority]
+                if (dest_authority.authtype == "Industrial"):
+                    cap += 1
+                    
             match link.linktype.name:
                 case "Stone Road":
                     cap += 1
