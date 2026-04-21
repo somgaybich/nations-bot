@@ -65,7 +65,7 @@ class City(Structure):
 
     def find_resource(self, resource_name: str) -> "Resource":
         """
-        Returns a resource in this city's inventory that is not currently consumed.
+        Returns an available resource in this city's inventory.
         If there's no matching resource, returns None.
         """
         for item in self.inventory:
@@ -77,6 +77,9 @@ class City(Structure):
         return None
 
     def raw_inventory(self) -> list[str]:
+        """
+        Returns the list of names of resources in a city.
+        """
         return [item.name.split("_")[0] for item in self.inventory]
 
     def luxury_count(self) -> int:
@@ -117,7 +120,9 @@ class City(Structure):
     def has_resource(self, resource: str) -> bool:
         """
         Returns true if this city has a resource with name 'resource.'
+        Will not differentiate between subtypes.
         """
+        return resource in self.raw_inventory()
 
     def calculate_tier(self) -> int:
         raw_inventory = self.raw_inventory()
