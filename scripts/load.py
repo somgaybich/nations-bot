@@ -9,8 +9,9 @@ from game.military import Unit
 from game.resources import Resource
 
 from world.map import Tile, Terrain
-from world.structures import Link, Structure, City, structure_types
+from world.structures import Link, Structure, structure_types
 from game.nation import Nation
+from game.region import Region
 from game.economy import Econ
 from world.world import tile_list, nation_list, units, links
 
@@ -29,48 +30,24 @@ async def load(map_only: bool = False):
     logger.info("Starting game data load...")
     tiles_data = await db.load_tiles_rows()
     for row in tiles_data:
-        structure_data = json.loads(row["structure"])
         structure = None
-        if "name" in structure_data:
-            decoded_inventory = []
-            inventory_data = json.loads(structure_data['inventory'])
-            for item_data in inventory_data:
-                origin = ast.literal_eval(item_data['origin'])
-                encoded_path = ast.literal_eval(item_data['path'])
-
-                decoded_item = Resource(
-                    name=item_data['name'],
-                    origin=ast.literal_eval(item_data['origin']),
-                    located_at=item_data['located_at'],
-                    # We keep the path encoded for now
-                    # The links don't exist yet to actually bind them
-                    path=encoded_path
-                )
-            structure = City(
-                name=structure_data['name'],
-                tier=structure_data['tier'],
-                location=(structure_data['x'], structure_data['y']),
-                owner=structure_data['owner'],
-                stability=structure_data['stability'],
-                inventory=json.loads(structure_data['inventory']),
-                authority=structure_data['authority']
-            )
-        elif structure_data != {}:
+        if row["structure"] != "{}":
+            structure_data = json.loads(row["structure"])
             structure = Structure(
                 structure_type=structure_types[structure_data['structure_type']],
-                location=json.loads(structure_data['x'], structure_data['y']),
-                root_city=structure_data['root_city'],
+                location=(structure_data['x'], structure_data['y']),
+                region=structure_data['region'],
                 builder=structure_data['builder']
             )
 
         link_structures = []
-        if row['link_structures'] is not None:
+        if row['link_structures'] != "[]":
             link_structures_data = json.loads(row['link_structures'])
             for link_structure in link_structures_data:
                 link_structures.append(Structure(
                     structure_type=link_structure['structure_type'],
                     location=(link_structure['x'], link_structure['y']),
-                    root_city=link_structure['root_city'],
+                    region=link_structure['region'],
                     builder=link_structure['builder']
                 ))
 
@@ -83,6 +60,7 @@ async def load(map_only: bool = False):
             link_structures=link_structures
         )
         tile_list[tile.location] = tile
+
     if map_only:
         logger.info("Loaded map data")
         return
@@ -97,6 +75,41 @@ async def load(map_only: bool = False):
             color=Color(row["color"])
         )
         nation_list[row["id"]] = nation
+
+    region_data = await db.load_regions_rows()
+    for row in region_data:
+        decoded_inventory = []
+        inventory_data = json.loads(row['inventory'])
+        for item_data in inventory_data:
+            origin = ast.literal_eval(item_data['origin'])
+            encoded_path = ast.literal_eval(item_data['path'])
+
+            decoded_item = Resource(
+                name=item_data['name'],
+                origin=ast.literal_eval(item_data['origin']),
+                located_at=item_data['located_at'],
+                # We keep the path encoded for now
+                # The links don't exist yet to actually bind them
+                path=encoded_path
+            )
+
+            decoded_inventory.append(decoded_item)
+
+        region = Region(
+            name=row["name"],
+            location=(row["x"], row["y"]),
+            tier=row["tier"],
+            owner=row["owner"],
+            stability=row["stability"],
+            inventory=decoded_inventory,
+            authority=row["authority"],
+            is_capital=row["capital"],
+            tiles=[tuple(tile) for tile in json.loads(row["tiles"])]
+        )
+
+        nation_list[row["owner"]].regions.update({
+            row["name"]: region
+        })
 
     economies_data = await db.load_economies_rows()
     for row in economies_data:
@@ -129,7 +142,8 @@ async def load(map_only: bool = False):
         origin = None
         destination = None
         for tile in tile_list:
-            if isinstance(tile, City):
+            # This check doesn't work, but I'm about to redo all logic involving links anyway so idrc
+            if isinstance(tile, Region):
                 if tile.name == row["origin"]:
                     origin = tile
                 elif tile.name == row["destination"]:
@@ -147,8 +161,8 @@ async def load(map_only: bool = False):
         links.append(link)
         nation_list[link.owner].links.append(link)
 
-        for city in nation_list[link.owner].cities.values():
-            for item in city.inventory:
+        for region in nation_list[link.owner].regions.values():
+            for item in region.inventory:
                 for encoded_link in item.path:
                     if encoded_link == link.encode():
                         item.path[item.path.index(encoded_link)] = link

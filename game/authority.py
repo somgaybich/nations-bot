@@ -9,7 +9,7 @@ from game.constants import authority_cap_modifiers, authority_settings
 import scripts.database as db
 
 if TYPE_CHECKING:
-    from world.structures import City
+    from game.region import Region
 
 # Authority concepts:
 # Militaristic - Effectiveness bonus for units from and in administered area / lower base stability
@@ -22,10 +22,10 @@ class Authority:
     A body that controls city administration.
     """
     def __init__(self, nationid: int, name: str, authtype: str = None, 
-                 cap: int = 0, cities: list[str] = [], id=int):
+                 cap: int = 0, region: str = None, id=int):
         self.nationid = nationid
         self.name = name
-        self.cities = cities
+        self.region = region
         self.id = id
 
         if authtype is None:
@@ -45,13 +45,3 @@ class Authority:
     
     def __str__(self):
         return f"{self.name} is a {self.authtype} authority from {self.cities[0]}."
-    
-    async def add_city(self, city: "City"):
-        self.cities.append(city.name)
-        city.authority = self.name
-
-        if self.authtype == "oligarchic" or self.authtype == "militaristic":
-            stability_change = authority_settings["max_auth_stability_loss"] - (city.tier * authority_settings["oligarchy_stability_loss_factor"])
-        elif self.authtype == "militaristic":
-            stability_change = authority_settings["max_auth_stability_loss"]
-        city.stability -= stability_change

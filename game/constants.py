@@ -69,6 +69,8 @@ combat_settings = {
     "fort_area_buff": 0.05
 }
 
+city_types = ["outpost", "village", "town", "city", "metropolis"]
+
 arable_biomes = ["monsoon", "savanna", "humid_subtropical", "mediterranean", 
                  "humid_continental", "subarctic_continental"]
 dry_biomes = ["hot_steppe", "hot_desert", "cold_steppe", "cold_desert"]

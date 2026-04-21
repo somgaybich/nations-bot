@@ -9,13 +9,12 @@ from PIL import ImageColor
 from scripts.response import interaction_response, followup_response, interacton_error, followup_error
 from scripts.errors import NationsException, CancelledException
 import scripts.rendering as rendering
-from scripts.ui import DirectionView, ConfirmView
+from scripts.ui import ConfirmView
 
 from game.constants import brand_color
-from game.actions import new_nation, new_city, new_army, new_fleet, new_link
+from game.actions import new_nation, new_region, new_army, new_fleet
 
-from world.map import Tile, move_in_direction
-from world.structures import City, structure_types, link_types
+from world.structures import structure_types
 from world.world import nation_list
 
 logger = logging.getLogger(__name__)
@@ -82,7 +81,10 @@ class UserCog(discord.Cog):
             logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
             await new_nation(name, ctx.interaction.user.id)
             logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
-            await new_city(capital_name, (capital_x, capital_y), ctx.interaction.user.id, capital=True)
+            await new_region(name=capital_name, 
+                             location=(capital_x, capital_y), 
+                             owner=ctx.interaction.user.id, 
+                             capital=True)
             logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
         except NationsException as e:
             await followup_msg.delete()
@@ -218,7 +220,9 @@ class UserCog(discord.Cog):
                 raise CancelledException("Nation creation")
             
             logger.debug(f"Making new city for {ctx.interaction.user.name}...")
-            await new_city(name, (x, y), ctx.interaction.user.id)
+            await new_region(name=name, 
+                             location=(x, y), 
+                             owner=ctx.interaction.user.id)
         except NationsException as e:
             await followup_error(ctx.followup, e.user_message)
             raise
@@ -241,7 +245,7 @@ class UserCog(discord.Cog):
     async def upgrade(self, ctx: ApplicationContext, cityname: str, upgrade: str):
         try:
             nation = nation_list[ctx.interaction.user.id]
-            city = nation.cities[cityname]
+            city = nation.regions[cityname]
 
             structure_types[upgrade].build(city.location, city, nation.econ)
         except NationsException as e:
@@ -260,74 +264,8 @@ class UserCog(discord.Cog):
     @discord.option("origin", input_type=str, description="The city the railroad starts in.")
     @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
     async def rail(self, ctx: ApplicationContext, origin: str, level: str):
-        await ctx.interaction.response.defer()
-        finished = False
-        followup_msg: discord.WebhookMessage = None
-        current_tile = nation_list[ctx.interaction.user.id].cities[origin]
-        last_tile = None
-        path: list[Tile] = []
-
-        map_filepath = "data/snapshot" + ctx.interaction.user.id
-
-        try:
-            while not finished:
-                q, r = current_tile.location
-                overlays = {}
-                for tile in path + [current_tile]:
-                    overlays.update({
-                        tile.location: "rail" if level == "simple" else "qrail"
-                    })
-                snapshot = rendering.snapshot_center(q, r, overlays=overlays)
-                snapshot.save(map_filepath)
-
-                direction_future = asyncio.Future()
-                with open(map_filepath, "rb"):
-                    map_file = discord.File(map_filepath, filename="snapshot.png")
-                    followup_msg = await ctx.followup.send(embed=Embed(
-                        color=brand_color,
-                        title="Choose a direction",
-                        description="Select a direction for your railway to head next."
-                    ).set_image(
-                        url="attachment://snapshot.png"
-                    ), view=DirectionView(direction_future, timeout=60),
-                    file=map_file)
-                    await asyncio.wait([direction_future])
-                
-                direction = direction_future.result()
-                match direction:
-                    case direction if direction in ("n", "nw", "sw", "s", "se", "ne"):
-                        current_tile, last_tile = move_in_direction(current_tile, direction)
-                        path.append(last_tile)
-                    case "Back":
-                        if last_tile is not None:
-                            current_tile, last_tile = last_tile, None
-                        else:
-                            await interacton_error(ctx.interaction, "You can't go back any further!")
-                    case "Cancel":
-                        raise CancelledException("Railroad building")
-                    case None:
-                        raise CancelledException("Railroad building")
-                
-                await followup_msg.delete()
-
-                if isinstance(current_tile, City):
-                    finished = True
-                    path.append(current_tile)
-        except Exception as e:
-            logger.error(f"Failed to build railroad for {ctx.interaction.user.name}: {e}")
-            await followup_msg.delete()
-            await followup_error(ctx.followup, e.user_message if isinstance(e, NationsException) else "")
-            raise
-
-        await new_link(
-            path=path,
-            linktype=link_types["simple_rail"] if level=="simple" else link_types["quality_rail"],
-            owner=ctx.interaction.user.id,
-            origin=origin,
-            destination=current_tile.name
-        )
-
-        await interaction_response(ctx.interaction, "Built!", f"Your railroad has been built to {current_tile.name}!")
+        # Region overhaul broke this, it has no behavior until after the logistics overhaul
+        pass
 
     # ----- MILITARY COMMANDS ----- #
 

@@ -1,8 +1,6 @@
 from PIL import Image
 import logging
-from math import sqrt
 
-from world.structures import City
 from world.world import tile_list, nation_list
 
 logger = logging.getLogger(__name__)
@@ -15,27 +13,13 @@ ANCHOR_R = -8
 
 source_image = Image.open("assets/map.png").convert("RGBA")
 
-# TODO: Add other link types
 overlay_sprites = {
-    "rail_n": Image.open("assets/overlays/rail_n.png").convert("RGBA"),
-    "rail_ne": Image.open("assets/overlays/rail_ne.png").convert("RGBA"),
-    "rail_se": Image.open("assets/overlays/rail_se.png").convert("RGBA"),
-    "rail_s": Image.open("assets/overlays/rail_s.png").convert("RGBA"),
-    "rail_sw": Image.open("assets/overlays/rail_sw.png").convert("RGBA"),
-    "rail_nw": Image.open("assets/overlays/rail_nw.png").convert("RGBA"),
     "outpost": Image.open("assets/overlays/outpost.png").convert("RGBA"),
     "village": Image.open("assets/overlays/village.png").convert("RGBA"),
     "town": Image.open("assets/overlays/town.png").convert("RGBA"),
     "city": Image.open("assets/overlays/city.png").convert("RGBA"),
     "metropolis": Image.open("assets/overlays/metropolis.png").convert("RGBA"),
     "hex_mask": Image.open("assets/overlays/hex_mask.png").convert("RGBA").getchannel("A")
-}
-tier_names = {
-    0: "outpost",
-    1: "village",
-    2: "town",
-    3: "city",
-    4: "metropolis"
 }
 
 def n_corner(q, r) -> tuple[int, int]:
@@ -128,15 +112,6 @@ def snapshot_corners(corner1, corner2, overlays: dict = {}) -> Image.Image:
             #                 box=box,
             #                 mask=sprite
             #             )
-
-            if isinstance(tile, City):
-                logger.debug(f"{location} is a city!")
-                sprite=overlay_sprites[tier_names[tile.tier]]
-                snapshot.paste(
-                    im=sprite,
-                    box=box,
-                    mask=sprite
-                )
             
             # Allows for custom overlays in specific locations
             if location in overlays.keys():

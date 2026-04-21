@@ -30,16 +30,17 @@ class Tile:
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
                  owner: int = None, owned: bool = False, 
                  structure: "Structure" = None, 
-                 link_structures: list["Link"] = []):
+                 link_structures: list["Link"] = None):
         self.terrain = terrain
         self.location = location
         self.owned = owned
         self.owner = owner
-        self.structure = structure
-        self.link_structures = link_structures
+        self.structure = structure if structure is not None else {}
+        self.link_structures = (link_structures if link_structures is not None 
+                                else [])
 
         # The smallest link difficulty will become the tile difficulty, without one the terrain difficulty is used
-        values = (link_difficulties.get(link.linktype.name) for link in link_structures)
+        values = (link_difficulties.get(link.linktype.fname) for link in link_structures)
         self.difficulty = min(values, default=self.terrain.difficulty)
 
     async def save(self):

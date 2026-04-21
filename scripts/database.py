@@ -1,7 +1,16 @@
 import aiosqlite
 import json
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from game.nation import Nation
+    from game.authority import Authority
+    from game.economy import Econ
+    from game.military import Unit
+    from game.region import Region
+    from world.map import Tile
+    from world.structures import Structure, Link
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +42,23 @@ async def init_db(file: str = "data/nations.db"):
         color INTEGER)
     """)
     logger.debug("Created nations table")
+
+    await _db.execute(
+    """
+    CREATE TABLE IF NOT EXISTS regions (
+        name TEXT PRIMARY KEY,
+        x INTEGER NOT NULL,
+        y INTEGER NOT NULL,
+        owner INTEGER NOT NULL,
+        stability INTEGER,
+        tiles TEXT,
+        inventory TEXT,
+        authority TEXT,
+        capital TEXT,
+        tier INTEGER)
+    """
+    )
+    logger.debug("Created regions table")
 
     await _db.execute(
     """
@@ -73,7 +99,7 @@ async def init_db(file: str = "data/nations.db"):
         origin TEXT NOT NULL,
         destination TEXT NOT NULL,
         path TEXT NOT NULL,
-        resources_transferred INTEGER NOT NULL
+        resources_transferred INTEGER NOT NULL,
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created links table")
@@ -95,7 +121,7 @@ async def init_db(file: str = "data/nations.db"):
             nationid INTEGER NOT NULL,
             authtype TEXT NOT NULL,
             cap INTEGER NOT NULL,
-            cities TEXT NOT NULL)
+            region TEXT NOT NULL)
         """)
     logger.debug("Created authorities table")
 
@@ -115,7 +141,7 @@ def get_db() -> aiosqlite.Connection:
 
 # ---------------
 
-async def save_nation(nation):
+async def save_nation(nation: "Nation"):
     logger.debug(f"Saving nation at {nation.userid}")
     await get_db().execute(
         """
@@ -135,7 +161,36 @@ async def load_nations_rows():
 
 # ---------------
 
-async def save_unit(unit):
+async def save_region(region: "Region"):
+    logger.debug(f"Saving nation at {region.name}")
+    encoded_inventory = []
+    for item in region.inventory:
+        encoded_inventory.append(item.encode())
+    await get_db().execute(
+        """
+        INSERT INTO regions (name, x, y, owner, stability, tiles, inventory, authority, capital, tier)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            name = excluded.name,
+            stability = excluded.stability,
+            tiles = excluded.tiles,
+            inventory = excluded.inventory,
+            authority = excluded.authority,
+            tier = excluded.tier
+        """,
+        (region.name, region.location[0], region.location[1], region.owner, 
+         region.stability, json.dumps(region.tiles), 
+         json.dumps(encoded_inventory), region.authority, 
+         json.dumps(region.is_capital), region.tier)
+    )
+
+async def load_regions_rows():
+    async with get_db().execute("SELECT * FROM regions") as cursor:
+        return await cursor.fetchall()
+    
+# ---------------
+
+async def save_unit(unit: "Unit"):
     logger.debug(f"Saving unit at {unit.id}")
     if unit.id is None:
         async with get_db().execute(
@@ -185,7 +240,7 @@ async def save_unit(unit):
             )
         )
 
-async def delete_unit(unit):
+async def delete_unit(unit: "Unit"):
     if unit.id is not None:
         await get_db().execute("DELETE FROM units WHERE id = ?", (unit.id,))
 
@@ -195,14 +250,14 @@ async def load_units_rows():
 
 # ---------------
 
-async def save_authority(authority):
+async def save_authority(authority: "Authority"):
     logger.debug(f"Saving authority at {authority.id}")
     if authority.id is None:
         async with get_db().execute(
             """
             INSERT INTO authorities (
                 name, nationid, authtype, cap,
-                cities
+                region
             )
             VALUES (?, ?, ?, ?, ?)
             """,
@@ -210,7 +265,8 @@ async def save_authority(authority):
                 authority.name,
                 authority.nationid,
                 authority.authtype,
-                authority.cap
+                authority.cap,
+                authority.region
             )
         ) as cursor: 
             authority.id = cursor.lastrowid
@@ -218,7 +274,7 @@ async def save_authority(authority):
         await get_db().execute(
             """
             UPDATE authorities
-            SET name = ?, nationid = ?, authtype = ?, cap = ?, cities = ?
+            SET name = ?, nationid = ?, authtype = ?, cap = ?, region = ?
             WHERE id = ?
             """,
             (
@@ -226,12 +282,12 @@ async def save_authority(authority):
                 authority.nationid,
                 authority.authtype,
                 authority.cap,
-                authority.cities,
+                authority.region,
                 authority.id
             )
         )
 
-async def delete_authority(authority):
+async def delete_authority(authority: "Authority"):
     if authority.id is not None:
         await get_db().execute("DELETE FROM authorities WHERE id = ?", (authority.id))
 
@@ -241,44 +297,31 @@ async def load_authorities_rows():
 
 # ---------------
 
-def encode_link_structures(link_structure_list) -> list:
-    encoded_link_structures = []
+def encode_link_structures(link_structure_list: list["Structure"]) -> list:
+    if link_structure_list == []:
+        return []
+    
+    encoded_link_structure_list = []
     for link_structure in link_structure_list:
-        encoded_link_structures.append({
+        encoded_link_structure_list.append({
             "structure_type": link_structure.structure_type.name,
             "x": link_structure.location[0],
             "y": link_structure.location[1],
-            "root_city": link_structure.root_city,
+            "region": link_structure.region,
             "builder": link_structure.builder
         })
-    return encoded_link_structures
+    return encoded_link_structure_list
 
-def encode_structure(structure) -> dict:
-    if hasattr(structure, "name"):
-        # This structure is a City
-        encoded_inventory = []
-        for item in structure.inventory:
-            encoded_inventory.append(item.encode())
-        return {
-            "name": structure.name,
-            "tier": structure.tier,
-            "x": structure.location[0],
-            "y": structure.location[1],
-            "owner": structure.owner,
-            "stability": structure.stability,
-            "inventory": encoded_inventory,
-            "authority": structure.authority
-        }
-    else:
-        return {
-            "structure_type": structure.structure_type.name,
-            "x": structure.location[0],
-            "y": structure.location[1],
-            "root_city": structure.root_city,
-            "builder": structure.builder
-        }
+def encode_structure(structure: "Structure") -> dict:
+    return {
+        "structure_type": structure.structure_type.name,
+        "x": structure.location[0],
+        "y": structure.location[1],
+        "region": structure.region,
+        "builder": structure.builder
+    }
 
-async def save_tile(tile):
+async def save_tile(tile: "Tile"):
     logger.debug(f"Saving tile at {tile.location}")
     x, y = tile.location
     await get_db().execute(
@@ -286,7 +329,7 @@ async def save_tile(tile):
         INSERT INTO tiles (
         x, y, terrain, owner, owned, structure, link_structures
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,
@@ -294,9 +337,11 @@ async def save_tile(tile):
             structure = excluded.structure,
             link_structures = excluded.link_structures
         """,
-        (x, y, tile.terrain.data(), tile.owner, tile.owned, 
-         encode_structure(tile.structure),
-         encode_link_structures(tile.link_structures))
+        (
+            x, y, tile.terrain.data(), tile.owner, tile.owned, 
+            json.dumps(encode_structure(tile.structure)),
+            json.dumps(encode_link_structures(tile.link_structures))
+        )
     )
 
 async def save_tiles(iterable_tiles):
@@ -309,29 +354,29 @@ async def load_tiles_rows():
 
 # ---------------
 
-async def save_link(link):
-    logger.debug(f"Saving link at {link.id}")
-    if link.id is None:
+async def save_link(link: "Link"):
+    logger.debug(f"Saving link at {link.link_id}")
+    if link.link_id is None:
         async with get_db().execute(
             """
             INSERT INTO links (linktype, origin, destination, path, owner, resources_transferred)
             VALUES (?, ?, ?, ?, ? ?)
             """,
-            (link.linktype, link.origin.name, link.destination.name, json.dumps(link.path), link.owner, link.resources_transferred)
+            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner, link.transferred)
         ) as cursor:
-            link.id = cursor.lastrowid
+            link.link_id = cursor.lastrowid
     else:
         await get_db().execute(
             """
             UPDATE linktype = ?, origin = ?, destination = ?, path = ?, owner = ?
             WHERE id = ?
             """,
-            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner, link.id)
+            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner, link.link_id)
         )
 
-async def delete_link(link):
-    if link.id is not None:
-        await get_db().execute("DELETE FROM links WHERE id = ?", (link.id,))
+async def delete_link(link: "Link"):
+    if link.link_id is not None:
+        await get_db().execute("DELETE FROM links WHERE id = ?", (link.link_id,))
 
 async def load_links_rows():
     async with get_db().execute("SELECT * FROM links") as cursor:
@@ -339,7 +384,7 @@ async def load_links_rows():
 
 # ---------------
 
-async def save_economy(econ):
+async def save_economy(econ: "Econ"):
     logger.debug(f"Saving economy at {econ.nationid}")
     await get_db().execute(
         """

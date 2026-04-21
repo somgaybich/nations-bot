@@ -57,8 +57,8 @@ class TileImpassable(NationsException):
 
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
-        super().__init__(f"{action} failed: City already has {num_structures} structures")
-        self.user_message = f"That settlement can't hold any more structures!"
+        super().__init__(f"{action} failed: Region already has {num_structures} structures")
+        self.user_message = f"That region can't hold any more structures!"
 
 class TIleAlreadyHadStructure(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
@@ -82,10 +82,10 @@ class DoesNotExist(NationsException):
         self.user_message = f"Couldn't find a {object_type} at {name}!"
 
 
-class CityTierTooLow(NationsException):
+class RegionTierTooLow(NationsException):
     def __init__(self, action: str, tier: int, required: int):
         super().__init__(f"{action} failed: Tile needs to be tier {required} and is {tier}")
-        self.user_message = f"The city needs to be tier {required} to do that!"
+        self.user_message = f"The region needs to be tier {required} to do that!"
 
 class NotOwned(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
@@ -112,7 +112,7 @@ class NotEnoughResources(NationsException):
 class ResourcesDeployed(NationsException):
     def __init__(self, action: str, resource: str):
         super().__init__(f"{action} failed: '{resource}' was in use")
-        self.user_message = f"You don't have enough resources! {resource.capitalize()} is being consumed somewhere, and its source needs to change production types. You'll have to cancel transport, scrap structures, or move resources here to counterract this."
+        self.user_message = f"You don't have enough resources! {resource.capitalize()} is being consumed somewhere, so its source cannot change production types. You'll have to cancel transport, scrap structures, or move resources here to counterract this."
 
 class LinkOverburdened(NationsException):
     def __init__(self, action: str, link: "Link"):

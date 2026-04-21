@@ -27,7 +27,7 @@ class NationDict(dict[int, "Nation"]):
             return super().__getitem__(key)
 
 class LinkList(list["Link"]):
-    def find(self, origin: str, destination: str) -> Link:
+    def find(self, origin: str, destination: str) -> "Link":
         """
         Finds the link that connects the provided cities. If there isn't one, returns None.
         """

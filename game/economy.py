@@ -22,7 +22,7 @@ class Econ:
     def calculate_cap(self) -> int:
         cap = 1
         nation = nation_list[self.nationid]
-        for city in nation.cities.values():
+        for city in nation.regions.values():
             authority = nation.authorities[city.authority]
             
             cap += city.tier + 1
@@ -41,16 +41,17 @@ class Econ:
             cap += luxuries
         
         for link in nation.links:
-            if link.origin in nation.cities:
+            # This code was broken in the region rework, fix in the link rework
+            if link.origin in nation.regions:
                 dest_authority = nation.authorities[link.origin.authority]
                 if (dest_authority.authtype == "industrial"):
                     cap += 1
-            elif link.destination in nation.cities:
+            elif link.destination in nation.regions:
                 dest_authority = nation.authorities[link.destination.authority]
                 if (dest_authority.authtype == "industrial"):
                     cap += 1
                     
-            match link.linktype.name:
+            match link.linktype.fname:
                 case "Stone Road":
                     cap += 1
 

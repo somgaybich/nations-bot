@@ -8,13 +8,14 @@ import scripts.errors as errors
 from game.constants import admin_mode
 from game.military import Unit
 from game.nation import Nation
+from game.region import Region
 from game.economy import Econ
 from game.authority import Authority
 from game.resources import Resource
 
 from world.map import Tile, hex_distance
-from world.structures import (LinkType, StructureType, Link, 
-                              Structure, City)
+from world.structures import (LinkType, StructureType, 
+                              Link, Structure, structure_types)
 from world.world import nation_list, tile_list, units, structures, links
 
 # TODO: new_link expects origin and destination to be cities, 
@@ -27,7 +28,7 @@ async def new_authority(default_name: str, owner: int):
     return Authority(owner, default_name)
 
 async def new_link(path: list[Tile], linktype: LinkType, owner: int, 
-                   origin: City, destination: City) -> Link:
+                   origin: Region, destination: Region) -> Link:
     length = len(path)
     inf_cost = math.ceil(linktype.inf_cost * length)
     stone_cost = math.ceil(linktype.resource_cost["stone"] * length)
@@ -112,25 +113,25 @@ async def new_link(path: list[Tile], linktype: LinkType, owner: int,
 
     return new_link
 
-async def new_army(name: str, userid: int, city_name: str) -> Unit:
+async def new_army(name: str, userid: int, region_name: str) -> Unit:
     nation = nation_list[userid]
-    city = nation.cities.get(city_name)
+    region = nation.regions.get(region_name)
     econ = nation.econ
 
-    if city is None:
-        raise errors.DoesNotExist("city", "Army creation", city_name)
+    if region is None:
+        raise errors.DoesNotExist("region", "Army creation", region_name)
     if econ.influence < 1 and not admin_mode:
         return errors.NotEnoughInfluence("Army creation", 1, econ.influence)
     
     base_strength = 1
-    if "Foundry" in city.structure_types():
+    if "Foundry" in region.structure_types():
         base_strength = 1.3
 
     if not admin_mode:
         econ.influence -= 1
-    new_unit = Unit(name=name, type="army", location=city.location, 
+    new_unit = Unit(name=name, type="army", location=region.location, 
                     strength=base_strength, movement_free=3, owner=userid, 
-                    home=city_name)
+                    home=region_name)
     nation.military[name] = new_unit
     units.append(new_unit)
 
@@ -140,26 +141,26 @@ async def new_army(name: str, userid: int, city_name: str) -> Unit:
 
     return new_unit
 
-async def new_fleet(name: str, userid: int, city_name: str) -> Unit:
+async def new_fleet(name: str, userid: int, region_name: str) -> Unit:
     nation = nation_list[userid]
-    city = nation.cities.get(city_name)
+    region = nation.regions.get(region_name)
     econ = nation.econ
 
-    if city is None:
-        raise errors.DoesNotExist("city", "Fleet creation", city_name)
-    if not "Port" in city.structure_types():
+    if region is None:
+        raise errors.DoesNotExist("region", "Fleet creation", region_name)
+    if not "Port" in region.structure_types():
         raise errors.MissingStructure("Fleet creation", "Port")
     if econ.influence < 2 and not admin_mode:
         raise errors.NotEnoughInfluence("Fleet creation", 2, econ.influence)
     
     base_strength = 1
-    if "Foundry" in city.structure_types():
+    if "Foundry" in region.structure_types():
         base_strength = 1.3
     if not admin_mode:
         econ.influence -= 2
-    new_unit = Unit(name=name, type="fleet", location=city.location, 
+    new_unit = Unit(name=name, type="fleet", location=region.location, 
                     strength=base_strength, movement_free=6, owner=userid, 
-                    home=city_name)
+                    home=region_name)
     nation.military[name] = new_unit
     units.append(new_unit)
 
@@ -169,10 +170,10 @@ async def new_fleet(name: str, userid: int, city_name: str) -> Unit:
 
     return new_unit
 
-async def new_city(name: str, location: tuple[int, int], owner: int, 
-                   capital: bool = False) -> City:
+async def new_region(name: str, location: tuple[int, int], owner: int, 
+                     capital: bool = False) -> Region:
     """
-    A helper function for making new cities.
+    A helper function for making new regions.
     """
     nation = nation_list[owner]
     city_tile = tile_list[location]
@@ -206,7 +207,7 @@ async def new_city(name: str, location: tuple[int, int], owner: int,
                 in_range = True
                 break
         if not in_range:
-            for city in nation.cities:
+            for city in nation.regions:
                 if hex_distance(city, city_tile) <= 6:
                     in_range = True
         if not in_range:
@@ -223,18 +224,19 @@ async def new_city(name: str, location: tuple[int, int], owner: int,
         tile_list[claim_location].owner = owner
         await tile_list[claim_location].save()
 
-    new_city = City(terrain=city_tile.terrain, name=name, 
-                    location=location, owner=owner)
-    nation.cities[name] = new_city
-    nation.authorities[nation.name].cities.append(new_city.name)
+    new_region = Region(name=name, location=location, 
+                        owner=owner, is_capital=capital)
+    nation.regions[name] = new_region
 
-    city_tile.structure = new_city
+    city_tile.structure = Structure(structure_type=structure_types["outpost"], 
+                                    location=location, region=name, 
+                                    builder=owner)
 
     await nation.save()
-    await new_city.save()
+    await new_region.save()
     await city_tile.save()
     
-    return new_city
+    return new_region
 
 async def new_nation(name: str, userid: int) -> Nation:
     """
@@ -247,14 +249,10 @@ async def new_nation(name: str, userid: int) -> Nation:
             raise errors.UserHasNation(userid)
     
     econ = Econ(userid)
-    gov_authority = Authority(nationid=userid, name=name, authtype="government", cap=3)
     nation = Nation(
         name=name, 
         userid=userid, 
-        econ=econ,
-        authorities={
-            name: gov_authority
-        })
+        econ=econ)
     nation_list[userid] = nation
     
     await nation.save()
@@ -262,74 +260,74 @@ async def new_nation(name: str, userid: int) -> Nation:
     return nation
 
 async def new_structure(structure_type: StructureType, 
-                        location: tuple[int, int], city_name: str, 
+                        location: tuple[int, int], region_name: str, 
                         builder: int) -> Structure:
     nation = nation_list[builder]
     econ = nation.econ
     tile = tile_list[location]
-    root_city = nation.cities[city_name]
-    root_tile = tile_list[root_city.location]
-    city_structures = root_city.structures()
+    region = nation.regions[region_name]
+    root_tile = tile_list[region.location]
+    region_structures = region.structures()
 
-    if len(city_structures) >= 2 and not root_city.tier >= 2:
-        raise errors.TooManyStructures(f"{structure_type.name} creation", 2)
-    if len(city_structures) >= 3 and not root_city.tier == 4:
-        raise errors.TooManyStructures(f"{structure_type.name} creation", 3)
+    if len(region_structures) >= 2 and not region.tier >= 2:
+        raise errors.TooManyStructures(f"{structure_type.fname} creation", 2)
+    if len(region_structures) >= 3 and not region.tier == 4:
+        raise errors.TooManyStructures(f"{structure_type.fname} creation", 3)
     
     if tile.structure is not None:
-        raise errors.TIleAlreadyHadStructure("Settlement creation", location)
+        raise errors.TIleAlreadyHadStructure("Structure creation", location)
 
-    if (structure_type.resource_cost not in root_city.inventory 
+    if (structure_type.resource_cost not in region.inventory 
         and not admin_mode):
-        raise errors.NotEnoughResources(f"{structure_type.name} creation", 
+        raise errors.NotEnoughResources(f"{structure_type.fname} creation", 
                                         structure_type.resource_cost, 
-                                        root_city.inventory)
+                                        region.inventory)
     if nation.econ.influence < structure_type.inf_cost and not admin_mode:
-        raise errors.NotEnoughInfluence(f"{structure_type.name} creation", 
+        raise errors.NotEnoughInfluence(f"{structure_type.fname} creation", 
                                         structure_type.inf_cost, 
                                         econ.influence)
     
-    if tile not in root_city.developed_area():
-        raise errors.InvalidLocation(f"{structure_type.name} creation", 
-                                     "outide the settlement's range")
+    if tile not in region.tiles:
+        raise errors.InvalidLocation(f"{structure_type.fname} creation", 
+                                     "outide the region")
     
     if "arable" in structure_type.usable_in:
         if not tile.is_arable():
-            raise errors.InvalidLocation(f"{structure_type.name} creation", 
+            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                          "in a non-arable tile")
     if "coastal" in structure_type.usable_in:
         if not tile.is_coastal():
-            raise errors.InvalidLocation(f"{structure_type.name} creation", 
+            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                          "in a non-coastal tile")
     if "non-mountain" in structure_type.usable_in:
         if tile.terrain.biome in ["high_mountains", "mountains"]:
-            raise errors.InvalidLocation(f"{structure_type.name} creation", 
+            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                          "in a mountainous tile")
     if "mountain" in structure_type.usable_in:
         if not tile.terrain.biome in ["high_mountains", "mountains"]:
-            raise errors.InvalidLocation(f"{structure_type.name} creation", 
+            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                          "in a non-mountainous tile")
         
     if not structure_type.tier_req == 0 and not admin_mode:
-        if root_city.tier < structure_type.tier_req:
-            raise errors.CityTierTooLow(f"{structure_type.name} creation", 
-                                        tile.tier, structure_type.tier_req)
+        if region.tier < structure_type.tier_req:
+            raise errors.RegionTierTooLow(f"{structure_type.fname} creation", 
+                                        region.tier, structure_type.tier_req)
 
     if not admin_mode and hex_distance(root_tile, tile) >= 6:
-            raise errors.InvalidLocation("Settlement creation", 
+            raise errors.InvalidLocation("Structure creation", 
                                          "too far from the root settlement")
 
     if structure_type.prereq != '':
-        for city in nation.cities.values():
-            if structure_type.name in city.structure_types():
-                raise errors.TooManyUniqueStructures(structure_type.name)
+        for region in nation.regions.values():
+            if structure_type.fname in region.structure_types():
+                raise errors.TooManyUniqueStructures(structure_type.fname)
 
         # This check must always be last because it has behavior attached!
-        if structure_type.prereq in city_structures:
+        if structure_type.prereq in region_structures:
             for structure in structures:
-                if not structure.root_city == root_city:
+                if not structure.region == region:
                     continue
-                if not structure.structure_type.name == structure_type.prereq:
+                if not structure.structure_type.fname == structure_type.prereq:
                     continue
 
                 target_tile = tile_list[structure.location]
@@ -337,46 +335,46 @@ async def new_structure(structure_type: StructureType,
                 await target_tile.save()
                 break
             else:
-                raise errors.MissingStructure(f"{structure_type.name} creation", 
+                raise errors.MissingStructure(f"{structure_type.fname} creation", 
                                               structure_type.prereq)
         else:
-            raise errors.MissingStructure(f"{structure_type.name} creation", 
+            raise errors.MissingStructure(f"{structure_type.fname} creation", 
                                           structure_type.prereq)
 
     items_consumed: list[Resource] = []
     if not admin_mode:
         for item_name in structure_type.resource_cost:
-            cost_item = root_city.find_resource(item_name)
+            cost_item = region.find_resource(item_name)
             if cost_item is not None:
                 items_consumed.append(cost_item)
         econ.influence -= structure_type.inf_cost
 
-    new_structure = Structure(structure_type, location, city_name, builder)
+    new_structure = Structure(structure_type, location, region_name, builder)
     tile.structure = new_structure
 
     if structure_type.resource_prod != '':
         new_resource = Resource(
             name=structure_type.resource_prod,
             origin=location,
-            located_at=city_name,
+            located_at=region_name,
         )
-        root_city.inventory.append(new_resource)
+        region.inventory.append(new_resource)
 
     for item in items_consumed:
         item.used_in = new_structure
 
-    if "Temple" in structure_type.name:
-        current_stability = nation_list[builder].cities[city_name].stability
-        root_city.stability += min(100, round((current_stability / 20) + 5))
+    if "Temple" in structure_type.fname:
+        current_stability = nation_list[builder].regions[region_name].stability
+        region.stability += min(100, round((current_stability / 20) + 5))
 
     await nation.save()
     await econ.save()
-    await root_city.save()
+    await region.save()
     await tile.save()
 
     return new_structure
 
-def trim_path_to_city(path: list[Link], city: City):
+def trim_path_to_city(path: list[Link], city: Region):
     """
     Removes links so that the path ends at `city`.
     Assumes the path is already valid up to that city.
@@ -418,9 +416,9 @@ async def transfer_resource(origin_name: str, origin_owner: int,
     :type resource_name: str
     """
     origin_nation = nation_list[origin_owner]
-    origin_city = origin_nation.cities[origin_name]
+    origin_city = origin_nation.regions[origin_name]
     destination_nation = nation_list[destination_owner]
-    destination_city = destination_nation.cities[destination_name]
+    destination_city = destination_nation.regions[destination_name]
 
     resource = origin_city.find_resource(resource_name)
     if resource is None:
