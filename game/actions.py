@@ -269,9 +269,9 @@ async def new_structure(structure_type: StructureType,
     root_tile = tile_list[region.location]
     region_structures = region.structures()
 
-    if len(region_structures) >= 2 and not region.tier >= 2:
+    if len(region_structures) >= 2 and not region.city_tier >= 2:
         raise errors.TooManyStructures(f"{structure_type.fname} creation", 2)
-    if len(region_structures) >= 3 and not region.tier == 4:
+    if len(region_structures) >= 3 and not region.city_tier == 4:
         raise errors.TooManyStructures(f"{structure_type.fname} creation", 3)
     
     if tile.structure is not None:
@@ -309,9 +309,9 @@ async def new_structure(structure_type: StructureType,
                                          "in a non-mountainous tile")
         
     if not structure_type.tier_req == 0 and not admin_mode:
-        if region.tier < structure_type.tier_req:
+        if region.city_tier < structure_type.tier_req:
             raise errors.RegionTierTooLow(f"{structure_type.fname} creation", 
-                                        region.tier, structure_type.tier_req)
+                                        region.city_tier, structure_type.tier_req)
 
     if not admin_mode and hex_distance(root_tile, tile) >= 6:
             raise errors.InvalidLocation("Structure creation", 

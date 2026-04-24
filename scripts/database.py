@@ -55,7 +55,7 @@ async def init_db(file: str = "data/nations.db"):
         inventory TEXT,
         authority TEXT,
         capital TEXT,
-        tier INTEGER)
+        city_tier INTEGER)
     """
     )
     logger.debug("Created regions table")
@@ -168,7 +168,7 @@ async def save_region(region: "Region"):
         encoded_inventory.append(item.encode())
     await get_db().execute(
         """
-        INSERT INTO regions (name, x, y, owner, stability, tiles, inventory, authority, capital, tier)
+        INSERT INTO regions (name, x, y, owner, stability, tiles, inventory, authority, capital, city_tier)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(name) DO UPDATE SET
             name = excluded.name,
@@ -176,12 +176,12 @@ async def save_region(region: "Region"):
             tiles = excluded.tiles,
             inventory = excluded.inventory,
             authority = excluded.authority,
-            tier = excluded.tier
+            city_tier = excluded.tier
         """,
         (region.name, region.location[0], region.location[1], region.owner, 
          region.stability, json.dumps(region.tiles), 
          json.dumps(encoded_inventory), region.authority, 
-         json.dumps(region.is_capital), region.tier)
+         json.dumps(region.is_capital), region.city_tier)
     )
 
 async def load_regions_rows():

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class Region():
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
-                 tier: int = 0, stability: int = 80, 
+                 city_tier: int = 0, stability: int = 80, 
                  inventory: list["Resource"] = None, authority: str = None,
                  is_capital: bool = False, 
                  tiles: list[tuple[int, int]] = None):
@@ -21,7 +21,7 @@ class Region():
         # Regional info
         self.owner = owner
         self.is_capital = is_capital # Whether or not this is the capital
-        self.tier = tier
+        self.city_tier = city_tier
         self.stability = stability
         self.tiles = tiles if tiles is not None else [tile.location for tile in tile_list[location].area()]
         self.inventory = inventory if inventory is not None else []
@@ -64,7 +64,7 @@ class Region():
         """
         Returns all tiles in the region's developed area.
         """
-        if self.tier == 4:
+        if self.city_tier == 4:
             return tile_list[self.location].metroarea()
         else:
             return tile_list[self.location].area()
