@@ -12,20 +12,18 @@ if TYPE_CHECKING:
     from game.economy import Econ
     from game.authority import Authority
     from game.region import Region
-    from world.structures import Link
 
 class Nation:
     """
     The top object in the hierarchy.
     """
     def __init__(self, name: str, userid: int, econ: "Econ", regions={}, 
-                 links=[], military={}, espionage=[], dossier={}, allies=[], 
+                 military={}, espionage=[], dossier={}, allies=[], 
                  authorities={}, color=Color.random()):
         self.name: str = name
         self.userid: int = userid
         self.econ: "Econ" = econ
         self.regions: dict[str, "Region"] = regions
-        self.links: list["Link"] = links
         self.military: dict[str, "Unit"] = military
         self.espionage: list["Espionage"] = espionage
         self.dossier: dict = dossier

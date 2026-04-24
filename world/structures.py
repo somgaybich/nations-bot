@@ -20,53 +20,13 @@ class StructureType:
         self.tier_req = tier_req # The city tier that the structure needs
         self.resource_prod = resource_prod # Resource produced when built
 
-class LinkType:
-    def __init__(self, oceanic: str, inf_cost: int, 
-                 resource_cost: dict[str, int], tier: int, fname: str, name: str):
-        self.oceanic = oceanic
-        self.inf_cost = inf_cost
-        self.resource_cost = resource_cost
-        self.tier = tier
-        self.fname = fname
-        self.name = name
-
 class Structure:
-    def __init__(self, structure_type: StructureType | LinkType, 
+    def __init__(self, structure_type: StructureType, 
                  location: tuple[int, int], region: str, builder: int):
         self.structure_type = structure_type
         self.location = location
         self.region = region
         self.builder = builder # Nid of nation that built it
-
-class Link:
-    """
-    A generalized class for infrastructure connections.
-    
-    :var linktype: A LinkType object.
-    :var origin: The name of the city the link starts in. 
-    :var destination: The name of the city the link ends in.
-    :var path: The list of locations which make up this link.
-    :var owner: The userid of the nation which owns this link.
-    """
-    def __init__(self, linktype: LinkType, origin: Structure, destination: Structure, 
-                 path: list[tuple[int, int]], owner: int, 
-                 transferred: int = 0, link_id = None):
-        self.origin = origin
-        self.destination = destination
-        self.path = path
-        self.owner = owner
-        self.linktype = linktype
-        self.transferred = transferred
-        self.link_id = link_id
-    
-    async def save(self):
-        await db.save_link(self)
-
-    def encode(self):
-        """
-        Returns a JSON-serializable tuple of info that can be used to identify this link at load.
-        """
-        return (self.origin.name, self.destination.name, self.owner)
 
 structure_types = {
     # Dummy types
@@ -206,35 +166,4 @@ structure_types = {
         fname="Mine",
         name="mine",
         resource_prod="fuel")
-}
-
-link_types = {
-    "stone_road": LinkType(
-        oceanic=False, 
-        inf_cost=0.5, 
-        resource_cost={"stone": 0.2, "metal": 0}, 
-        fname="Stone Road",
-        name="stone_road",
-        tier=1),
-    "simple_rail": LinkType(
-        oceanic=False,
-        inf_cost=1,
-        resource_cost={"stone": 0, "metal": (1/3)},
-        fname="Simple Rail",
-        name="simple_rail",
-        tier=2),
-    "quality_rail": LinkType(
-        oceanic=False,
-        inf_cost=2,
-        resource_cost={"stone": 0, "metal": 0.5},
-        fname="Quality Rail",
-        name="quality_rail",
-        tier=3),
-    "sea": LinkType(
-        oceanic=True,
-        inf_cost=0.2,
-        resource_cost={"stone": 0, "metal": 0},
-        fname="Sea Route",
-        name="sea",
-        tier=2)
 }

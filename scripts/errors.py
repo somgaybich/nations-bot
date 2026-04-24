@@ -113,8 +113,3 @@ class ResourcesDeployed(NationsException):
     def __init__(self, action: str, resource: str):
         super().__init__(f"{action} failed: '{resource}' was in use")
         self.user_message = f"You don't have enough resources! {resource.capitalize()} is being consumed somewhere, so its source cannot change production types. You'll have to cancel transport, scrap structures, or move resources here to counterract this."
-
-class LinkOverburdened(NationsException):
-    def __init__(self, action: str, link: "Link"):
-        super().__init__(f"{action} failed: link from {link.origin.name} to {link.destination.name} is overburdened")
-        self.user_message = f"The link from {link.origin.name} to {link.destination.name} is already moving as many resources as it can!"

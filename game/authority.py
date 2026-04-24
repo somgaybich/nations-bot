@@ -1,15 +1,11 @@
 import logging
-from typing import TYPE_CHECKING
 import random
 
 logger = logging.getLogger(__name__)
 
-from game.constants import authority_cap_modifiers, authority_settings
+from game.constants import authority_cap_modifiers
 
 import scripts.database as db
-
-if TYPE_CHECKING:
-    from game.region import Region
 
 # Authority concepts:
 # Militaristic - Effectiveness bonus for units from and in administered area / lower base stability

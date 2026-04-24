@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from world.structures import Structure, Link
+    from world.structures import Structure
 
-from game.constants import arable_biomes, dry_biomes, link_difficulties
+from game.constants import arable_biomes, dry_biomes
 
 import scripts.database as db
 
@@ -29,19 +29,15 @@ class Terrain:
 class Tile:
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
                  owner: int = None, owned: bool = False, 
-                 structure: "Structure" = None, 
-                 link_structures: list["Link"] = None):
+                 structure: "Structure" = None):
         self.terrain = terrain
         self.location = location
         self.owned = owned
         self.owner = owner
         self.structure = structure if structure is not None else {}
-        self.link_structures = (link_structures if link_structures is not None 
-                                else [])
 
-        # The smallest link difficulty will become the tile difficulty, without one the terrain difficulty is used
-        values = (link_difficulties.get(link.linktype.fname) for link in link_structures)
-        self.difficulty = min(values, default=self.terrain.difficulty)
+        # tile difficulty adjustment based on region infrastructure level?
+        self.difficulty = self.terrain.difficulty
 
     async def save(self):
         await db.save_tile(self)

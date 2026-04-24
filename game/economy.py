@@ -40,55 +40,6 @@ class Econ:
                 luxuries -= 2
             cap += luxuries
         
-        for link in nation.links:
-            # This code was broken in the region rework, fix in the link rework
-            if link.origin in nation.regions:
-                dest_authority = nation.authorities[link.origin.authority]
-                if (dest_authority.authtype == "industrial"):
-                    cap += 1
-            elif link.destination in nation.regions:
-                dest_authority = nation.authorities[link.destination.authority]
-                if (dest_authority.authtype == "industrial"):
-                    cap += 1
-                    
-            match link.linktype.fname:
-                case "Stone Road":
-                    cap += 1
-
-                case "Simple Rail":
-                    if "Central Station" in link.origin.structure_types():
-                        cap += 2
-                    elif "Station" in link.origin.structure_types():
-                        cap += 1
-
-                    if "Central Station" in link.destination.structure_types():
-                        cap += 2
-                    elif "Station" in link.destination.structure_types():
-                        cap += 1
-
-                    cap += 3
-
-                case "Simple Rail":
-                    if "Central Station" in link.origin.structure_types():
-                        cap += 2
-                    elif "Station" in link.origin.structure_types():
-                        cap += 1
-
-                    if "Central Station" in link.destination.structure_types():
-                        cap += 2
-                    elif "Station" in link.destination.structure_types():
-                        cap += 1
-
-                    cap += 5
-
-                case "Sea Route":
-                    if ("Port" in link.origin.structure_types() 
-                        and "Port" in link.destination.structure_types()):
-                        cap += 4
-                    elif ("Port" in link.origin.structure_types() 
-                        or "Port" in link.destination.structure_types()):
-                        cap += 2
-                    
-                    cap += 3
+        # TODO: Consider infrastructure quality?
 
         return cap

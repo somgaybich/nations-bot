@@ -81,16 +81,11 @@ async def load(map_only: bool = False):
         decoded_inventory = []
         inventory_data = json.loads(row['inventory'])
         for item_data in inventory_data:
-            origin = ast.literal_eval(item_data['origin'])
-            encoded_path = ast.literal_eval(item_data['path'])
-
             decoded_item = Resource(
                 name=item_data['name'],
                 origin=ast.literal_eval(item_data['origin']),
                 located_at=item_data['located_at'],
-                # We keep the path encoded for now
-                # The links don't exist yet to actually bind them
-                path=encoded_path
+                path=ast.literal_eval(item_data['path'])
             )
 
             decoded_inventory.append(decoded_item)
@@ -136,40 +131,6 @@ async def load(map_only: bool = False):
         )
         units.append(unit)
         nation_list[row["owner"]].military[row["name"]] = unit
-
-    links_data = await db.load_links_rows()
-    for row in links_data:
-        origin = None
-        destination = None
-        for tile in tile_list:
-            # This check doesn't work, but I'm about to redo all logic involving links anyway so idrc
-            if isinstance(tile, Region):
-                if tile.name == row["origin"]:
-                    origin = tile
-                elif tile.name == row["destination"]:
-                    destination = tile
-
-        link = Link(
-            linktype=row["linktype"],
-            origin=origin,
-            destination=destination,
-            path=json.loads(row["path"]),
-            owner=row["owner"],
-            link_id=row["id"],
-            transferred=row['resources_transferred'])
-        
-        links.append(link)
-        nation_list[link.owner].links.append(link)
-
-        for region in nation_list[link.owner].regions.values():
-            for item in region.inventory:
-                for encoded_link in item.path:
-                    if encoded_link == link.encode():
-                        item.path[item.path.index(encoded_link)] = link
-                
-                for link in item.path:
-                    if not isinstance(link, Link):
-                        logger.warning(f"{link} was not properly decoded!")
 
     logger.info("Loaded game data")
     logger.debug(nation_list)

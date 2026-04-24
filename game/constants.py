@@ -75,11 +75,5 @@ arable_biomes = ["monsoon", "savanna", "humid_subtropical", "mediterranean",
                  "humid_continental", "subarctic_continental"]
 dry_biomes = ["hot_steppe", "hot_desert", "cold_steppe", "cold_desert"]
 
-link_difficulties = {
-    "Quality Rail": 0.25,
-    "Simple Rail": 0.5,
-    "Sea Route": 0.10
-}
-
 OPGUILD_ID = 1458983179099832472
 LOGGING_CHANNEL_ID = 123456789012345678

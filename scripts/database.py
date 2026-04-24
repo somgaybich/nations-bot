@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from game.military import Unit
     from game.region import Region
     from world.map import Tile
-    from world.structures import Structure, Link
+    from world.structures import Structure
 
 logger = logging.getLogger(__name__)
 
@@ -90,19 +90,6 @@ async def init_db(file: str = "data/nations.db"):
         PRIMARY KEY (x, y))
     """)
     logger.debug("Created tiles table")
-
-    await _db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS links (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        linktype TEXT NOT NULL,
-        origin TEXT NOT NULL,
-        destination TEXT NOT NULL,
-        path TEXT NOT NULL,
-        resources_transferred INTEGER NOT NULL,
-        owner INTEGER NOT NULL)
-    """)
-    logger.debug("Created links table")
         
     await _db.execute(
         """
@@ -297,21 +284,6 @@ async def load_authorities_rows():
 
 # ---------------
 
-def encode_link_structures(link_structure_list: list["Structure"]) -> list:
-    if link_structure_list == []:
-        return []
-    
-    encoded_link_structure_list = []
-    for link_structure in link_structure_list:
-        encoded_link_structure_list.append({
-            "structure_type": link_structure.structure_type.name,
-            "x": link_structure.location[0],
-            "y": link_structure.location[1],
-            "region": link_structure.region,
-            "builder": link_structure.builder
-        })
-    return encoded_link_structure_list
-
 def encode_structure(structure: "Structure") -> dict:
     return {
         "structure_type": structure.structure_type.name,
@@ -327,20 +299,17 @@ async def save_tile(tile: "Tile"):
     await get_db().execute(
         """
         INSERT INTO tiles (
-        x, y, terrain, owner, owned, structure, link_structures
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        x, y, terrain, owner, owned, structure)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,
             owned = excluded.owned,
-            structure = excluded.structure,
-            link_structures = excluded.link_structures
+            structure = excluded.structure
         """,
         (
             x, y, tile.terrain.data(), tile.owner, tile.owned, 
-            json.dumps(encode_structure(tile.structure)),
-            json.dumps(encode_link_structures(tile.link_structures))
+            json.dumps(encode_structure(tile.structure))
         )
     )
 
@@ -350,36 +319,6 @@ async def save_tiles(iterable_tiles):
 
 async def load_tiles_rows():
     async with get_db().execute("SELECT * FROM tiles") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
-async def save_link(link: "Link"):
-    logger.debug(f"Saving link at {link.link_id}")
-    if link.link_id is None:
-        async with get_db().execute(
-            """
-            INSERT INTO links (linktype, origin, destination, path, owner, resources_transferred)
-            VALUES (?, ?, ?, ?, ? ?)
-            """,
-            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner, link.transferred)
-        ) as cursor:
-            link.link_id = cursor.lastrowid
-    else:
-        await get_db().execute(
-            """
-            UPDATE linktype = ?, origin = ?, destination = ?, path = ?, owner = ?
-            WHERE id = ?
-            """,
-            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner, link.link_id)
-        )
-
-async def delete_link(link: "Link"):
-    if link.link_id is not None:
-        await get_db().execute("DELETE FROM links WHERE id = ?", (link.link_id,))
-
-async def load_links_rows():
-    async with get_db().execute("SELECT * FROM links") as cursor:
         return await cursor.fetchall()
 
 # ---------------

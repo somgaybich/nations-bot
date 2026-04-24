@@ -5,8 +5,7 @@ import scripts.database as db
 import scripts.errors as errors
 
 from game.constants import (combat_settings, authority_settings, 
-                            current_season, city_types)
-from game.region import Region
+                            current_season)
 
 from world.map import Tile, move_in_direction
 from world.world import nation_list, tile_list

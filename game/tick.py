@@ -12,16 +12,7 @@ async def tick():
         for region in nation.regions.values():
             region.city_tier = region.calculate_tier()
 
-            authority = nation.authorities[region.authority]
-            cap_gap = authority.cap - len(authority.cities)
-            if cap_gap < 0:
-                region.stability += cap_gap * authority_settings["over_cap_stability_loss"]
-            match authority.authtype:
-                case "oligarchic":
-                    stability_change = authority_settings["auth_stability_decay"] * (authority_settings["max_auth_stability_loss"] - (region.city_tier * authority_settings["oligarchy_stability_loss_factor"]))
-                case "militaristic":
-                    stability_change = authority_settings["auth_stability_decay"] * authority_settings["max_auth_stability_loss"]
-            region.stability -= stability_change
+            # TODO: Authority cooperation calculations
 
             await region.save()
 
