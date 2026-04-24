@@ -27,6 +27,18 @@ class NationDict(dict[int, "Nation"]):
             return super().__getitem__(key)
 
 tile_list: TileDict = TileDict()
+"""
+A dictionary mapping locations to Tile objects.
+"""
 units: list["Unit"] = []
+"""
+A list of every unit, so they can easily be searched.
+"""
 structures: list["Structure"] = []
+"""
+A list of every structure, so they can easily be searched.
+"""
 nation_list: NationDict = NationDict()
+"""
+A dictionary mapping NIDs to Nation objects.
+"""

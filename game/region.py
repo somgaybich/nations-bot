@@ -10,17 +10,78 @@ if TYPE_CHECKING:
     from world.structures import Structure, StructureType
 
 class Region():
+    """
+    A region including a central ctiy and a mutable group of tiles around it.
+    Effectively the true unit of land.
+    """
+    name: str
+    """
+    The name of the central city of the region, and also the region itself.
+    """
+    location: tuple[int, int]
+    """
+    The location of this region's central city.
+    """
+    owner: int
+    """
+    The NID of the nation that controls this region.
+    """
+    city_tier: int
+    """
+    The tier of this region's central city.
+    """
+    stability: int
+    """
+    (Soon to be deprecated) The stability of this region.
+    """
+    inventory: list["Resource"]
+    """
+    The resources available to this region.
+    """
+    authority: str
+    """
+    The name of the authority that controls this region.
+    """
+    is_capital: bool
+    """
+    Whether this region is the capital of its nation.
+    """
+    tiles: list[tuple[int, int]]
+    """
+    The list of tile coordinates that belong to this region.
+    """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
                  city_tier: int = 0, stability: int = 80, 
                  inventory: list["Resource"] = None, authority: str = None,
                  is_capital: bool = False, 
                  tiles: list[tuple[int, int]] = None):
-        # Center city info
-        self.name = name # MUST BE UNIQUE (not currently checked)
+        """
+        :param name: The name of the central city of the region, and also the 
+            region itself.
+        :param location: The location of this region's central city.
+        :param owner: The NID of the nation that controls this region.
+        :param city_tier: The tier of this region's central city. Starts at 0
+            and ticks upward to 4.
+        :param stability: (Soon to be deprecated) The stability of this region.
+            Defaults to 80, on a scale from 0-100.
+        :param inventory: The resources available to this region.
+        :param authority: The name of the authority that controls this region.
+        :param is_capital: Whether this region is the capital of its nation.
+        :param tiles: The list of tile coordinates that belong to this region.
+        :type name: str
+        :type location: tuple[int, int]
+        :type owner: int
+        :type city_tier: int
+        :type stability: int
+        :type inventory: list[Resource]
+        :type authority: str
+        :type is_capital: bool
+        :type tiles: list[tuple[int, int]]
+        """
+        self.name = name
         self.location = location
-        # Regional info
         self.owner = owner
-        self.is_capital = is_capital # Whether or not this is the capital
+        self.is_capital = is_capital
         self.city_tier = city_tier
         self.stability = stability
         self.tiles = tiles if tiles is not None else [tile.location for tile in tile_list[location].area()]
@@ -29,30 +90,48 @@ class Region():
                           else nation_list[owner].name)
 
     async def save(self):
+        """
+        Saves this region to the database.
+        """
         await db.save_region(self)
 
     def find_resource(self, resource_name: str) -> "Resource":
         """
-        Returns an available resource in the region's inventory.
-        If there's no matching resource, returns None.
+        Returns an available resource of the specified name in the region's 
+        raw inventory. If there is no matching resource, returns None.
+        
+        :param resource_name: The name of the resource to search for. Is
+            subtype sensitive if a subtype name is provided, i.e. 
+            Region.find_resource("food") will return a "food_meat" item but 
+            Region.find_resource("food_grain") will not.
         """
+        if "_" in resource_name:
+            # This query specifies a subtype 
+            for item in self.inventory:
+                if (item.name == resource_name and item.used_in is None):
+                    return item
+            else:
+                # We couldn't find that resource
+                return None
+
         for item in self.inventory:
             if (item.name == resource_name
                 and item.used_in is None):
                 return item
-        
-        # We weren't able to find a matching resource
-        return None
+        else:
+            # We couldn't find that resource
+            return None
 
     def raw_inventory(self) -> list[str]:
         """
-        Returns the list of names of resources in a region.
+        Returns the list of names of resources in a region. Cleaves subtype 
+        specifiers.
         """
         return [item.name.split("_")[0] for item in self.inventory]
 
     def luxury_count(self) -> int:
         """
-        Returns the number of unique luxuries in the region's inventory.
+        Returns the number of unique luxury types in the region's inventory.
         """
         luxuries = []
         for item in self.inventory:
@@ -62,7 +141,8 @@ class Region():
 
     def developed_area(self) -> list["Tile"]:
         """
-        Returns all tiles in the region's developed area.
+        Returns all tiles in the region's developed area, the area around the
+        city where urban structures can be built.
         """
         if self.city_tier == 4:
             return tile_list[self.location].metroarea()
@@ -81,22 +161,26 @@ class Region():
 
     def structure_types(self) -> list["StructureType"]:
         """
-        Returns a list of every structure type bound to this region.
-        Does not include duplicates.
+        Returns a list of every unique structure type bound to this region.
         """
         return list(set([structure.structure_type.fname 
                          for structure in self.structures()]))
 
     def has_resource(self, resource: str) -> bool:
         """
-        Returns true if this region has a resource with name 'resource.'
-        Will not differentiate between subtypes.
+        Returns true if this region has a resource with the specified name. Is
+        subtype sensitive only if a subtype specifier is used.
         """
-        return resource in self.raw_inventory()
+        if "_" in resource:
+            # This query specifies a subtype
+            return resource in [resource.name for resource in self.inventory]
+        else:
+            return resource in self.raw_inventory()
 
     def calculate_tier(self) -> int:
         """
-        Used to calculate the new tier of a region after each season.
+        Used to calculate the new tier of a region after each season. Does not
+        bind or save the new value.
         """ 
         raw_inventory = self.raw_inventory()
         

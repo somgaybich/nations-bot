@@ -84,7 +84,6 @@ async def init_db(file: str = "data/nations.db"):
         y INTEGER NOT NULL,
         terrain TEXT NOT NULL,
         owner INTEGER,
-        owned BOOLEAN,
         structure TEXT,
         link_structures TEXT,
         PRIMARY KEY (x, y))
@@ -243,16 +242,14 @@ async def save_authority(authority: "Authority"):
         async with get_db().execute(
             """
             INSERT INTO authorities (
-                name, nationid, authtype, cap,
-                region
+                name, nationid, authtype, region
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?)
             """,
             (
                 authority.name,
                 authority.nationid,
                 authority.authtype,
-                authority.cap,
                 authority.region
             )
         ) as cursor: 
@@ -261,14 +258,13 @@ async def save_authority(authority: "Authority"):
         await get_db().execute(
             """
             UPDATE authorities
-            SET name = ?, nationid = ?, authtype = ?, cap = ?, region = ?
+            SET name = ?, nationid = ?, authtype = ?, region = ?
             WHERE id = ?
             """,
             (
                 authority.name,
                 authority.nationid,
                 authority.authtype,
-                authority.cap,
                 authority.region,
                 authority.id
             )
@@ -290,7 +286,7 @@ def encode_structure(structure: "Structure") -> dict:
         "x": structure.location[0],
         "y": structure.location[1],
         "region": structure.region,
-        "builder": structure.builder
+        "builder": structure.owner
     }
 
 async def save_tile(tile: "Tile"):
@@ -299,16 +295,15 @@ async def save_tile(tile: "Tile"):
     await get_db().execute(
         """
         INSERT INTO tiles (
-        x, y, terrain, owner, owned, structure)
+        x, y, terrain, owner, structure)
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,
-            owned = excluded.owned,
             structure = excluded.structure
         """,
         (
-            x, y, tile.terrain.data(), tile.owner, tile.owned, 
+            x, y, tile.terrain.data(), tile.owner,  
             json.dumps(encode_structure(tile.structure))
         )
     )

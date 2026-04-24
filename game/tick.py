@@ -6,6 +6,9 @@ from game.constants import authority_settings, update_season
 logger = logging.getLogger(__name__)
 
 async def tick():
+    """
+    Processes a tick of the game system.
+    """
     logger.info("Processing game tick...")
     for nation in nation_list.values():
         logger.debug(f"Processing tick for {nation.name}")

@@ -22,6 +22,7 @@ async def load(map_only: bool = False):
     Reloads all game state data and reinstantiates from the database. Use will instantly clear any runtime data not protected by a save.
 
     :param map_only: Whether to only load the tile data from the database. Will ignore all other game data.
+    :type map_only: bool
     """
     logger.warning("Clearing nation data")
     nation_list.clear()
@@ -37,7 +38,7 @@ async def load(map_only: bool = False):
                 structure_type=structure_types[structure_data['structure_type']],
                 location=(structure_data['x'], structure_data['y']),
                 region=structure_data['region'],
-                builder=structure_data['builder']
+                owner=structure_data['builder']
             )
 
         link_structures = []
@@ -48,14 +49,13 @@ async def load(map_only: bool = False):
                     structure_type=link_structure['structure_type'],
                     location=(link_structure['x'], link_structure['y']),
                     region=link_structure['region'],
-                    builder=link_structure['builder']
+                    owner=link_structure['builder']
                 ))
 
         tile = Tile(
             terrain=Terrain(*json.loads(row["terrain"])),
             location=(row["x"], row["y"]),
             owner=row["owner"],
-            owned=row["owned"],
             structure=structure,
             link_structures=link_structures
         )
@@ -127,7 +127,7 @@ async def load(map_only: bool = False):
             exp=row["exp"],
             movement_free=row["movement_free"],
             owner=row["owner"],
-            unit_id=row["id"],
+            id=row["id"],
         )
         units.append(unit)
         nation_list[row["owner"]].military[row["name"]] = unit

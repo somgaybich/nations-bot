@@ -75,5 +75,8 @@ arable_biomes = ["monsoon", "savanna", "humid_subtropical", "mediterranean",
                  "humid_continental", "subarctic_continental"]
 dry_biomes = ["hot_steppe", "hot_desert", "cold_steppe", "cold_desert"]
 
+backup_msg = """There was a problem processing that request! Ping @madaman and 
+                she will take care of it as soon as possible."""
+
 OPGUILD_ID = 1458983179099832472
 LOGGING_CHANNEL_ID = 123456789012345678

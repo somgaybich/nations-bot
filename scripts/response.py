@@ -1,12 +1,13 @@
 from discord import Interaction, Embed, Webhook
 import logging
 
-from game.constants import brand_color, LOGGING_CHANNEL_ID
+from game.constants import brand_color, LOGGING_CHANNEL_ID, backup_msg
 from scripts.botlib import bot
 
 logger = logging.getLogger(__name__)
 
-async def followup_response(followup: Webhook, title: str, message: str, ephemeral=False, footer=None, view=None):
+async def followup_response(followup: Webhook, title: str, message: str, 
+                            ephemeral=False, footer=None, view=None):
     """
     Sends a followup message through the given webhook in the standard format.
     """
@@ -27,7 +28,9 @@ async def followup_response(followup: Webhook, title: str, message: str, ephemer
         logger.error(f"Failed to send response message: {e}")
         raise
 
-async def interaction_response(interaction: Interaction, title: str, message: str, ephemeral=False, footer=None, view=None):
+async def interaction_response(interaction: Interaction, title: str, 
+                               message: str, ephemeral=False, footer=None, 
+                               view=None):
     """
     Sends a message responding to the given interaction in the standard format.
     """
@@ -42,9 +45,11 @@ async def interaction_response(interaction: Interaction, title: str, message: st
             embed.set_footer(footer)
         
         if view is not None:
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=ephemeral)
+            await interaction.response.send_message(embed=embed, view=view, 
+                                                    ephemeral=ephemeral)
         else:
-            await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+            await interaction.response.send_message(embed=embed, 
+                                                    ephemeral=ephemeral)
 
     except Exception as e:
         logger.error(f"Failed to send response message: {e}")
@@ -52,14 +57,15 @@ async def interaction_response(interaction: Interaction, title: str, message: st
 
 async def followup_error(followup: Webhook, message = ""):
     """
-    Used to report errors in followup responses. A message can be optionally attached if the nature of the error is known.
-    Because followups can only send a new message, the original should be deleted.
+    Used to report errors in followup responses. A message can be optionally 
+    attached if the nature of the error is known. Because followups can only 
+    send a new message, the original should be deleted.
     """
     try:
         await followup.send(embed=Embed(
             color=brand_color,
             title="Oops!",
-            description=message if message != "" else "There was a problem processing that command! Ping @madaman and she will take care of it as soon as possible."
+            description=message if message != "" else backup_msg
         ), ephemeral=True)
     except Exception as e:
         logger.error(f"Failed to send error message: {e}")
@@ -67,13 +73,14 @@ async def followup_error(followup: Webhook, message = ""):
 
 async def interacton_error(interaction: Interaction, message = ""):
     """
-    Used to report general errors. A message can be optionally attached if the nature of the error is known.
+    Used to report general errors. A message can be optionally attached if the 
+    nature of the error is known.
     """
     try:
         await interaction.response.send_message(embed=Embed(
             color=brand_color,
             title="Oops!",
-            description=message if message != "" else "There was a problem processing your request! Ping @madaman and she will take care of it as soon as possible."
+            description=message if message != "" else backup_msg
         ), ephemeral=True)
     except Exception as e:
         logger.error(f"Failed to send error message: {e}")

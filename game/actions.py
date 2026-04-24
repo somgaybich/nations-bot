@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 import scripts.errors as errors
 
-from game.constants import admin_mode
+from game.constants import admin_mode, city_types
 from game.military import Unit
 from game.nation import Nation
 from game.region import Region
@@ -20,11 +20,26 @@ from world.world import nation_list, tile_list, units, structures
 async def new_authority(default_name: str, owner: int):
     """
     Creates, but does NOT bind or save the authority; these should be done AFTER selection or generation
+
+    :param default_name: The original name of the authority.
+    :param owner: The NID of the nation the authority is in.
+    :type default_name: str
+    :type owner: int
     """
     return Authority(owner, default_name)
 
-async def new_army(name: str, userid: int, region_name: str) -> Unit:
-    nation = nation_list[userid]
+async def new_army(name: str, owner: int, region_name: str) -> Unit:
+    """
+    Creates a new army in a specified city.
+
+    :param name: The name of the unit.
+    :param owner: The NID of the nation that owns the unit.
+    :param region_name: The region/city to train the unit in. 
+    :type name: str
+    :type owner: int
+    :type region_name: str
+    """
+    nation = nation_list[owner]
     region = nation.regions.get(region_name)
     econ = nation.econ
 
@@ -40,7 +55,7 @@ async def new_army(name: str, userid: int, region_name: str) -> Unit:
     if not admin_mode:
         econ.influence -= 1
     new_unit = Unit(name=name, type="army", location=region.location, 
-                    strength=base_strength, movement_free=3, owner=userid, 
+                    strength=base_strength, movement_free=3, owner=owner, 
                     home=region_name)
     nation.military[name] = new_unit
     units.append(new_unit)
@@ -52,6 +67,16 @@ async def new_army(name: str, userid: int, region_name: str) -> Unit:
     return new_unit
 
 async def new_fleet(name: str, userid: int, region_name: str) -> Unit:
+    """
+    Creates a new fleet in a specified city.
+
+    :param name: The name of the new fleet.
+    :param userid: The NID of the nation that will own the fleet.
+    :param region_name: The city/region to create the fleet in.
+    :type name: str
+    :type userid: int
+    :type region_name: str
+    """
     nation = nation_list[userid]
     region = nation.regions.get(region_name)
     econ = nation.econ
@@ -83,7 +108,16 @@ async def new_fleet(name: str, userid: int, region_name: str) -> Unit:
 async def new_region(name: str, location: tuple[int, int], owner: int, 
                      capital: bool = False) -> Region:
     """
-    A helper function for making new regions.
+    Makes a new region at a specified location.
+
+    :param name: The name of the new city/region.
+    :param location: The location to put the new center city.
+    :param owner: The NID of the nation that will own the region.
+    :param capital: Whether this region is the nation's capital.
+    :type name: str
+    :type location: tuple[int, int]
+    :type owner: int
+    :type capital: bool
     """
     nation = nation_list[owner]
     city_tile = tile_list[location]
@@ -140,7 +174,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
 
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
-                                    builder=owner)
+                                    owner=owner)
 
     await nation.save()
     await new_region.save()
@@ -150,7 +184,12 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
 
 async def new_nation(name: str, userid: int) -> Nation:
     """
-    A helper function to create new nations.
+    Creates a new nation.
+
+    :param name: The name of the new nation.
+    :param userid: The NID to assign the nation.
+    :type name: str
+    :type userid: int
     """
     for existing_nation in nation_list.values():
         if existing_nation.name == name:
@@ -171,8 +210,20 @@ async def new_nation(name: str, userid: int) -> Nation:
 
 async def new_structure(structure_type: StructureType, 
                         location: tuple[int, int], region_name: str, 
-                        builder: int) -> Structure:
-    nation = nation_list[builder]
+                        owner: int) -> Structure:
+    """
+    Creates a new structure of a specified type in a specified tile.
+    
+    :param structure_type: The StructureType to give the structure.
+    :param location: The tile to put the structure in.
+    :param region_name: The region the structure will belong to. (Might be unnecessary?)
+    :param owner: The NID of the nation that will own the structure.
+    :type structure_type: StructureType
+    :type location: tuple[int, int]
+    :type region_name: str
+    :type owner: int
+    """
+    nation = nation_list[owner]
     econ = nation.econ
     tile = tile_list[location]
     region = nation.regions[region_name]
@@ -217,7 +268,17 @@ async def new_structure(structure_type: StructureType,
         if not tile.terrain.biome in ["high_mountains", "mountains"]:
             raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                          "in a non-mountainous tile")
+    if "city" in structure_type.usable_in:
+        urban = False
+        if tile in root_tile.area():
+            urban = True
+        elif tile in root_tile.metroarea() and region.city_tier >= 3:
+            urban = True
         
+        if not urban:
+            raise errors.InvalidLocation(f"{structure_type} creation",
+                                         "in a non-urban tile")
+
     if not structure_type.tier_req == 0 and not admin_mode:
         if region.city_tier < structure_type.tier_req:
             raise errors.RegionTierTooLow(f"{structure_type.fname} creation", 
@@ -259,7 +320,7 @@ async def new_structure(structure_type: StructureType,
                 items_consumed.append(cost_item)
         econ.influence -= structure_type.inf_cost
 
-    new_structure = Structure(structure_type, location, region_name, builder)
+    new_structure = Structure(structure_type, location, region_name, owner)
     tile.structure = new_structure
 
     if structure_type.resource_prod != '':
@@ -274,7 +335,7 @@ async def new_structure(structure_type: StructureType,
         item.used_in = new_structure
 
     if "Temple" in structure_type.fname:
-        current_stability = nation_list[builder].regions[region_name].stability
+        current_stability = nation_list[owner].regions[region_name].stability
         region.stability += min(100, round((current_stability / 20) + 5))
 
     await nation.save()

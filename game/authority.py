@@ -15,10 +15,47 @@ import scripts.database as db
 
 class Authority:
     """
-    A body that controls city administration.
+    A body that controls region administration.
     """
+    nationid: int
+    """
+    The NID of the parent nation.
+    """
+    name: str
+    """
+    The name of this authority.
+    """
+    authtype: str
+    """
+    The type of this authority. See comments above the class definition for 
+    valid values.
+    """
+    region: str
+    """
+    The name of the region this authority controls.
+    """
+    id: int
+    """
+    The database ID of the region. Generally shouldn't be touched, use the name 
+    as an identifier instead.
+    """
+
     def __init__(self, nationid: int, name: str, authtype: str = None, 
-                 cap: int = 0, region: str = None, id=int):
+                 region: str = None, id: int | None = None):
+        """
+        :param nationid: The NID of the parent nation.
+        :param name: The name of this authority.
+        :param authtype: The type of this authority. See comments above the 
+            class definition for valid values.
+        :param region: The name of the region this authority controls.
+        :param id: The database ID of the region. Do not assign for new
+            authorities, as this is handled by SQLite.
+        :type nationid: int
+        :type name: str
+        :type authtype: str
+        :type region: str
+        :type id: int
+        """
         self.nationid = nationid
         self.name = name
         self.region = region
@@ -28,15 +65,11 @@ class Authority:
             self.authtype = random.choice(authority_cap_modifiers.keys())
         else:
             self.authtype = authtype
-
-        if cap == 0:
-            random_cap = random.randint(1, 5)
-            modded_cap = random_cap + authority_cap_modifiers[self.authtype]
-            self.cap = max(1, modded_cap)
-        else:
-            self.cap = cap
     
     async def save(self):
+        """
+        Saves this authority to the database.
+        """
         await db.save_authority(self)
     
     def __str__(self):
