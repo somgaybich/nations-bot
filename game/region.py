@@ -95,32 +95,31 @@ class Region():
         """
         await db.save_region(self)
 
-    def find_resource(self, resource_name: str) -> "Resource":
+    def find_resources(self, resource_name: str) -> list["Resource"]:
         """
-        Returns an available resource of the specified name in the region's 
-        raw inventory. If there is no matching resource, returns None.
+        Returns a list of all unused instances of a specified resource type in 
+        the region's raw inventory. If there is no matching resource, returns 
+        an empty list.
         
         :param resource_name: The name of the resource to search for. Is
             subtype sensitive if a subtype name is provided, i.e. 
             Region.find_resource("food") will return a "food_meat" item but 
             Region.find_resource("food_grain") will not.
         """
+        results = set()
         if "_" in resource_name:
             # This query specifies a subtype 
             for item in self.inventory:
-                if (item.name == resource_name and item.used_in is None):
-                    return item
-            else:
-                # We couldn't find that resource
-                return None
-
-        for item in self.inventory:
-            if (item.name == resource_name
-                and item.used_in is None):
-                return item
+                if (item.name == resource_name 
+                    and item.used_in is None):
+                    results.add(item)
         else:
-            # We couldn't find that resource
-            return None
+            for item in self.inventory:
+                if (item.name.split("_")[0] == resource_name
+                    and item.used_in is None):
+                    results.add(item)
+        
+        return list(results)
 
     def raw_inventory(self) -> list[str]:
         """
