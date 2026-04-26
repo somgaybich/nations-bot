@@ -36,7 +36,7 @@ class Region():
     """
     inventory: list["Resource"]
     """
-    The resources available to this region.
+    The resources in this region.
     """
     authority: str
     """
@@ -46,6 +46,15 @@ class Region():
     """
     Whether this region is the capital of its nation.
     """
+    infrastructure: int
+    """
+    The quality of this region's infrastructure. Used by the Region.max_trades
+    function to calculate the maximum number of trades this region can handle.
+    """
+    trades: int
+    """
+    The total number of exports and imports to this region.
+    """
     tiles: list[tuple[int, int]]
     """
     The list of tile coordinates that belong to this region.
@@ -53,8 +62,8 @@ class Region():
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
                  city_tier: int = 0, stability: int = 80, 
                  inventory: list["Resource"] = None, authority: str = None,
-                 is_capital: bool = False, 
-                 tiles: list[tuple[int, int]] = None):
+                 is_capital: bool = False, infrastructure: int = 2,
+                 trades: int = 0, tiles: list[tuple[int, int]] = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -67,6 +76,10 @@ class Region():
         :param inventory: The resources available to this region.
         :param authority: The name of the authority that controls this region.
         :param is_capital: Whether this region is the capital of its nation.
+        :param infrastructure: The quality of this region's infrastructure. 
+            Used by the Region.max_trades function to calculate the maximum 
+            number of trades this region can handle.
+        :param trades: The total number of exports and imports to this region.
         :param tiles: The list of tile coordinates that belong to this region.
         :type name: str
         :type location: tuple[int, int]
@@ -77,6 +90,8 @@ class Region():
         :type authority: str
         :type is_capital: bool
         :type tiles: list[tuple[int, int]]
+        :type infrastructure: int
+        :type trades: int
         """
         self.name = name
         self.location = location
@@ -84,6 +99,8 @@ class Region():
         self.is_capital = is_capital
         self.city_tier = city_tier
         self.stability = stability
+        self.infrastructure = infrastructure
+        self.trades = trades
         self.tiles = tiles if tiles is not None else [tile.location for tile in tile_list[location].area()]
         self.inventory = inventory if inventory is not None else []
         self.authority = (authority if authority is not None 
@@ -94,6 +111,12 @@ class Region():
         Saves this region to the database.
         """
         await db.save_region(self)
+
+    def max_trades(self):
+        """
+        Gives the maximum number of imports and exports this region can handle.
+        """
+        return (self.city_tier * 2) + self.infrastructure
 
     def find_resources(self, resource_name: str) -> list["Resource"]:
         """

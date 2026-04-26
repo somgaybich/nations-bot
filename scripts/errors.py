@@ -133,3 +133,12 @@ class ResourcesDeployed(NationsException):
                             consumed, so you cannot {action}. You'll have to 
                             cancel exports, scrap structures, or move 
                             resources here to counterract this."""
+
+class TooManyTrades(NationsException):
+    def __init__(self, trades: int, region: str):
+        super().__init__(f"""Exporting failed, {region} already has its max of 
+                         {trades} trades.""")
+        self.user_message = f"""{region} can't handle any more than the 
+                            {trades} trades it already has! Upgrade the 
+                            infrastructure level or city tier for more trade 
+                            capacity."""
