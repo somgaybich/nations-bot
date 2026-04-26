@@ -70,14 +70,14 @@ class StructureType:
         :type tier_req: int
         :type resource_prod: str
         """
-        self.usable_in = usable_in # Negative, leave empty for no requirements
+        self.usable_in = usable_in
         self.inf_cost = inf_cost
         self.resource_cost = resource_cost
-        self.fname = fname # Note that this is the capitalized and spaced version
+        self.fname = fname
         self.name = name
-        self.prereq = prereq # A structure that needs to be built first
-        self.tier_req = tier_req # The city tier that the structure needs
-        self.resource_prod = resource_prod # Resource produced when built
+        self.prereq = prereq
+        self.tier_req = tier_req
+        self.resource_prod = resource_prod
 
 class Structure:
     """
