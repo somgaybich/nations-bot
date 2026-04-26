@@ -8,6 +8,7 @@ import scripts.errors as errors
 if TYPE_CHECKING:
     from game.nation import Nation
     from game.military import Unit
+    from game.region import Region
     from world.map import Tile
     from world.structures import Structure
 
@@ -26,6 +27,11 @@ class NationDict(dict[int, "Nation"]):
         else:
             return super().__getitem__(key)
 
+class RegionDict(dict[str, "Region"]):
+    """
+    A singleton for storing region data.
+    """
+
 tile_list: TileDict = TileDict()
 """
 A dictionary mapping locations to Tile objects.
@@ -37,6 +43,10 @@ A list of every unit, so they can easily be searched.
 structures: list["Structure"] = []
 """
 A list of every structure, so they can easily be searched.
+"""
+regions: RegionDict = RegionDict()
+"""
+A dictionary mapping names to Region objects.
 """
 nation_list: NationDict = NationDict()
 """

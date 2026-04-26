@@ -9,11 +9,11 @@ from game.military import Unit
 from game.resources import Resource
 
 from world.map import Tile, Terrain
-from world.structures import Link, Structure, structure_types
+from world.structures import Structure, structure_types
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
-from world.world import tile_list, nation_list, units, structures
+from world.world import tile_list, nation_list, units, structures, regions
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,7 @@ async def load(map_only: bool = False):
         nation_list[row["owner"]].regions.update({
             row["name"]: region
         })
+        regions.update({row["name"]: region})
 
     economies_data = await db.load_economies_rows()
     for row in economies_data:

@@ -15,7 +15,7 @@ from game.resources import Resource
 
 from world.map import hex_distance
 from world.structures import StructureType, Structure, structure_types
-from world.world import nation_list, tile_list, units, structures
+from world.world import nation_list, tile_list, units, structures, regions
 
 async def new_authority(default_name: str, owner: int):
     """
@@ -122,6 +122,8 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     nation = nation_list[owner]
     city_tile = tile_list[location]
 
+    if name in regions:
+        raise errors.NameInUse(name, "city")
     if city_tile.structure is not None:
         raise errors.TIleAlreadyHadStructure("Settlement creation", location)
 
