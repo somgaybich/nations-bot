@@ -110,13 +110,11 @@ class Region():
         if "_" in resource_name:
             # This query specifies a subtype 
             for item in self.inventory:
-                if (item.name == resource_name 
-                    and item.used_in is None):
+                if (item.name == resource_name):
                     results.add(item)
         else:
             for item in self.inventory:
-                if (item.name.split("_")[0] == resource_name
-                    and item.used_in is None):
+                if (item.name.split("_")[0] == resource_name):
                     results.add(item)
         
         return list(results)
