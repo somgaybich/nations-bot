@@ -86,7 +86,7 @@ class Tile:
     """
     The NID of the nation that owns this tile, if any.
     """
-    structure: "Structure"
+    structure: "Structure | None"
     """
     The player-built object on this tile.
     """
