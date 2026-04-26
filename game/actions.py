@@ -178,6 +178,8 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
                                     location=location, region=name, 
                                     owner=owner)
 
+    regions.update({name, new_region})
+
     await nation.save()
     await new_region.save()
     await city_tile.save()
