@@ -124,6 +124,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
 
     if name in regions:
         raise errors.NameInUse(name, "city")
+
     if city_tile.structure is not None:
         raise errors.TIleAlreadyHadStructure("Settlement creation", location)
 
@@ -197,7 +198,7 @@ async def new_nation(name: str, userid: int) -> Nation:
     """
     for existing_nation in nation_list.values():
         if existing_nation.name == name:
-            raise errors.NationNameInUse(name)
+            raise errors.NameInUse(name, "nation")
         elif existing_nation.userid == userid:
             raise errors.UserHasNation(userid)
     
