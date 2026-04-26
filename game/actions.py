@@ -179,7 +179,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
                                     location=location, region=name, 
                                     owner=owner)
 
-    regions.update({name, new_region})
+    regions[name] = new_region
 
     await nation.save()
     await new_region.save()
@@ -242,49 +242,23 @@ async def new_structure(structure_type: StructureType,
     
     if tile.structure is not None:
         raise errors.TIleAlreadyHadStructure("Structure creation", location)
-
-    if (structure_type.resource_cost not in region.inventory 
-        and not admin_mode):
-        raise errors.NotEnoughResources(f"{structure_type.fname} creation", 
-                                        structure_type.resource_cost, 
-                                        region.inventory)
-    if nation.econ.influence < structure_type.inf_cost and not admin_mode:
-        raise errors.NotEnoughInfluence(f"{structure_type.fname} creation", 
-                                        structure_type.inf_cost, 
-                                        econ.influence)
     
     if tile not in region.tiles:
         raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                      "outide the region")
     
-    if "arable" in structure_type.usable_in:
-        if not tile.is_arable():
-            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
-                                         "in a non-arable tile")
-    if "coastal" in structure_type.usable_in:
-        if not tile.is_coastal():
-            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
-                                         "in a non-coastal tile")
-    if "non-mountain" in structure_type.usable_in:
-        if tile.terrain.biome in ["high_mountains", "mountains"]:
-            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
-                                         "in a mountainous tile")
-    if "mountain" in structure_type.usable_in:
-        if not tile.terrain.biome in ["high_mountains", "mountains"]:
-            raise errors.InvalidLocation(f"{structure_type.fname} creation", 
-                                         "in a non-mountainous tile")
     if "city" in structure_type.usable_in:
         urban = False
         if tile in root_tile.area():
             urban = True
         elif tile in root_tile.metroarea() and region.city_tier >= 3:
             urban = True
-        
+
         if not urban:
             raise errors.InvalidLocation(f"{structure_type} creation",
-                                         "in a non-urban tile")
+                                            "in an undeveloped tile")
 
-    if not structure_type.tier_req == 0 and not admin_mode:
+    if structure_type.tier_req != 0 and not admin_mode:
         if region.city_tier < structure_type.tier_req:
             raise errors.RegionTierTooLow(f"{structure_type.fname} creation", 
                                         region.city_tier, structure_type.tier_req)
@@ -300,16 +274,12 @@ async def new_structure(structure_type: StructureType,
 
         # This check must always be last because it has behavior attached!
         if structure_type.prereq in region_structures:
-            for structure in structures:
-                if not structure.region == region:
-                    continue
-                if not structure.structure_type.fname == structure_type.prereq:
-                    continue
-
-                target_tile = tile_list[structure.location]
-                target_tile.structure = None
-                await target_tile.save()
-                break
+            for structure in region_structures:
+                if structure.structure_type.fname == structure_type.prereq:
+                    target_tile = tile_list[structure.location]
+                    target_tile.structure = None
+                    await target_tile.save()
+                    break
             else:
                 raise errors.MissingStructure(f"{structure_type.fname} creation", 
                                               structure_type.prereq)
@@ -317,27 +287,11 @@ async def new_structure(structure_type: StructureType,
             raise errors.MissingStructure(f"{structure_type.fname} creation", 
                                           structure_type.prereq)
 
-    items_consumed: list[Resource] = []
     if not admin_mode:
-        for item_name in structure_type.resource_cost:
-            cost_item = region.find_resource(item_name)
-            if cost_item is not None:
-                items_consumed.append(cost_item)
         econ.influence -= structure_type.inf_cost
 
     new_structure = Structure(structure_type, location, region_name, owner)
     tile.structure = new_structure
-
-    if structure_type.resource_prod != '':
-        new_resource = Resource(
-            name=structure_type.resource_prod,
-            origin=location,
-            located_at=region_name,
-        )
-        region.inventory.append(new_resource)
-
-    for item in items_consumed:
-        item.used_in = new_structure
 
     if "Temple" in structure_type.fname:
         current_stability = nation_list[owner].regions[region_name].stability

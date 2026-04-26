@@ -28,7 +28,7 @@ class Region():
     """
     city_tier: int
     """
-    The tier of this region's central city.
+    The tier of this region's central city. Starts at 0 and ranges to 4.
     """
     stability: int
     """
@@ -69,8 +69,8 @@ class Region():
             region itself.
         :param location: The location of this region's central city.
         :param owner: The NID of the nation that controls this region.
-        :param city_tier: The tier of this region's central city. Starts at 0
-            and ticks upward to 4.
+        :param city_tier: The tier of this region's central city. Starts 
+            at 0 and ranges to 4.
         :param stability: (Soon to be deprecated) The stability of this region.
             Defaults to 80, on a scale from 0-100.
         :param inventory: The resources available to this region.
@@ -116,7 +116,7 @@ class Region():
         """
         Gives the maximum number of imports and exports this region can handle.
         """
-        return (self.city_tier * 2) + self.infrastructure
+        return self.city_tier + self.infrastructure
 
     def find_resources(self, resource_name: str) -> list["Resource"]:
         """
@@ -124,40 +124,10 @@ class Region():
         the region's raw inventory. If there is no matching resource, returns 
         an empty list.
         
-        :param resource_name: The name of the resource to search for. Is
-            subtype sensitive if a subtype name is provided, i.e. 
-            Region.find_resource("food") will return a "food_meat" item but 
-            Region.find_resource("food_grain") will not.
+        :param resource_name: The name of the resource to search for.
         """
-        results = set()
-        if "_" in resource_name:
-            # This query specifies a subtype 
-            for item in self.inventory:
-                if (item.name == resource_name):
-                    results.add(item)
-        else:
-            for item in self.inventory:
-                if (item.name.split("_")[0] == resource_name):
-                    results.add(item)
-        
-        return list(results)
-
-    def raw_inventory(self) -> list[str]:
-        """
-        Returns the list of names of resources in a region. Cleaves subtype 
-        specifiers.
-        """
-        return [item.name.split("_")[0] for item in self.inventory]
-
-    def luxury_count(self) -> int:
-        """
-        Returns the number of unique luxury types in the region's inventory.
-        """
-        luxuries = []
-        for item in self.inventory:
-            if item.name.startswith("luxurygoods") and item not in luxuries:
-                luxuries.append(item)
-        return len(luxuries)
+        return [resource for resource in self.inventory 
+                if resource.name == resource_name]
 
     def developed_area(self) -> list["Tile"]:
         """
@@ -191,34 +161,20 @@ class Region():
         Returns true if this region has a resource with the specified name. Is
         subtype sensitive only if a subtype specifier is used.
         """
-        if "_" in resource:
-            # This query specifies a subtype
-            return resource in [resource.name for resource in self.inventory]
-        else:
-            return resource in self.raw_inventory()
+        return resource in [resource.name for resource in self.inventory]
 
     def calculate_tier(self) -> int:
         """
-        Used to calculate the new tier of a region after each season. Does not
-        bind or save the new value.
+        Used to calculate the new tier of a city. This will always return the
+        current tier if it is 0 or 1.
         """ 
-        raw_inventory = self.raw_inventory()
-        
-        if "lumber" in raw_inventory and "food" in raw_inventory:
-            if ("lumber" in raw_inventory 
-                and "fuel" in raw_inventory 
-                and raw_inventory.count("food") >= 2):
-                if (raw_inventory.count("lumber") >= 2 
-                    and raw_inventory.count("food") >= 3 
-                    and raw_inventory.count("fuel") >= 2 
-                    and self.luxury_count() >= 1):
-                    if (raw_inventory.count("lumber") >= 3 
-                        and raw_inventory.count("food") >= 5 
-                        and raw_inventory.count("fuel") >= 3 
-                        and self.luxury_count() >= 2):
-                        return 4
-                    return 3
-                return 2
-            return 1
+        if self.city_tier < 2:
+            # If the tier is less than 2, it won't be affected by luxuries.
+            return self.city_tier
+
+        if len(self.inventory) < 2:
+            return 2
+        elif len(self.inventory) < 5:
+            return 3
         else:
-            return 0
+            return 4

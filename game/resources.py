@@ -10,19 +10,13 @@ class Resource():
     """
     The name of the item's type.
     """
-    origin: tuple[int, int]
+    origin: str
     """
-    The location of the structure that produced this item.
+    The region that produced this item.
     """
     located_at: str
     """
     The region this item is currently located in.
-    """
-    used_in: tuple[int, int]
-    """
-    The structure this item is being consumed in. Defaults to None if not used.
-    If an item is used in improving a city's tier, this will still be None, but
-    the city will downgrade on the next cycle.
     """
     path: list[str]
     """
@@ -31,28 +25,22 @@ class Resource():
     excludes the current location.
     """
 
-    def __init__(self, name: str, origin: tuple[int, int], located_at: str,
+    def __init__(self, name: str, origin: str, located_at: str,
                  used_in: tuple[int, int] = None, path: list[str] = []):
         """
         :param name: The name of this item's type.
-        :param origin: The location of the structure that produced this item.
+        :param origin: The region that produced this item.
         :param located_at: The region this item is currently located in.
-        :param used_in: The structure this item is being consumed in. Defaults 
-            to None if not used. If an item is used in improving a city's 
-            tier, this will still be None, but the city will downgrade on the 
-            next cycle.
         :param path: The names of the regions this item passed through to get 
             to its location. Because of how these are assigned, includes the 
             source region but excludes the current location.
         :type name: str
         :type origin: tuple[int, int]
         :type located_at: str
-        :type used_in: tuple[int, int]
         """
         self.name = name
         self.origin = origin
         self.located_at = located_at
-        self.used_in = used_in
         self.path = path
 
     def encode(self):
@@ -63,6 +51,5 @@ class Resource():
             "name": self.name,
             "origin": self.origin,
             "located_at": self.located_at,
-            "used_in": self.used_in,
             "path": self.path
         }

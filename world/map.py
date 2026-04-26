@@ -86,7 +86,7 @@ class Tile:
     """
     The NID of the nation that owns this tile, if any.
     """
-    structure: "Structure" | None
+    structure: "Structure"
     """
     The player-built object on this tile.
     """
@@ -107,7 +107,7 @@ class Tile:
         self.terrain = terrain
         self.location = location
         self.owner = owner
-        self.structure = structure if structure is not None else {}
+        self.structure = structure
 
         # tile difficulty adjustment based on region infrastructure level?
         self.difficulty = self.terrain.difficulty

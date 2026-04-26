@@ -153,107 +153,49 @@ structure_types = {
     "temple": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
-        resource_cost=["stone"], 
         fname="Temple",
         name="temple"),
     "grandtemple": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
-        resource_cost=["stone"], 
         fname="Grand Temple", 
         name="grandtemple",
         prereq="Temple"),
     "station": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["lumber"], 
         fname="Station",
         name="station"),
     "centralstation": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["lumber"], 
         fname="Central Station", 
         name="centralstation",
         prereq="Station"),
     "district": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
-        resource_cost=["lumber", "stone"], 
         fname="District",
         name="district"),
     "charcoalpit": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["lumber"], 
         fname="Charcoal Pit",
         name="charcoalpit"),
     "smeltery": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["stone", "fuel"], 
         fname="Smeltery",
         name="smeltery"),
     "port": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["stone", "lumber"], 
         fname="Port",
         name="port"),
     "foundry": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["metal", "fuel"], 
         fname="Foundry",
         name="foundry",
-        tier_req=2),
-
-    # Resource Structures
-    "aqueduct": StructureType(
-        usable_in=["coastal"],
-        inf_cost=1,
-        fname="Aqueduct",
-        name="aqueduct"),
-    "farm": StructureType(
-        usable_in=["arable"],
-        inf_cost=1,
-        fname="Farm",
-        name="farm",
-        resource_prod="grain"),
-    "orchard": StructureType(
-        usable_in=["arable"],
-        inf_cost=1,
-        fname="Orchard",
-        name="orchard",
-        resource_prod="fruit"),
-    "pasture": StructureType(
-        usable_in=["non-mountain"],
-        inf_cost=1,
-        fname="Pasture",
-        name="pasture",
-        resource_prod="meat"),
-    "fishery": StructureType(
-        usable_in=["coastal"],
-        inf_cost=1,
-        fname="Fishery",
-        name="fishery",
-        resource_prod="fish"),
-    "forester": StructureType(
-        usable_in=["arable"],
-        inf_cost=1,
-        fname="Forester",
-        name="forester",
-        resource_prod="wood"),
-    "quarry": StructureType(
-        usable_in=["mountain"],
-        inf_cost=2,
-        fname="Quarry",
-        name="quarry",
-        resource_prod="stone"),
-    "mine": StructureType(
-        usable_in=["mountain"],
-        inf_cost=2,
-        fname="Mine",
-        name="mine",
-        resource_prod="fuel")
+        tier_req=2)
 }

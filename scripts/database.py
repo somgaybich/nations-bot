@@ -166,8 +166,8 @@ async def save_region(region: "Region"):
             tiles = excluded.tiles,
             inventory = excluded.inventory,
             authority = excluded.authority,
-            city_tier = excluded.tier
-            infrastructure = exlcluded.infrastructure
+            city_tier = excluded.city_tier,
+            infrastructure = excluded.infrastructure,
             trades = excluded.trades
         """,
         (region.name, region.location[0], region.location[1], region.owner, 
@@ -288,6 +288,9 @@ async def load_authorities_rows():
 # ---------------
 
 def encode_structure(structure: "Structure") -> dict:
+    if structure is None:
+        return {}
+    
     return {
         "structure_type": structure.structure_type.name,
         "x": structure.location[0],
@@ -303,7 +306,7 @@ async def save_tile(tile: "Tile"):
         """
         INSERT INTO tiles (
         x, y, terrain, owner, structure)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,

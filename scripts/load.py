@@ -57,8 +57,7 @@ async def load(map_only: bool = False):
             terrain=Terrain(*json.loads(row["terrain"])),
             location=(row["x"], row["y"]),
             owner=row["owner"],
-            structure=structure,
-            link_structures=link_structures
+            structure=structure
         )
         tile_list[tile.location] = tile
 
@@ -94,7 +93,7 @@ async def load(map_only: bool = False):
         region = Region(
             name=row["name"],
             location=(row["x"], row["y"]),
-            city_tier=row["tier"],
+            base_tier=row["tier"],
             owner=row["owner"],
             stability=row["stability"],
             inventory=decoded_inventory,
