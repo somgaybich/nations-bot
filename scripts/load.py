@@ -13,7 +13,7 @@ from world.structures import Link, Structure, structure_types
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
-from world.world import tile_list, nation_list, units, links
+from world.world import tile_list, nation_list, units, structures
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ async def load(map_only: bool = False):
                 region=structure_data['region'],
                 owner=structure_data['builder']
             )
+            structures.append(structure)
 
         link_structures = []
         if row['link_structures'] != "[]":

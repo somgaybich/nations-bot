@@ -338,6 +338,8 @@ async def new_structure(structure_type: StructureType,
         current_stability = nation_list[owner].regions[region_name].stability
         region.stability += min(100, round((current_stability / 20) + 5))
 
+    structures.append(new_structure)
+
     await nation.save()
     await econ.save()
     await region.save()
