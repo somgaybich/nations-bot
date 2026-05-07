@@ -133,7 +133,7 @@ class Unit:
         
         if battle_terrain == home_tile.terrain.biome:
             eff += combat_settings["home_terrain_buff"]
-        else:
+        elif attacking:
             match battle_terrain:
                 case "desert":
                     eff -= combat_settings["desert_debuff"]
