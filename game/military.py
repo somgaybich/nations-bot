@@ -176,6 +176,7 @@ class Unit:
             instead of a tile is so that this interfaces well with the UI,
             which does not ever touch coordinates to avoid the user having to
             understand axial coordinates.
+        :type direction: str in ['n', 's'...]
         """
         from world.world import units
         new_tile, last_tile = move_in_direction(tile_list[self.location], 
@@ -228,6 +229,7 @@ class Unit:
         """
         Deals damage to this unit corresponding to a crushing loss and 
         retreats.
+
         :param scaled_impact: The actual result of the battle.
         :param battle_location: The location where the battle happened.
         :type scaled_impact: float
@@ -248,6 +250,7 @@ class Unit:
     async def loss(self, scaled_impact, battle_location):
         """
         Deals damage to this unit corresponding to a loss and retreats.
+
         :param scaled_impact: The actual result of the battle.
         :param battle_location: The location where the battle happened.
         :type scaled_impact: float
@@ -269,6 +272,7 @@ class Unit:
     async def victory(self, scaled_impact, battle_location):
         """
         Deals damage to this unit corresponding to a victory.
+        
         :param scaled_impact: The actual result of the battle.
         :param battle_location: The location where the battle happened.
         :type scaled_impact: float
@@ -287,6 +291,7 @@ class Unit:
     async def crushing_victory(self, scaled_impact, battle_location):
         """
         Deals damage to this unit corresponding to a crushing victory.
+
         :param scaled_impact: The actual result of the battle.
         :param battle_location: The location where the battle happened.
         :type scaled_impact: float
@@ -303,6 +308,7 @@ class Unit:
     async def stalemate(self, scaled_impact, battle_location):
         """
         Deals damage to this unit corresponding to a stalemate.
+
         :param scaled_impact: The actual result of the battle.
         :param battle_location: The location where the battle happened.
         :type scaled_impact: float
