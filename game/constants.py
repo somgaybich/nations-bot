@@ -11,28 +11,6 @@ brand_color = Color(16417064)
 
 admin_mode = True
 
-# AUTHORITY SETTINGS
-authority_cap_modifiers = {
-    "oligarchic": 2,
-    "industrial": 1,
-    "militaristic": 2,
-    "aristocratic": -2,
-    "populist": -1,
-    "legalist": 2,
-}
-
-authority_settings = {
-    "over_cap_stability_loss": 0.15,
-    "max_auth_stability_loss": 0.2,
-    "auth_stability_decay": 0.1, # fraction of full loss inflicted per month
-    "militaristic_eff_bonus": 0.1,
-}
-
-# This must inherently scale such that at tier 4 subtracting it from the max returns 0
-authority_settings.update({
-    "oligarchy_stability_loss_factor": authority_settings["max_auth_stability_loss"] / 4
-})
-
 # COMBAT SETTINGS
 combat_settings = {
     # normalized probabilities

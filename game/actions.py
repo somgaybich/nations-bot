@@ -47,7 +47,29 @@ async def new_army(name: str, owner: int, region_name: str) -> Unit:
         raise errors.DoesNotExist("region", "Army creation", region_name)
     if econ.influence < 1 and not admin_mode:
         return errors.NotEnoughInfluence("Army creation", 1, econ.influence)
+
+    current_units = []
+    for unit in nation.military.values():
+        if unit.home == region_name:
+            current_units.append(unit)
+        if unit.status == "TRAINING":
+            raise errors.AlreadyTraining()
+
+    if region.authority != nation.name:
+        region_authority = nation.authorities[region.authority]
+
+        region_unit_cap = region.city_tier + 1
+        if region_authority.authtype == "Mercantile":
+            region_unit_cap -= 1
+        
+        if len(current_units) >= region_unit_cap:
+            raise errors.TooManyUnits()
     
+    else:
+        # This settlement is an outpost. It can only raise 1 unit.
+        if len(current_units) >= 1:
+            raise errors.TooManyUnits()
+
     base_strength = 1
     if "Foundry" in region.structure_types():
         base_strength = 1.3
@@ -56,7 +78,7 @@ async def new_army(name: str, owner: int, region_name: str) -> Unit:
         econ.influence -= 1
     new_unit = Unit(name=name, type="army", location=region.location, 
                     strength=base_strength, movement_free=3, owner=owner, 
-                    home=region_name)
+                    home=region_name, status="TRAINING")
     nation.military[name] = new_unit
     units.append(new_unit)
 
@@ -88,6 +110,28 @@ async def new_fleet(name: str, userid: int, region_name: str) -> Unit:
     if econ.influence < 2 and not admin_mode:
         raise errors.NotEnoughInfluence("Fleet creation", 2, econ.influence)
     
+    current_units = []
+    for unit in nation.military.values():
+        if unit.home == region_name:
+            current_units.append(unit)
+        if unit.status == "TRAINING":
+            raise errors.AlreadyTraining()
+
+    if region.authority != nation.name:
+        region_authority = nation.authorities[region.authority]
+
+        region_unit_cap = region.city_tier + 1
+        if region_authority.authtype == "Mercantile":
+            region_unit_cap -= 1
+        
+        if len(current_units) >= region_unit_cap:
+            raise errors.TooManyUnits()
+    
+    else:
+        # This settlement is an outpost. It can only raise 1 unit.
+        if len(current_units) >= 1:
+            raise errors.TooManyUnits()
+
     base_strength = 1
     if "Foundry" in region.structure_types():
         base_strength = 1.3

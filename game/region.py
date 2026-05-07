@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+import math
 
 import scripts.database as db
 
@@ -30,10 +31,6 @@ class Region():
     """
     The tier of this region's central city. Starts at 0 and ranges to 4.
     """
-    stability: int
-    """
-    (Soon to be deprecated) The stability of this region.
-    """
     inventory: list["Resource"]
     """
     The resources in this region.
@@ -60,10 +57,10 @@ class Region():
     The list of tile coordinates that belong to this region.
     """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
-                 city_tier: int = 0, stability: int = 80, 
-                 inventory: list["Resource"] = None, authority: str = None,
-                 is_capital: bool = False, infrastructure: int = 2,
-                 trades: int = 0, tiles: list[tuple[int, int]] = None):
+                 city_tier: int = 0, inventory: list["Resource"] = None, 
+                 authority: str = None, is_capital: bool = False, 
+                 infrastructure: int = 2, trades: int = 0, 
+                 tiles: list[tuple[int, int]] = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -71,14 +68,13 @@ class Region():
         :param owner: The NID of the nation that controls this region.
         :param city_tier: The tier of this region's central city. Starts 
             at 0 and ranges to 4.
-        :param stability: (Soon to be deprecated) The stability of this region.
-            Defaults to 80, on a scale from 0-100.
         :param inventory: The resources available to this region.
         :param authority: The name of the authority that controls this region.
         :param is_capital: Whether this region is the capital of its nation.
         :param infrastructure: The quality of this region's infrastructure. 
             Used by the Region.max_trades function to calculate the maximum 
-            number of trades this region can handle.
+            number of trades this region can handle. Defaults to 2 so that
+            outposts can have one trade route running through them.
         :param trades: The total number of exports and imports to this region.
         :param tiles: The list of tile coordinates that belong to this region.
         :type name: str
@@ -98,7 +94,6 @@ class Region():
         self.owner = owner
         self.is_capital = is_capital
         self.city_tier = city_tier
-        self.stability = stability
         self.infrastructure = infrastructure
         self.trades = trades
         self.tiles = tiles if tiles is not None else [tile.location for tile in tile_list[location].area()]
@@ -116,7 +111,13 @@ class Region():
         """
         Gives the maximum number of imports and exports this region can handle.
         """
-        return self.city_tier + self.infrastructure
+        base = self.city_tier + self.infrastructure
+        
+        authority = nation_list[self.owner].authorities[self.authority]
+        if (authority.authtype == "Mercantile"):
+            return math.ceil(base + base * 0.5)
+
+        return base
 
     def find_resources(self, resource_name: str) -> list["Resource"]:
         """
@@ -165,7 +166,7 @@ class Region():
 
     def calculate_tier(self) -> int:
         """
-        Used to calculate the new tier of a city. This will always return the
+        Used to calculate the new tier of a city. Will always return the
         current tier if it is 0 or 1.
         """ 
         if self.city_tier < 2:

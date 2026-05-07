@@ -41,6 +41,22 @@ class OutOfMovement(NationsException):
         self.user_message = """That unit doesn't have enough movement left 
                             this season!"""
 
+class TooManyUnits(NationsException):
+    def __init__(self):
+        super().__init__(f"""A region failed to train a unit because it was
+                         over its unit capacity.""")
+        self.user_message = """That region does not have any more unit 
+                            capacity! Either raise its tier or disband existing
+                            units to train more."""
+
+class AlreadyTraining(NationsException):
+    def __init__(self):
+        super().__init__(f"""A region failed to train a unit because it was
+                         already training one this season.""")
+        self.user_message = """That region is already training a unit! Wait
+                            until next season to raise another one."""
+
+
 class InvalidLocation(NationsException):
     def __init__(self, action: str, location_type: str):
         super().__init__(f"{action} failed: Cannot be done '{location_type}'")

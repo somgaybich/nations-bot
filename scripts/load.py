@@ -7,12 +7,13 @@ import scripts.database as db
 
 from game.military import Unit
 from game.resources import Resource
-
-from world.map import Tile, Terrain
-from world.structures import Structure, structure_types
+from game.authority import Authority
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
+
+from world.map import Tile, Terrain
+from world.structures import Structure, structure_types
 from world.world import tile_list, nation_list, units, structures, regions
 
 logger = logging.getLogger(__name__)
@@ -93,9 +94,8 @@ async def load(map_only: bool = False):
         region = Region(
             name=row["name"],
             location=(row["x"], row["y"]),
-            base_tier=row["tier"],
+            city_tier=row["city_tier"],
             owner=row["owner"],
-            stability=row["stability"],
             inventory=decoded_inventory,
             authority=row["authority"],
             is_capital=row["capital"],
@@ -127,11 +127,23 @@ async def load(map_only: bool = False):
             morale=row["morale"],
             exp=row["exp"],
             movement_free=row["movement_free"],
+            status=row["status"],
             owner=row["owner"],
             id=row["id"],
         )
         units.append(unit)
         nation_list[row["owner"]].military[row["name"]] = unit
+
+    authorities_data = await db.load_authorities_rows()
+    for row in authorities_data:
+        authority = Authority(
+            nationid=row["nationid"],
+            name=row["name"],
+            authtype=row["authtype"],
+            region=row["region"],
+            cooperation=row["cooperation"],
+            id=row["id"]
+        )
 
     logger.info("Loaded game data")
     logger.debug(nation_list)

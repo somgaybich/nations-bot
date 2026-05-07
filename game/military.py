@@ -4,8 +4,7 @@ import math
 import scripts.database as db
 import scripts.errors as errors
 
-from game.constants import (combat_settings, authority_settings, 
-                            current_season)
+from game.constants import (combat_settings, current_season)
 
 from world.map import Tile, move_in_direction
 from world.world import nation_list, tile_list
@@ -52,7 +51,12 @@ class Unit:
     """
     The number of battles this unit has been in. (Currently does nothing)
     """
-    id: int
+    status: str
+    """
+    Any special state the unit is currenlty in. Currently may only be 
+    'TRAINING', but future features like 'EMBARKED' are planned to use this.
+    """
+    id: int | None
     """
     The database ID of this unit. Generally shouldn't be touched, use owner 
     and name as identifiers.
@@ -60,7 +64,7 @@ class Unit:
     def __init__(self, name: str, type: str, home: str, owner: int, 
                  movement_free: int, location: tuple[int, int] = (0, 0), 
                  strength: float = 1.0, morale: float = 1.0, exp: int = 0, 
-                 id: int | None = None):
+                 status: str = "", id: int | None = None):
         """
         :param name: The name of the unit.
         :param type: The type of the unit, either "army" or "fleet".
@@ -74,6 +78,9 @@ class Unit:
         :param morale: The morale of the unit's soldiers, relative to 1.0.
         :param exp: The number of battles this unit has been in. 
             (Currently does nothing)
+        :param status: Any special state the unit is currenlty in. Currently 
+            may only be 'TRAINING', but future features like 'EMBARKED' are 
+            planned to use this.
         :param id: The database ID of this unit. Generally shouldn't be 
             touched, use owner and name as identifiers.
         :type name: str
@@ -85,6 +92,7 @@ class Unit:
         :type strength: float
         :type morale: float
         :type exp: int
+        :type status: str
         :type id: int
         """
         self.id = id
@@ -96,6 +104,7 @@ class Unit:
         self.strength = strength
         self.morale = morale
         self.exp = exp
+        self.status = status
         self.movement_free = movement_free
     
     async def save(self):
@@ -148,10 +157,6 @@ class Unit:
                 area = region.tiles
                 if location not in area:
                     continue
-                
-                authority = nation.authorities[region.authority]
-                if authority.authtype == "militaristic":
-                    eff += authority_settings["militaristic_eff_bonus"]
         
         if tile.structure.structure_type.fname == "Fort":
             eff += combat_settings["fort_buff"]

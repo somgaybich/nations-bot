@@ -50,7 +50,6 @@ async def init_db(file: str = "data/nations.db"):
         x INTEGER NOT NULL,
         y INTEGER NOT NULL,
         owner INTEGER NOT NULL,
-        stability INTEGER,
         tiles TEXT,
         inventory TEXT,
         authority TEXT,
@@ -75,6 +74,7 @@ async def init_db(file: str = "data/nations.db"):
         morale INTEGER NOT NULL,
         exp INTEGER NOT NULL,
         movement_free INTEGER NOT NULL,
+        status TEXT NOT NULL,
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created units table")
@@ -109,6 +109,7 @@ async def init_db(file: str = "data/nations.db"):
             nationid INTEGER NOT NULL,
             authtype TEXT NOT NULL,
             cap INTEGER NOT NULL,
+            cooperation FLOAT NOT NULL,
             region TEXT NOT NULL)
         """)
     logger.debug("Created authorities table")
@@ -157,12 +158,11 @@ async def save_region(region: "Region"):
     await get_db().execute(
         """
         INSERT INTO regions (
-            name, x, y, owner, stability, tiles, inventory, authority, capital, 
+            name, x, y, owner, tiles, inventory, authority, capital, 
             city_tier, infrastructure, trades)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(name) DO UPDATE SET
             name = excluded.name,
-            stability = excluded.stability,
             tiles = excluded.tiles,
             inventory = excluded.inventory,
             authority = excluded.authority,
@@ -171,9 +171,8 @@ async def save_region(region: "Region"):
             trades = excluded.trades
         """,
         (region.name, region.location[0], region.location[1], region.owner, 
-         region.stability, json.dumps(region.tiles), 
-         json.dumps(encoded_inventory), region.authority, 
-         json.dumps(region.is_capital), region.city_tier, 
+         json.dumps(region.tiles), json.dumps(encoded_inventory), 
+         region.authority, json.dumps(region.is_capital), region.city_tier, 
          region.infrastructure, region.trades)
     )
 
@@ -191,9 +190,9 @@ async def save_unit(unit: "Unit"):
             INSERT INTO units (
                 name, type, home, x, y,
                 strength, morale, exp, owner,
-                movement_free
+                movement_free, status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 unit.name,
@@ -205,7 +204,8 @@ async def save_unit(unit: "Unit"):
                 unit.morale,
                 unit.exp,
                 unit.owner,
-                unit.movement_free
+                unit.movement_free,
+                unit.status
             )
         ) as cursor:
             unit.id = cursor.lastrowid
@@ -215,7 +215,7 @@ async def save_unit(unit: "Unit"):
             UPDATE units
             SET name = ?, type = ?, home = ?, x = ?, y = ?,
                 strength = ?, morale = ?, exp = ?, owner = ?,
-                movement_free = ?
+                movement_free = ?, status = ?
             WHERE id = ?
             """,
             (
@@ -229,6 +229,7 @@ async def save_unit(unit: "Unit"):
                 unit.exp,
                 unit.owner,
                 unit.movement_free,
+                unit.status,
                 unit.id,
             )
         )
@@ -249,14 +250,15 @@ async def save_authority(authority: "Authority"):
         async with get_db().execute(
             """
             INSERT INTO authorities (
-                name, nationid, authtype, region
+                name, nationid, authtype, cooperation, region
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 authority.name,
                 authority.nationid,
                 authority.authtype,
+                authority.cooperation,
                 authority.region
             )
         ) as cursor: 
@@ -265,7 +267,8 @@ async def save_authority(authority: "Authority"):
         await get_db().execute(
             """
             UPDATE authorities
-            SET name = ?, nationid = ?, authtype = ?, region = ?
+            SET name = ?, nationid = ?, authtype = ?, region = ?, 
+                cooperation = ?
             WHERE id = ?
             """,
             (
@@ -273,6 +276,7 @@ async def save_authority(authority: "Authority"):
                 authority.nationid,
                 authority.authtype,
                 authority.region,
+                authority.cooperation,
                 authority.id
             )
         )

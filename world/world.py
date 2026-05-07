@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from game.nation import Nation
     from game.military import Unit
     from game.region import Region
+    from game.events import Listener
     from world.map import Tile
     from world.structures import Structure
 
@@ -51,4 +52,8 @@ A dictionary mapping names to Region objects.
 nation_list: NationDict = NationDict()
 """
 A dictionary mapping NIDs to Nation objects.
+"""
+listeners: list["Listener"] = []
+"""
+A list of every event listener.
 """
