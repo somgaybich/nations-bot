@@ -89,6 +89,7 @@ class Authority:
         self.nationid = nationid
         self.name = name
         self.region = region
+        self.cooperation = cooperation
         self.id = id
 
         if authtype is None:
