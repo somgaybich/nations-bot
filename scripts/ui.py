@@ -44,7 +44,8 @@ class DirectionView(discord.ui.View):
             )
         ]
     )
-    async def select_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
+    async def select_callback(self, select: discord.ui.Select, 
+                              interaction: discord.Interaction):
         self.disable_all_items()
         
         if not self.future.done():
@@ -68,7 +69,8 @@ class ConfirmView(discord.ui.View):
             discord.SelectOption(label="No")
         ]
     )
-    async def select_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
+    async def select_callback(self, select: discord.ui.Select, 
+                              interaction: discord.Interaction):
         self.disable_all_items()
 
         if not self.future.done():

@@ -5,8 +5,8 @@ def log_setup(destination: str = "logs/last.log", console: bool = False):
     Configures logging for a script.
     
     :param destination: The file to write the logs to.
-    :type destination: str
     :param console: Whether to write logs to the console.
+    :type destination: str
     :type console: bool
     """
     # Clears preexisting log data

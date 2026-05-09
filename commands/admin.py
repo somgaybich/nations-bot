@@ -26,7 +26,8 @@ class AdminCog(discord.Cog):
         await ctx.interaction.response.send_message(embed=Embed(
             color=brand_color,
             title="Are you sure?",
-            description="Forcing a tick at the wrong time may invalidate nation data."
+            description=("Forcing a tick at the wrong"
+                         "time may invalidate nation data.")
         ), view=ConfirmView(confirm_future))
         message = await ctx.interaction.original_response()
         

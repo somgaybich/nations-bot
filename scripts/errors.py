@@ -1,3 +1,8 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from world.structures import Link
+
 class NationsException(Exception):
     """
     A parent class for all custom exceptions invoked by nations. Should never be invoked directly.
@@ -12,10 +17,11 @@ class CancelledException(NationsException):
         super().__init__(f"{action} cancelled by user.")
         self.user_message = "This action was cancelled."
 
-class NationNameInUse(NationsException):
-    def __init__(self, name: str):
-        super().__init__(f"Name '{name}' already in use")
-        self.user_message = "That nation name is already taken!"
+
+class NameInUse(NationsException):
+    def __init__(self, name: str, object: str):
+        super().__init__(f"{object.capitalize()} name '{name}' already in use")
+        self.user_message = f"That {object} name is already taken!"
 
 class UserHasNation(NationsException):
     def __init__(self, userid: int):
@@ -27,10 +33,29 @@ class NationIDNotFound(NationsException):
         super().__init__(f"The userid '{userid}' isn't associated with a nation")
         self.user_message = "You don't have a nation!"
 
+
 class OutOfMovement(NationsException):
     def __init__(self):
-        super().__init__(f"A unit failed to move because it didn't have enough free movement")
-        self.user_message = "That unit doesn't have enough movement left this season!"
+        super().__init__(f"""A unit failed to move because it didn't have 
+                         enough free movement""")
+        self.user_message = """That unit doesn't have enough movement left 
+                            this season!"""
+
+class TooManyUnits(NationsException):
+    def __init__(self):
+        super().__init__(f"""A region failed to train a unit because it was
+                         over its unit capacity.""")
+        self.user_message = """That region does not have any more unit 
+                            capacity! Either raise its tier or disband existing
+                            units to train more."""
+
+class AlreadyTraining(NationsException):
+    def __init__(self):
+        super().__init__(f"""A region failed to train a unit because it was
+                         already training one this season.""")
+        self.user_message = """That region is already training a unit! Wait
+                            until next season to raise another one."""
+
 
 class InvalidLocation(NationsException):
     def __init__(self, action: str, location_type: str):
@@ -39,7 +64,8 @@ class InvalidLocation(NationsException):
 
 class TileOutOfBounds(NationsException):
     def __init__(self, location: tuple[int, int]):
-        super().__init__(f"Tried to access {location}, which is outside the map's bounds")
+        super().__init__(f"""Tried to access {location}, which is outside the 
+                         map's bounds""")
         self.user_message = f"That location is outside the map bounds!"
 
 class TileImpassable(NationsException):
@@ -47,46 +73,88 @@ class TileImpassable(NationsException):
         super().__init__(f"Unit was unable to move to a tile because {reason}.")
         self.user_message = reason.capitalize() + "!"
 
+
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
-        super().__init__(f"{action} failed: Tile already has {num_structures} structures")
-        self.user_message = f"That tile can't hold any more structures!"
+        super().__init__(f"""{action} failed: Region already has its max of
+                         {num_structures} structures""")
+        self.user_message = f"That region can't hold any more structures!"
+
+class TIleAlreadyHadStructure(NationsException):
+    def __init__(self, action: str, location: tuple[int, int]):
+        super().__init__(f"""{action} failed: '{location}' already has a 
+                         structure""")
+        self.user_message = f"That tile already has a structure!"
 
 class TooManyUniqueStructures(NationsException):
     def __init__(self, structure: str):
-        super().__init__(f"Building {structure} failed: Nation already has a {structure}")
+        super().__init__(f"""Building {structure} failed: Nation already 
+                         has a {structure}""")
         self.user_message = f"You can't build more than one of those!"
 
 class MissingStructure(NationsException):
     def __init__(self, action: str, structure: str):
-        super().__init__(f"{action} failed: Tile is missing required structure '{structure}'")
+        super().__init__(f"""{action} failed: Tile is missing required 
+                         structure '{structure}'""")
         self.user_message = f"{action} needs a {structure} to be built first!"
+
 
 class DoesNotExist(NationsException):
     def __init__(self, object_type: str, action: str, name: str):
-        super().__init__(f"{action} failed: {object_type} '{name}' does not exist")
+        super().__init__(f"""{action} failed: {object_type} '{name}' does not 
+                         exist""")
         self.user_message = f"Couldn't find a {object_type} at {name}!"
 
-class CityTierTooLow(NationsException):
+
+class RegionTierTooLow(NationsException):
     def __init__(self, action: str, tier: int, required: int):
-        super().__init__(f"{action} failed: Tile needs to be tier {required} and is {tier}")
-        self.user_message = f"The city needs to be tier {required} to do that!"
+        super().__init__(f"""{action} failed: Tile needs to be tier 
+                         {required} and is {tier}""")
+        self.user_message = f"""The region needs to be tier {required} to do 
+                            that!"""
 
 class NotOwned(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
-        super().__init__(f"{action} failed: User did not own the tile {location}")
+        super().__init__(f"""{action} failed: User did not own the tile 
+                         {location}""")
         self.user_message = f"You don't own {location}!"
+
 
 class NotEnoughInfluence(NationsException):
     def __init__(self, action: str, required: int, had: int):
-        super().__init__(f"{action} failed: User needed {required} influence and had {had}")
-        self.user_message = f"You need {required} influence to do that and only have {had}!"
+        super().__init__(f"""{action} failed: User needed {required} 
+                         influence and had {had}""")
+        self.user_message = f"""You need {required} influence to do that and 
+                            only have {had}!"""
 
 class NotEnoughResources(NationsException):
     def __init__(self, action: str, required: list[str], had: list[str]):
-        super().__init__(f"{action} failed: Needed {required} but only had {had}")
+        super().__init__(f"""{action} failed: Needed {required} but only 
+                         had {had}""")
         missing_resources = ""
-        for resource in required:
-            if not resource in had:
-                missing_resources += resource + ", "
-        self.user_message = f"You don't have the resources! {missing_resources} was missing."
+        for resource in list(set(required)):
+            diff = required.count(resource) - had.count(resource)
+            if diff > 0:
+                for n in range(diff):
+                    missing_resources += resource + ", "
+        self.user_message = f"""You don't have the resources! 
+                            {missing_resources} was missing."""
+
+class ResourcesDeployed(NationsException):
+    def __init__(self, action: str, resource: str):
+        super().__init__(f"""{action.capitalize()} failed: '{resource}' was 
+                         in use""")
+        self.user_message = f"""You don't have enough resources! 
+                            {resource.split("_")[1].capitalize()} is being 
+                            consumed, so you cannot {action}. You'll have to 
+                            cancel exports, scrap structures, or move 
+                            resources here to counterract this."""
+
+class TooManyTrades(NationsException):
+    def __init__(self, trades: int, region: str):
+        super().__init__(f"""Exporting failed, {region} already has its max of 
+                         {trades} trades.""")
+        self.user_message = f"""{region} can't handle any more than the 
+                            {trades} trades it already has! Upgrade the 
+                            infrastructure level or city tier for more trade 
+                            capacity."""

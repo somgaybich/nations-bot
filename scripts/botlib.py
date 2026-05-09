@@ -42,7 +42,7 @@ class NationsBot(discord.Bot):
             logger.info("Committed all database changes")
         except RuntimeError:
             # This is raised on startup because the initial database commit always fails
-            logger.debug("Initial commit failed")
+            logger.debug("Initial commit failed, this is expected behavior")
         except Exception as e:
             logger.error(f"Unable to commit database: {e}")
             raise

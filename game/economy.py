@@ -10,73 +10,59 @@ class Econ:
     """
     Represents a nation's economy.
     """
-    def __init__(self, nationid: int, influence: int = 2, influence_cap: int = 2):
+    nationid: int
+    """
+    The NID of the parent nation.
+    """
+    influence: int
+    """
+    The influence currently available.
+    """
+    influence_cap: int
+    """
+    The maximum influence usable per season.
+    """
+
+    def __init__(self, nationid: int, influence: int = 2, 
+                 influence_cap: int = 2):
+        """
+        :param nationid: The NID of the parent nation.
+        :param influence: The influence currently available.
+        :param influence_cap: The maximum influence usable per season.
+        :type nationid: int
+        :type influence: int
+        :type influence_cap: int
+        """
         self.nationid = nationid
         self.influence = influence
         self.influence_cap = influence_cap
 
     async def save(self):
+        """
+        Saves this economy to the database.
+        """
         await db.save_economy(self)
     
     def calculate_cap(self) -> int:
+        """
+        Calculates a new influence cap for this economy. Does not actually
+        assign or save the new cap value.
+        """
         cap = 1
         nation = nation_list[self.nationid]
-        for city in nation.cities.values():
-            cap += city.tier + 1
-            if city.structures.has("District"):
+        for city in nation.regions.values():
+            cap = city.city_tier + 1
+            
+            if "District" in city.structure_types():
                 cap += 2
             
-            luxuries = city.luxury_count()
-            if city.tier == 3:
+            luxuries = len(city.inventory)
+            if city.city_tier == 3:
                 luxuries -= 1
-            elif city.tier == 4:
+            elif city.city_tier == 4:
                 luxuries -= 2
             cap += luxuries
         
-        for link in nation.links:
-            match link.linktype.name:
-                case "Stone Road":
-                    cap += 1
+        # TODO: Consider infrastructure quality?
 
-                case "Simple Rail":
-                    if link.origin.structures.has("Central Station"):
-                        cap += 2
-                    elif link.origin.structures.has("Station"):
-                        cap += 1
-
-                    if link.destination.structures.has("Central Station"):
-                        cap += 2
-                    elif link.destination.structures.has("Station"):
-                        cap += 1
-
-                    cap += 3
-
-                case "Quality Rail":
-                    if link.origin.structures.has("Central Station"):
-                        cap += 2
-                    elif link.origin.structures.has("Station"):
-                        cap += 1
-
-                    if link.destination.structures.has("Central Station"):
-                        cap += 2
-                    elif link.destination.structures.has("Station"):
-                        cap += 1
-
-                    cap += 5
-
-                case "Sea Route":
-                    if link.origin.structures.has("Port") and link.destination.structures.has("Port"):
-                        cap += 4
-                    elif link.origin.structures.has("Port") or link.origin.structures.has("Port"):
-                        cap += 2
-                    
-                    cap += 3
-            
-            structures = nation.cities[link.origin].structures + nation.cities[link.destination].structures
-            for structure in structures:
-                if structure == "station" and link.linktype == "simple_rail" or link.linktype == "quality_rail":
-                    cap += 1
-                if structure == "port" and link.linktype == "sea":
-                    cap += 2
-
-        return 1
+        return cap

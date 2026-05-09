@@ -1,7 +1,16 @@
 import aiosqlite
 import json
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from game.nation import Nation
+    from game.authority import Authority
+    from game.economy import Econ
+    from game.military import Unit
+    from game.region import Region
+    from world.map import Tile
+    from world.structures import Structure
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +45,24 @@ async def init_db(file: str = "data/nations.db"):
 
     await _db.execute(
     """
+    CREATE TABLE IF NOT EXISTS regions (
+        name TEXT PRIMARY KEY,
+        x INTEGER NOT NULL,
+        y INTEGER NOT NULL,
+        owner INTEGER NOT NULL,
+        tiles TEXT,
+        inventory TEXT,
+        authority TEXT,
+        capital TEXT,
+        city_tier INTEGER,
+        infrastructure INTEGER,
+        trades INTEGER)
+    """
+    )
+    logger.debug("Created regions table")
+
+    await _db.execute(
+    """
     CREATE TABLE IF NOT EXISTS units (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -47,6 +74,7 @@ async def init_db(file: str = "data/nations.db"):
         morale INTEGER NOT NULL,
         exp INTEGER NOT NULL,
         movement_free INTEGER NOT NULL,
+        status TEXT NOT NULL,
         owner INTEGER NOT NULL)
     """)
     logger.debug("Created units table")
@@ -58,39 +86,11 @@ async def init_db(file: str = "data/nations.db"):
         y INTEGER NOT NULL,
         terrain TEXT NOT NULL,
         owner INTEGER,
-        owned BOOLEAN,
-        structures TEXT,
+        structure TEXT,
+        link_structures TEXT,
         PRIMARY KEY (x, y))
     """)
     logger.debug("Created tiles table")
-
-    await _db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS cities (
-        x INTEGER NOT NULL,
-        y INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        influence INTEGER NOT NULL,
-        tier INTEGER NOT NULL,
-        stability INTEGER NOT NULL,
-        inventory TEXT NOT NULL,
-        owner INTEGER NOT NULL,
-        structures TEXT NOT NULL,
-        PRIMARY KEY (x, y))
-    """)
-    logger.debug("Created cities table")
-
-    await _db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS links (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        linktype TEXT NOT NULL,
-        origin TEXT NOT NULL,
-        destination TEXT NOT NULL,
-        path TEXT NOT NULL,
-        owner INTEGER NOT NULL)
-    """)
-    logger.debug("Created links table")
         
     await _db.execute(
         """
@@ -100,6 +100,19 @@ async def init_db(file: str = "data/nations.db"):
             influence_cap INTEGER NOT NULL)
         """)
     logger.debug("Created economies table")
+
+    await _db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS authorities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            nationid INTEGER NOT NULL,
+            authtype TEXT NOT NULL,
+            cap INTEGER NOT NULL,
+            cooperation FLOAT NOT NULL,
+            region TEXT NOT NULL)
+        """)
+    logger.debug("Created authorities table")
 
     await _db.commit()
     logger.info("Database started")
@@ -117,7 +130,7 @@ def get_db() -> aiosqlite.Connection:
 
 # ---------------
 
-async def save_nation(nation):
+async def save_nation(nation: "Nation"):
     logger.debug(f"Saving nation at {nation.userid}")
     await get_db().execute(
         """
@@ -137,7 +150,39 @@ async def load_nations_rows():
 
 # ---------------
 
-async def save_unit(unit):
+async def save_region(region: "Region"):
+    logger.debug(f"Saving nation at {region.name}")
+    encoded_inventory = []
+    for item in region.inventory:
+        encoded_inventory.append(item.encode())
+    await get_db().execute(
+        """
+        INSERT INTO regions (
+            name, x, y, owner, tiles, inventory, authority, capital, 
+            city_tier, infrastructure, trades)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            name = excluded.name,
+            tiles = excluded.tiles,
+            inventory = excluded.inventory,
+            authority = excluded.authority,
+            city_tier = excluded.city_tier,
+            infrastructure = excluded.infrastructure,
+            trades = excluded.trades
+        """,
+        (region.name, region.location[0], region.location[1], region.owner, 
+         json.dumps(region.tiles), json.dumps(encoded_inventory), 
+         region.authority, json.dumps(region.is_capital), region.city_tier, 
+         region.infrastructure, region.trades)
+    )
+
+async def load_regions_rows():
+    async with get_db().execute("SELECT * FROM regions") as cursor:
+        return await cursor.fetchall()
+    
+# ---------------
+
+async def save_unit(unit: "Unit"):
     logger.debug(f"Saving unit at {unit.id}")
     if unit.id is None:
         async with get_db().execute(
@@ -145,9 +190,9 @@ async def save_unit(unit):
             INSERT INTO units (
                 name, type, home, x, y,
                 strength, morale, exp, owner,
-                movement_free
+                movement_free, status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 unit.name,
@@ -159,7 +204,8 @@ async def save_unit(unit):
                 unit.morale,
                 unit.exp,
                 unit.owner,
-                unit.movement_free
+                unit.movement_free,
+                unit.status
             )
         ) as cursor:
             unit.id = cursor.lastrowid
@@ -169,7 +215,7 @@ async def save_unit(unit):
             UPDATE units
             SET name = ?, type = ?, home = ?, x = ?, y = ?,
                 strength = ?, morale = ?, exp = ?, owner = ?,
-                movement_free = ?
+                movement_free = ?, status = ?
             WHERE id = ?
             """,
             (
@@ -183,11 +229,12 @@ async def save_unit(unit):
                 unit.exp,
                 unit.owner,
                 unit.movement_free,
+                unit.status,
                 unit.id,
             )
         )
 
-async def delete_unit(unit):
+async def delete_unit(unit: "Unit"):
     if unit.id is not None:
         await get_db().execute("DELETE FROM units WHERE id = ?", (unit.id,))
 
@@ -197,22 +244,82 @@ async def load_units_rows():
 
 # ---------------
 
-async def save_tile(tile):
+async def save_authority(authority: "Authority"):
+    logger.debug(f"Saving authority at {authority.id}")
+    if authority.id is None:
+        async with get_db().execute(
+            """
+            INSERT INTO authorities (
+                name, nationid, authtype, cooperation, region
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                authority.name,
+                authority.nationid,
+                authority.authtype,
+                authority.cooperation,
+                authority.region
+            )
+        ) as cursor: 
+            authority.id = cursor.lastrowid
+    else:
+        await get_db().execute(
+            """
+            UPDATE authorities
+            SET name = ?, nationid = ?, authtype = ?, region = ?, 
+                cooperation = ?
+            WHERE id = ?
+            """,
+            (
+                authority.name,
+                authority.nationid,
+                authority.authtype,
+                authority.region,
+                authority.cooperation,
+                authority.id
+            )
+        )
+
+async def delete_authority(authority: "Authority"):
+    if authority.id is not None:
+        await get_db().execute("DELETE FROM authorities WHERE id = ?", (authority.id))
+
+async def load_authorities_rows():
+    async with get_db().execute("SELECT * FROM authorities") as cursor:
+        return await cursor.fetchall()
+
+# ---------------
+
+def encode_structure(structure: "Structure") -> dict:
+    if structure is None:
+        return {}
+    
+    return {
+        "structure_type": structure.structure_type.name,
+        "x": structure.location[0],
+        "y": structure.location[1],
+        "region": structure.region,
+        "builder": structure.owner
+    }
+
+async def save_tile(tile: "Tile"):
     logger.debug(f"Saving tile at {tile.location}")
     x, y = tile.location
     await get_db().execute(
         """
         INSERT INTO tiles (
-        x, y, terrain, owner, owned, structures
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
+        x, y, terrain, owner, structure)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(x, y) DO UPDATE SET
             terrain = excluded.terrain,
             owner = excluded.owner,
-            owned = excluded.owned,
-            structures = excluded.structures
+            structure = excluded.structure
         """,
-        (x, y, tile.terrain.data(), tile.owner, tile.owned, json.dumps(tile.structures))
+        (
+            x, y, tile.terrain.data(), tile.owner,  
+            json.dumps(encode_structure(tile.structure))
+        )
     )
 
 async def save_tiles(iterable_tiles):
@@ -225,65 +332,7 @@ async def load_tiles_rows():
 
 # ---------------
 
-async def save_city(city):
-    logger.debug(f"Saving city at {city.location}")
-    x, y = city.location
-    await get_db().execute(
-        """
-        INSERT INTO cities (
-        x, y, name, influence, tier, stability, inventory, owner, structures
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(x, y) DO UPDATE SET
-            name = excluded.name,
-            influence = excluded.influence,
-            tier = excluded.tier,
-            stability = excluded.stability,
-            inventory = excluded.inventory,
-            owner = excluded.owner,
-            structures = excluded.structures
-        """,
-        (x, y, city.name, city.influence, city.tier, city.stability, 
-         json.dumps(city.inventory), city.owner, json.dumps(city.structures))
-    )
-
-async def load_cities_rows():
-    async with get_db().execute("SELECT * FROM cities") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
-async def save_link(link):
-    logger.debug(f"Saving link at {link.id}")
-    if link.id is None:
-        async with get_db().execute(
-            """
-            INSERT INTO links (linktype, origin, destination, path, owner)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (link.linktype, link.origin.name, link.destination.name, json.dumps(link.path), link.owner)
-        ) as cursor:
-            link.id = cursor.lastrowid
-    else:
-        await get_db().execute(
-            """
-            UPDATE linktype = ?, origin = ?, destination = ?, path = ?, owner = ?
-            WHERE id = ?
-            """,
-            (link.linktype, link.origin, link.destination, json.dumps(link.path), link.owner, link.id)
-        )
-
-async def delete_link(link):
-    if link.id is not None:
-        await get_db().execute("DELETE FROM links WHERE id = ?", (link.id,))
-
-async def load_links_rows():
-    async with get_db().execute("SELECT * FROM links") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
-async def save_economy(econ):
+async def save_economy(econ: "Econ"):
     logger.debug(f"Saving economy at {econ.nationid}")
     await get_db().execute(
         """

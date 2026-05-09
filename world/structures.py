@@ -1,141 +1,201 @@
 import logging
-from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from world.cities import City
-
-import scripts.database as db
-
 class StructureType:
     """
-    Contains data about a particular type of structure.
+    A specific type of structure. Encodes the requirements and behavior
+    of a structure in the game. These should not be created dynamically,
+    only on system startup.
     """
-    def __init__(self, usable_in: list, inf_cost: int, resource_cost: list[str], name: str, prereq: str = '', tier_req: int = 0):
+    usable_in: list[str]
+    """
+    A list of the environments required for this structure to be built.
+    Currently implemented: arable, coastal, non-mountain, mountain, city
+    """
+    inf_cost: int
+    """
+    The amount of influence the builder nation will lose for building this
+    structure.
+    """
+    fname: str
+    """
+    The name that will be displayed to the user.
+    """
+    name: str
+    """
+    The internal name for this structure type.
+    """
+    resource_cost: list[str]
+    """
+    The resource types needed to build this structure.
+    """
+    prereq: str
+    """
+    The internal name of the structure that needs to be built before this one.
+    """
+    tier_req: int
+    """
+    The minimum city tier this structure can be built at.
+    """
+    resource_prod: str
+    """
+    The resource, if any, that this structure produces.
+    """
+
+    def __init__(self, usable_in: list, inf_cost: int, fname: str, name: str,
+                 resource_cost: list[str] = [], prereq: str = '', 
+                 tier_req: int = 0, resource_prod: str = ''):
+        """
+        :param usable_in: A list of the environments required for this 
+            structure to be built. Currently implemented: arable, coastal, 
+            non-mountain, mountain, city
+        :param inf_cost: The amount of influence the builder nation will lose 
+            for building this structure.
+        :param fname: The name that will be displayed to the user.
+        :param name: The internal name for this structure type.
+        :param resource_cost: The resource types needed to build this 
+            structure.
+        :param prereq: The internal name of the structure that needs to be 
+            built before this one.
+        :param tier_req: The minimum city tier this structure can be built at.
+        :param resource_prod: The resource, if any, that this structure 
+            produces.
+        :type usable_in: list[str]
+        :type inf_cost: int
+        :type fname: str
+        :type name: str
+        :type resource_cost: list[str]
+        :type prereq: str
+        :type tier_req: int
+        :type resource_prod: str
+        """
         self.usable_in = usable_in
         self.inf_cost = inf_cost
         self.resource_cost = resource_cost
-        self.name = name # Note that this is the capitalized and spaced version
-        self.prereq = prereq # A structure that needs to be built first
-        self.tier_req = tier_req # The city tier that the structure needs to be built in
-
-class LinkType:
-    def __init__(self, oceanic: str, inf_cost: int, resource_cost: dict[str, int], name: str):
-        self.oceanic = oceanic
-        self.inf_cost = inf_cost
-        self.resource_cost = resource_cost
+        self.fname = fname
         self.name = name
-
-class Link:
-    """
-    A generalized class for infrastructure connections.
-    
-    :var linktype: A LinkType object.
-    :var origin: The name of the city the link starts in. 
-    :var destination: The name of the city the link ends in. Note that order doesn't matter, but may effect pathfinding.
-    :var path: The list of locations which make up this link.
-    :var owner: The userid of the nation which owns this link.
-    """
-    def __init__(self, linktype: LinkType, origin: "City", destination: "City", path: list[tuple[int, int]], owner: int, link_id = None):
-        self.origin = origin
-        self.destination = destination
-        self.path = path
-        self.owner = owner
-        self.linktype = linktype
-        self.link_id = link_id
-    
-    async def save(self):
-        await db.save_link(self)
+        self.prereq = prereq
+        self.tier_req = tier_req
+        self.resource_prod = resource_prod
 
 class Structure:
-    def __init__(self, structure_type: StructureType | LinkType, location: tuple[int, int], root_city: str, builder: int):
+    """
+    A player-built structure on the map.
+    """
+    structure_type: StructureType
+    """
+    The type of structure that this is. Encodes the costs and behaviors of this
+    structure.
+    """
+    location: tuple[int, int]
+    """
+    The location of the tile where this structure is built.
+    """
+    region: str
+    """
+    The name of the region this structure belongs to.
+    """
+    owner: int
+    """
+    The NID of the nation that this structure belongs to.
+    """
+    def __init__(self, structure_type: StructureType, 
+                 location: tuple[int, int], region: str, owner: int):
+        """
+        :param structure_type: The type of structure that this is. Encodes the 
+            costs and behaviors of this structure.
+        :param location: The location of the tile where this structure is 
+            built.
+        :param region: The name of the region this structure belongs to.
+        :param owner: The NID of the nation that this structure belongs to.
+        :type structure_type: StructureType
+        :type location: tuple[int, int]
+        :type region: str
+        :type owner: int
+        """
         self.structure_type = structure_type
         self.location = location
-        self.root_city = root_city # A link structure's root is the nearest of the two
-        self.builder = builder # Nid of nation that built it
-
-class StructureList(list[Structure]):
-    def __init__(self):
-        super().__init__(self)
-    
-    def has(self, name: str) -> bool:
-        """
-        Checks if a structurelist contains a structure type
-        """
-        for structure in self:
-            if structure.structure_type.name == name:
-                return True
-        return False
+        self.region = region
+        self.owner = owner
 
 structure_types = {
+    # Dummy types
+    # Only used for rendering
+    # (This is kind of a silly workaround but works fine)
+    "outpost": StructureType(
+        usable_in=[],
+        inf_cost=0,
+        fname="Outpost",
+        name="outpost"),
+    "village": StructureType(
+        usable_in=[],
+        inf_cost=0,
+        fname="Village",
+        name="village"),
+    "town": StructureType(
+        usable_in=[],
+        inf_cost=0,
+        fname="Town",
+        name="town"),
+    "city": StructureType(
+        usable_in=[],
+        inf_cost=0,
+        fname="City",
+        name="city"),
+    "metropolis": StructureType(
+        usable_in=[],
+        inf_cost=0,
+        fname="Metropolis",
+        name="metropolis"),
+
+    # City structures
     "temple": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
-        resource_cost=["stone"], 
-        name="Temple"),
+        fname="Temple",
+        name="temple"),
     "grandtemple": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
-        resource_cost=["stone"], 
-        name="Grand Temple", 
+        fname="Grand Temple", 
+        name="grandtemple",
         prereq="Temple"),
     "station": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["lumber"], 
-        name="Station"),
+        fname="Station",
+        name="station"),
     "centralstation": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["lumber"], 
-        name="Central Station", 
+        fname="Central Station", 
+        name="centralstation",
         prereq="Station"),
     "district": StructureType(
         usable_in=["city"], 
         inf_cost=1, 
-        resource_cost=["lumber", "stone"], 
-        name="District"),
+        fname="District",
+        name="district"),
     "charcoalpit": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["lumber"], 
-        name="Charcoal Pit"),
+        fname="Charcoal Pit",
+        name="charcoalpit"),
     "smeltery": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["stone", "fuel"], 
-        name="Smeltery"),
-    "port": StructureType(usable_in=["city"], 
+        fname="Smeltery",
+        name="smeltery"),
+    "port": StructureType(
+        usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["stone", "lumber"], 
-        name="Port"),
+        fname="Port",
+        name="port"),
     "foundry": StructureType(
         usable_in=["city"], 
         inf_cost=2, 
-        resource_cost=["metal", "fuel"], 
-        name="Foundry", tier_req=2),
-}
-
-link_types = {
-    "stone_road": LinkType(
-        oceanic=False, 
-        inf_cost=0.5, 
-        resource_cost={"stone": 0.2, "metal": 0}, 
-        name="Stone Road"),
-    "simple_rail": LinkType(
-        oceanic=False,
-        inf_cost=1,
-        resource_cost={"stone": 0, "metal": (1/3)},
-        name="Simple Rail"),
-    "quality_rail": LinkType(
-        oceanic=False,
-        inf_cost=2,
-        resource_cost={"stone": 0, "metal": 0.5},
-        name="Quality Rail"),
-    "sea": LinkType(
-        oceanic=True,
-        inf_cost=0.2,
-        resource_cost={"stone": 0, "metal": 0},
-        name="Sea Route")
+        fname="Foundry",
+        name="foundry",
+        tier_req=2)
 }

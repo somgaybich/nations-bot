@@ -6,14 +6,25 @@ from game.constants import update_season
 logger = logging.getLogger(__name__)
 
 async def tick():
+    """
+    Processes a tick of the game system.
+    """
     logger.info("Processing game tick...")
     for nation in nation_list.values():
         logger.debug(f"Processing tick for {nation.name}")
-        for city in nation.cities.values():
-            city.tier = city.calculate_tier()
+        for region in nation.regions.values():
+            region.city_tier = region.calculate_tier()
+            # If tier goes down, a region's trade capacity might change
 
-            await city.save()
-        
+            # TODO: Authority cooperation calculations
+
+            await region.save()
+
+        for unit in nation.military.values():
+            # Any units that are currently in training graduate
+            if unit.status == "TRAINING":
+                unit.status = ""
+
         nation.econ.influence_cap = nation.econ.calculate_cap()
         nation.econ.influence = nation.econ.influence_cap
         

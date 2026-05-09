@@ -1,15 +1,61 @@
 import logging
 import json
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from world.structures import Structure
+
+from game.constants import arable_biomes, dry_biomes
+
 import scripts.database as db
 
-from world.structures import StructureList
 from world.world import tile_list
 
 class Terrain:
-    def __init__(self, biome: str, is_land: bool, is_water: bool, difficulty: int, straits: list | None = None):
+    """
+    Holds the terrain data of a particular tile.
+    """
+    biome: str
+    """
+    The climate biome of the parent tile.
+    """
+    is_land: bool
+    """
+    Whether this tile is land or not.
+    """
+    is_water: bool
+    """
+    Whether this tile is water or not.
+    """
+    difficulty: int
+    """
+    The amount of free movement a unit loses for passing through this tile.
+    """
+    straits: list[int]
+    """
+    Any straits that might be adjacent to this tile. Corresponds to a side of 
+    this tile counting counterclockwise starting from the NE side with index 0.
+    """
+
+    def __init__(self, biome: str, is_land: bool, is_water: bool, 
+                 difficulty: int, straits: list[int] | None = None):
+        """
+        :param biome: The climate biome of the parent tile.
+        :param is_land: Whether this tile is land or not.
+        :param is_water: Whether this tile is water or not.
+        :param difficulty: The amount of free movement a unit loses for passing
+            through this tile.
+        :param straits: Any straits that might be adjacent to this tile. 
+            Corresponds to a side of this tile counting counterclockwise 
+            starting from the NE side with index 0.
+        :type biome: str
+        :type is_land: bool
+        :type is_water: bool
+        :type difficulty: int
+        :type straits: list[int] | None
+        """
         self.biome = biome
         self.is_land = is_land
         self.is_water = is_water
@@ -17,46 +63,102 @@ class Terrain:
         self.straits = straits if not straits is None else []
     
     def data(self):
-        return json.dumps([self.biome, self.is_land, self.is_water, self.difficulty, self.straits])
+        """
+        Returns a json-safe version of this terrain data to be saved
+        in the database.
+        """
+        return json.dumps([self.biome, self.is_land, self.is_water, 
+                           self.difficulty, self.straits])
 
 class Tile:
-    def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), owner: str = None, 
-                 owned: bool = False, structures: StructureList = StructureList()):
+    """
+    A tile on the game map.
+    """
+    terrain: Terrain
+    """
+    A terrain object that corresponds to this tile's physical conditions.
+    """
+    location: tuple[int, int]
+    """
+    The (q, r) axial coordinates of this tile on the game map.
+    """
+    owner: int | None
+    """
+    The NID of the nation that owns this tile, if any.
+    """
+    structure: "Structure | None"
+    """
+    The player-built object on this tile.
+    """
+    def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
+                 owner: int = None, structure: "Structure" = None):
+        """
+        :param terrain: A terrain object that contains the tile's physical 
+            conditions.
+        :param location: The (q, r) axial coordinates of this tile on the game 
+            map.
+        :param owner: The NID of the nation that owns this tile, if any.
+        :param structure: The player-built object on this tile.
+        :type terrain: Terrain
+        :type location: tuple[int, int]
+        :type owner: int
+        :type structure: Structure
+        """
         self.terrain = terrain
         self.location = location
-        self.owned = owned
         self.owner = owner
-        self.structures = structures
+        self.structure = structure
 
-        if structures.has("Simple Rail"):
-            self.difficulty = 0.5
-        elif structures.has("Quality Rail"):
-            self.difficulty = 0.25
-        else:
-            self.difficulty = terrain.difficulty
-    
+        # tile difficulty adjustment based on region infrastructure level?
+        self.difficulty = self.terrain.difficulty
+
     async def save(self):
+        """
+        Saves this tile to the database.
+        """
         await db.save_tile(self)
     
     def n(self) -> "Tile":
+        """
+        Returns the tile North of this one.
+        """
         return tile_list[(self.location[0], self.location[1] - 1)]
 
     def nw(self) -> "Tile":
+        """
+        Returns the tile Northwest of this one.
+        """
         return tile_list[(self.location[0] - 1, self.location[1])]
 
     def sw(self) -> "Tile":
+        
+        """
+        Returns the tile Southwest of this one.
+        """
         return tile_list[(self.location[0] - 1, self.location[1] + 1)]
 
     def s(self) -> "Tile":
+        """
+        Returns the tile South of this one.
+        """
         return tile_list[(self.location[0], self.location[1] + 1)]
 
     def ne(self) -> "Tile":
+        """
+        Returns the tile Northeast of this one.
+        """
         return tile_list[(self.location[0] + 1, self.location[1] - 1)]
 
     def se(self) -> "Tile":
+        """
+        Returns the tile Southeast of this one.
+        """
         return tile_list[(self.location[0] + 1, self.location[1])]
 
     def area(self) -> list["Tile"]:
+        """
+        Returns all the tiles that directly border this one.
+        """
         area = [self]
         for fn in (self.n, self.nw, self.sw, self.s, self.ne, self.se):
             try:
@@ -68,6 +170,9 @@ class Tile:
         return set(area)
 
     def metroarea(self) -> set["Tile"]:
+        """
+        Returns all the tiles within two of this one.
+        """
         result = set()
         for tile in self.area():
             result |= tile.area()
@@ -75,13 +180,14 @@ class Tile:
 
     def direction_to(self, target: "Tile") -> str | None:
         """
-        Takes a tile and returns the name of the direction to that tile.
-        If there is no direct path, returns None.
+        Takes a tile and returns the lowercase name of the direction to that 
+        tile. If there is no direct path, returns None.
         """
         q, r = target.location
         
         difference_tuple = (q - self.location[0], r - self.location[1])
-        if not -1 < difference_tuple[0] < 1 or not -1 < difference_tuple[1] < 1:
+        if (not -1 < difference_tuple[0] < 1 
+            or not -1 < difference_tuple[1] < 1):
             return None
 
         match difference_tuple:
@@ -97,14 +203,58 @@ class Tile:
                 return "s"
             case (-1, 1):
                 return "sw"
+
+    def is_arable(self) -> bool:
+        """
+        Checks whether a tile meets the requirements for farming.
+        """
+        if self.terrain.biome in arable_biomes:
+            return True
+
+        if self.terrain.biome not in dry_biomes:
+            # Tile isn't in arable or dry biomes
+            # This tile cannot be arable
+            return False
+
+        # If the biome is dry, it can be arable if it has water
+        if self.is_coastal():
+            return True
+        for area_tile in self.area():
+            if area_tile.structure == "Aqueduct":
+                return True
+
+        # This tile satisfies none of the conditions
+        return False
+
+    def is_coastal(self) -> bool:
+        """
+        Returns True if self.terrain.is_water and self.terrain.is_land.
+        """
+        if self.terrain.is_water and self.terrain.is_land:
+            return True
+        else:
+            return False
         
 def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
+    """
+    An undo-safe function for fetching tiles based on direction. Used in cases
+    where the user is manually moving something. Returns a tuple of the new
+    tile moved to and the previous tile. Does not actually move anything.
+
+    :param current_tile: The tile where the target currently is.
+    :param direction: The name of the direction ot move, in lowercase form.
+    :type current_tile: Tile
+    :type direction: str
+    """
     last_tile = current_tile
     new_tile: Tile = getattr(current_tile, direction)()
 
     return new_tile, last_tile
 
 def hex_distance(a: Tile | tuple[int, int], b: Tile | tuple[int, int]) -> int:
+    """
+    Finds the distance between two tiles.
+    """
     if isinstance(a, Tile):
         aq, ar = a.location
     else:
