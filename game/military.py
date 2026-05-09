@@ -444,20 +444,3 @@ def gap_stalemate_chance(gap: float) -> float:
     :type gap: float
     """
     return combat_settings["base_stalemate_chance"] * (math.e ** (-10 * (gap ** 2)))
-
-def soften_impact(impact: float) -> float:
-    """
-    Takes an impact value (0 - 1) and applies some curve to weaken the effect 
-    of the battle roll on casualties. Proportionally closer values will have
-    a lower impact.
-    """
-    return ((math.e ** impact) - 1) / (math.e - 1)
-    # This particular function makes closer battles cause fewer casualties.
-
-def sharp_impact(impact: float) -> float:
-    """
-    Takes an impact value (0 - 1) and applies some curve to weaken the effect
-    of the battle roll on casualties. Proportionally closer values will have
-    a stronger impact.
-    """
-    return math.sin(math.pi * impact / 2)
