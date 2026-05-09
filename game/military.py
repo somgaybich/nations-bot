@@ -134,15 +134,7 @@ class Unit:
         if battle_terrain == home_tile.terrain.biome:
             eff += combat_settings["home_terrain_buff"]
         elif attacking:
-            match battle_terrain:
-                case "desert":
-                    eff -= combat_settings["desert_debuff"]
-                case "forest":
-                    eff -= combat_settings["forest_debuff"]
-                case "mountains":
-                    eff -= combat_settings["mountains_debuff"]
-                case "high_mountains":
-                    eff -= combat_settings["high_mountains_debuff"]
+            eff -= (battle_terrain.difficulty - 1) * combat_settings["terrain_difficulty_debuff"]
             
         if (tile in home_region.developed_area()):
             eff += combat_settings["home_city_buff"]
@@ -207,6 +199,7 @@ class Unit:
         its movement to 0.
         """
         from world.world import units
+        
         retreat_candidates: list[Tile] = []
         for tile in tile_list[self.location].area():
             if tile.difficulty <= self.movement_free:
@@ -214,8 +207,22 @@ class Unit:
                     if unit.location == tile.location:
                         # This tile has an enemy, we can't retreat there.
                         break
+                
+                if (tile.terrain.is_water 
+                    and not tile.is_coastal() 
+                    and self.type == "army"):
+                    break
+                elif (tile.terrain.is_land 
+                    and not tile.is_coastal() 
+                    and self.type == "fleet"):
+                    break
+                
                 retreat_candidates.append(tile)
         
+        if len(retreat_candidates) == 0:
+            # There's nowhere to go!
+            return
+
         effectivenesses = {}
         for tile in retreat_candidates:
             effectivenesses[tile.location] = self.effectiveness(False, 
@@ -238,11 +245,12 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings["crush_loser_strength_loss"] * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings["crush_loser_morale_loss"] * scaled_impact)
 
-        for region in nation_list[self.owner].regions.values():
+        nation = nation_list[self.owner]
+        for region in nation.regions.values():
             if battle_location in region.tiles:
-                # Change stability appropriately
-                pass
-        
+                authority = nation.authorities[region.authority]
+                authority.cooperation = max(0.0, authority.cooperation - combat_settings["crush_coop_modifier"] * scaled_impact)
+
         await self.retreat()
 
         self.movement_free = 0
@@ -260,10 +268,11 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings["loser_strength_loss"] * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings["loser_morale_loss"] * scaled_impact)
 
-        for region in nation_list[self.owner].regions.values():
+        nation = nation_list[self.owner]
+        for region in nation.regions.values():
             if battle_location in region.tiles:
-                # Change stability appropriately
-                pass
+                authority = nation.authorities[region.authority]
+                authority.cooperation = max(0.0, authority.cooperation - combat_settings["decisive_coop_modifier"] * scaled_impact)
 
         await self.retreat()
         
@@ -281,10 +290,11 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings["winner_strength_loss"] * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings["winner_morale_loss"] * scaled_impact)
 
-        for region in nation_list[self.owner].regions.values():
+        nation = nation_list[self.owner]
+        for region in nation.regions.values():
             if battle_location in region.tiles:
-                # Change stability appropriately
-                pass
+                authority = nation.authorities[region.authority]
+                authority.cooperation = min(1.0, authority.cooperation + combat_settings["decisive_coop_modifier"] * scaled_impact)
         
         self.movement_free = 0
     
@@ -300,10 +310,11 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings["crush_winner_strength_loss"] * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings["crush_winner_morale_loss"] * scaled_impact)
 
-        for region in nation_list[self.owner].regions.values():
+        nation = nation_list[self.owner]
+        for region in nation.regions.values():
             if battle_location in region.tiles:
-                # Change stability appropriately
-                pass
+                authority = nation.authorities[region.authority]
+                authority.cooperation = min(1.0, authority.cooperation + combat_settings["crush_coop_modifier"] * scaled_impact)
           
     async def stalemate(self, scaled_impact, battle_location):
         """
@@ -317,10 +328,11 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings["stalemate_strength_loss"] * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings["stalemate_morale_loss"] * scaled_impact)
 
-        for region in nation_list[self.owner].regions.values():
+        nation = nation_list[self.owner]
+        for region in nation.regions.values():
             if battle_location in region.tiles:
-                # Change stability appropriately
-                pass
+                authority = nation.authorities[region.authority]
+                authority.cooperation = max(0.0, authority.cooperation - combat_settings["stalemate_coop_modifier"] * scaled_impact)
         
         self.movement_free = 0
 
@@ -365,14 +377,14 @@ class Unit:
         # All effectiveness modifiers must be done at this point
 
         normalizer = 1 / (self_eff + target_eff)
-        self_bvc = (self_eff * normalizer)
-        target_bvc = (target_eff * normalizer)
-        gap = self_bvc - target_bvc
+        att_normalized_eff = (self_eff * normalizer)
+        def_normalized_eff = (target_eff * normalizer)
+        gap = att_normalized_eff - def_normalized_eff
 
-        stalemate_chance = max(0.0, combat_settings["base_stalemate_chance"] - ((gap ** 2) * combat_settings["base_stalemate_chance"]))
+        stalemate_chance = gap_stalemate_chance(gap)
         non_stalemate_chance = 1 - stalemate_chance
-        win_chance = self_bvc * non_stalemate_chance
-        loss_chance = target_bvc * non_stalemate_chance
+        win_chance = att_normalized_eff * non_stalemate_chance
+        loss_chance = def_normalized_eff * non_stalemate_chance
 
         roll = random.random()
         if roll <= win_chance:
@@ -393,11 +405,11 @@ class Unit:
             impact = loss_chance + win_chance - roll
             scaled_impact = math.sin(math.pi * impact / 2)
             if impact <= crushing_chance(-gap):
-                # Crushing attacker victory
+                # Crushing defender victory
                 await target.crushing_victory(scaled_impact)
                 await self.crushing_loss(scaled_impact)
             else:
-                # Minor attacker victory
+                # Minor defender victory
                 await target.victory(scaled_impact)
                 await self.loss(scaled_impact)
         else:
@@ -417,7 +429,35 @@ def crushing_chance(gap: float) -> float:
     crushing victory for the unit from whose perspective the gap measurement
     was taken.
 
-    :param gap: The effectiveness gap between the units, 
+    :param gap: The gap between the normalized effectivenesses of the involved
+        units. 
     :type gap: float
     """
-    return max(0.0, min(1.0, combat_settings["base_crushing_chance"] + ((gap ** 3) * combat_settings["crushing_chance_modifier"])))
+    return max(0.0, min(1.0, combat_settings["crush_a"] * (gap + 1) ** 2 - combat_settings["crush_b"]))
+
+def gap_stalemate_chance(gap: float) -> float:
+    """
+    Takes a gap between unit strengths and determines the probability of a
+    stalemate.
+    :param gap: The gap between the normalized effectivenesses of the involved
+        units. 
+    :type gap: float
+    """
+    return combat_settings["base_stalemate_chance"] * (math.e ** (-10 * (gap ** 2)))
+
+def soften_impact(impact: float) -> float:
+    """
+    Takes an impact value (0 - 1) and applies some curve to weaken the effect 
+    of the battle roll on casualties. Proportionally closer values will have
+    a lower impact.
+    """
+    return ((math.e ** impact) - 1) / (math.e - 1)
+    # This particular function makes closer battles cause fewer casualties.
+
+def sharp_impact(impact: float) -> float:
+    """
+    Takes an impact value (0 - 1) and applies some curve to weaken the effect
+    of the battle roll on casualties. Proportionally closer values will have
+    a stronger impact.
+    """
+    return math.sin(math.pi * impact / 2)
