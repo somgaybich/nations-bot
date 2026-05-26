@@ -6,7 +6,6 @@ from discord import Color
 import scripts.database as db
 
 from game.military import Unit
-from game.resources import Resource
 from game.authority import Authority
 from game.nation import Nation
 from game.region import Region
@@ -82,14 +81,8 @@ async def load(map_only: bool = False):
         decoded_inventory = []
         inventory_data = json.loads(row['inventory'])
         for item_data in inventory_data:
-            decoded_item = Resource(
-                name=item_data['name'],
-                origin=ast.literal_eval(item_data['origin']),
-                located_at=item_data['located_at'],
-                path=ast.literal_eval(item_data['path'])
-            )
-
-            decoded_inventory.append(decoded_item)
+            #FIXME
+            pass
 
         region = Region(
             name=row["name"],

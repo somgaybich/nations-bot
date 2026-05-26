@@ -14,7 +14,6 @@ async def tick():
         logger.debug(f"Processing tick for {nation.name}")
         for region in nation.regions.values():
             region.city_tier = region.calculate_tier()
-            # If tier goes down, a region's trade capacity might change
 
             # TODO: Authority cooperation calculations
 

@@ -5,13 +5,12 @@ logger = logging.getLogger(__name__)
 
 import scripts.errors as errors
 
-from game.constants import admin_mode, city_types
+from game.constants import admin_mode
 from game.military import Unit
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
 from game.authority import Authority
-from game.resources import Resource
 
 from world.map import hex_distance
 from world.structures import StructureType, Structure, structure_types
@@ -349,68 +348,3 @@ async def new_structure(structure_type: StructureType,
     await tile.save()
 
     return new_structure
-
-async def move_resource(resource_name: str, source: Region, 
-                        target: Region) -> Resource:
-    """
-    Moves a resource from the source to the target. Does not create
-    multi-regional routes, so the regions must border each other or water.
-    Because the search uses Region.find_resources(), it is subtype sensitive
-    only if a subtype specifier is provided. Remember to check if the player
-    triggering this trade actually has permission to first. Returns the
-    moved resource if successful.
-    """
-    # Check whether the item exists
-    resources = source.find_resources(resource_name)
-    if resources == []:
-        raise errors.NotEnoughResources(action="Exporting", 
-                                        required=[resource_name], 
-                                        had=[])
-
-    # Check whether the item is in use
-    for item in resources:
-        if item.used_in == None:
-            # This just finds the first one in the list
-            # Somewhat arbitrary but works for now
-            resource = item
-            break
-    else:
-        raise errors.ResourcesDeployed(action="Exporting", 
-                                       resource=resource_name)
-
-    path = resource.path
-    if target.name in path:
-        # We've already been here!
-        target_index = path.index(target.name)
-        redundant_regions = path[target_index:]
-
-        for region_name in redundant_regions:
-            region = regions[region_name]
-            # The import and export in each region can be removed
-            # When we consider the last region in the path, it only has one
-            #    import to remove. The opposite is true for the target, from
-            #    whom only one export needs to be removed.
-            region.trades -= (1 if region_name == path[-1]
-                              or region_name == target.name
-                              else 2)
-            
-            if not region_name == target.name:
-                resource.path.remove(region_name)
-    
-    else:
-        # Check for trade capacity
-        if source.max_trades() == source.trades:
-            raise errors.TooManyTrades(trades=source.trades, 
-                                       region=source.name)
-        elif target.max_trades() == target.trades:
-            raise errors.TooManyTrades(trades=target.trades, 
-                                       region=target.name)
-        
-        source.trades += 1
-        target.trades += 1
-
-        resource.path.append(target.name)
-
-    source.inventory.remove(resource)
-    target.inventory.append(resource)
-    resource.located_at = target.name

@@ -54,9 +54,7 @@ async def init_db(file: str = "data/nations.db"):
         inventory TEXT,
         authority TEXT,
         capital TEXT,
-        city_tier INTEGER,
-        infrastructure INTEGER,
-        trades INTEGER)
+        city_tier INTEGER)
     """
     )
     logger.debug("Created regions table")

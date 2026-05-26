@@ -26,22 +26,6 @@ class StructureType:
     """
     The internal name for this structure type.
     """
-    resource_cost: list[str]
-    """
-    The resource types needed to build this structure.
-    """
-    prereq: str
-    """
-    The internal name of the structure that needs to be built before this one.
-    """
-    tier_req: int
-    """
-    The minimum city tier this structure can be built at.
-    """
-    resource_prod: str
-    """
-    The resource, if any, that this structure produces.
-    """
 
     def __init__(self, usable_in: list, inf_cost: int, fname: str, name: str,
                  resource_cost: list[str] = [], prereq: str = '', 
@@ -54,30 +38,15 @@ class StructureType:
             for building this structure.
         :param fname: The name that will be displayed to the user.
         :param name: The internal name for this structure type.
-        :param resource_cost: The resource types needed to build this 
-            structure.
-        :param prereq: The internal name of the structure that needs to be 
-            built before this one.
-        :param tier_req: The minimum city tier this structure can be built at.
-        :param resource_prod: The resource, if any, that this structure 
-            produces.
         :type usable_in: list[str]
         :type inf_cost: int
         :type fname: str
         :type name: str
-        :type resource_cost: list[str]
-        :type prereq: str
-        :type tier_req: int
-        :type resource_prod: str
         """
         self.usable_in = usable_in
         self.inf_cost = inf_cost
-        self.resource_cost = resource_cost
         self.fname = fname
         self.name = name
-        self.prereq = prereq
-        self.tier_req = tier_req
-        self.resource_prod = resource_prod
 
 class Structure:
     """
@@ -149,53 +118,6 @@ structure_types = {
         fname="Metropolis",
         name="metropolis"),
 
-    # City structures
-    "temple": StructureType(
-        usable_in=["city"], 
-        inf_cost=1, 
-        fname="Temple",
-        name="temple"),
-    "grandtemple": StructureType(
-        usable_in=["city"], 
-        inf_cost=1, 
-        fname="Grand Temple", 
-        name="grandtemple",
-        prereq="Temple"),
-    "station": StructureType(
-        usable_in=["city"], 
-        inf_cost=2, 
-        fname="Station",
-        name="station"),
-    "centralstation": StructureType(
-        usable_in=["city"], 
-        inf_cost=2, 
-        fname="Central Station", 
-        name="centralstation",
-        prereq="Station"),
-    "district": StructureType(
-        usable_in=["city"], 
-        inf_cost=1, 
-        fname="District",
-        name="district"),
-    "charcoalpit": StructureType(
-        usable_in=["city"], 
-        inf_cost=2, 
-        fname="Charcoal Pit",
-        name="charcoalpit"),
-    "smeltery": StructureType(
-        usable_in=["city"], 
-        inf_cost=2, 
-        fname="Smeltery",
-        name="smeltery"),
-    "port": StructureType(
-        usable_in=["city"], 
-        inf_cost=2, 
-        fname="Port",
-        name="port"),
-    "foundry": StructureType(
-        usable_in=["city"], 
-        inf_cost=2, 
-        fname="Foundry",
-        name="foundry",
-        tier_req=2)
+    # Here's where I would put my military structures definitions... if I had any
+    # Sad trombone sound
 }
