@@ -73,7 +73,6 @@ class TileImpassable(NationsException):
         super().__init__(f"Unit was unable to move to a tile because {reason}.")
         self.user_message = reason.capitalize() + "!"
 
-
 class TooManyStructures(NationsException):
     def __init__(self, action: str, num_structures: int):
         super().__init__(f"""{action} failed: Region already has its max of
@@ -86,32 +85,11 @@ class TIleAlreadyHadStructure(NationsException):
                          structure""")
         self.user_message = f"That tile already has a structure!"
 
-class TooManyUniqueStructures(NationsException):
-    def __init__(self, structure: str):
-        super().__init__(f"""Building {structure} failed: Nation already 
-                         has a {structure}""")
-        self.user_message = f"You can't build more than one of those!"
-
-class MissingStructure(NationsException):
-    def __init__(self, action: str, structure: str):
-        super().__init__(f"""{action} failed: Tile is missing required 
-                         structure '{structure}'""")
-        self.user_message = f"{action} needs a {structure} to be built first!"
-
-
 class DoesNotExist(NationsException):
     def __init__(self, object_type: str, action: str, name: str):
         super().__init__(f"""{action} failed: {object_type} '{name}' does not 
                          exist""")
         self.user_message = f"Couldn't find a {object_type} at {name}!"
-
-
-class RegionTierTooLow(NationsException):
-    def __init__(self, action: str, tier: int, required: int):
-        super().__init__(f"""{action} failed: Tile needs to be tier 
-                         {required} and is {tier}""")
-        self.user_message = f"""The region needs to be tier {required} to do 
-                            that!"""
 
 class NotOwned(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
@@ -126,29 +104,6 @@ class NotEnoughInfluence(NationsException):
                          influence and had {had}""")
         self.user_message = f"""You need {required} influence to do that and 
                             only have {had}!"""
-
-class NotEnoughResources(NationsException):
-    def __init__(self, action: str, required: list[str], had: list[str]):
-        super().__init__(f"""{action} failed: Needed {required} but only 
-                         had {had}""")
-        missing_resources = ""
-        for resource in list(set(required)):
-            diff = required.count(resource) - had.count(resource)
-            if diff > 0:
-                for n in range(diff):
-                    missing_resources += resource + ", "
-        self.user_message = f"""You don't have the resources! 
-                            {missing_resources} was missing."""
-
-class ResourcesDeployed(NationsException):
-    def __init__(self, action: str, resource: str):
-        super().__init__(f"""{action.capitalize()} failed: '{resource}' was 
-                         in use""")
-        self.user_message = f"""You don't have enough resources! 
-                            {resource.split("_")[1].capitalize()} is being 
-                            consumed, so you cannot {action}. You'll have to 
-                            cancel exports, scrap structures, or move 
-                            resources here to counterract this."""
 
 class TooManyTrades(NationsException):
     def __init__(self, trades: int, region: str):

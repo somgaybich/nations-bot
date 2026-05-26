@@ -136,7 +136,7 @@ class Unit:
         elif attacking:
             eff -= (battle_terrain.difficulty - 1) * combat_settings["terrain_difficulty_debuff"]
             
-        if (tile in home_region.developed_area()):
+        if (tile.location in home_region.tiles):
             eff += combat_settings["home_city_buff"]
             if tile is home_tile:
                 eff += combat_settings["home_city_buff"]
@@ -248,8 +248,8 @@ class Unit:
         nation = nation_list[self.owner]
         for region in nation.regions.values():
             if battle_location in region.tiles:
-                authority = nation.authorities[region.authority]
-                authority.cooperation = max(0.0, authority.cooperation - combat_settings["crush_coop_modifier"] * scaled_impact)
+                # FIXME: Lower stability
+                pass
 
         await self.retreat()
 
@@ -271,8 +271,8 @@ class Unit:
         nation = nation_list[self.owner]
         for region in nation.regions.values():
             if battle_location in region.tiles:
-                authority = nation.authorities[region.authority]
-                authority.cooperation = max(0.0, authority.cooperation - combat_settings["decisive_coop_modifier"] * scaled_impact)
+                # FIXME: Lower stability
+                pass
 
         await self.retreat()
         
@@ -293,8 +293,8 @@ class Unit:
         nation = nation_list[self.owner]
         for region in nation.regions.values():
             if battle_location in region.tiles:
-                authority = nation.authorities[region.authority]
-                authority.cooperation = min(1.0, authority.cooperation + combat_settings["decisive_coop_modifier"] * scaled_impact)
+                # FIXME: Increase stability
+                pass
         
         self.movement_free = 0
     
@@ -313,8 +313,8 @@ class Unit:
         nation = nation_list[self.owner]
         for region in nation.regions.values():
             if battle_location in region.tiles:
-                authority = nation.authorities[region.authority]
-                authority.cooperation = min(1.0, authority.cooperation + combat_settings["crush_coop_modifier"] * scaled_impact)
+                # FIXME: Increase stability
+                pass
           
     async def stalemate(self, scaled_impact, battle_location):
         """
@@ -331,8 +331,8 @@ class Unit:
         nation = nation_list[self.owner]
         for region in nation.regions.values():
             if battle_location in region.tiles:
-                authority = nation.authorities[region.authority]
-                authority.cooperation = max(0.0, authority.cooperation - combat_settings["stalemate_coop_modifier"] * scaled_impact)
+                # FIXME: Lower stability
+                pass
         
         self.movement_free = 0
 

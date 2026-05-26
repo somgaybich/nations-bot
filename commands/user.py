@@ -234,39 +234,6 @@ class UserCog(discord.Cog):
         await followup_msg.delete()
         await followup_response(ctx.followup, title="Built!", message=f"Your city '{name}' was built at {(x, y)}")
 
-
-    @build.command(description="Builds a new upgrade in a city")
-    @discord.default_permissions(administrator=True)
-    @discord.option("cityname", input_type=str, description="The name of the city to build the upgrade in")
-    @discord.option("upgrade", input_type=str, description="The upgrade you want to build", choices=[
-        "Temple", "Grand Temple", "Station", "Central Station", "Workshop",
-        "Charcoal pit", "Smeltery", "Port", "Foundry"
-    ])
-    async def upgrade(self, ctx: ApplicationContext, cityname: str, upgrade: str):
-        try:
-            nation = nation_list[ctx.interaction.user.id]
-            city = nation.regions[cityname]
-
-            structure_types[upgrade].build(city.location, city, nation.econ)
-        except NationsException as e:
-            await interacton_error(ctx.interaction, e.user_message)
-            raise
-        except Exception as e:
-            logger.error(f"Failed to build {upgrade}: {e}")
-            await interacton_error(ctx.interaction)
-            raise
-        
-        await interaction_response(ctx.interaction, "Built!", f"Your {upgrade} has been built in {cityname}!")
-        logger.info(f"Someone built a {upgrade.lower()}!")
-
-    @build.command(description="Builds a new railroad")
-    @discord.default_permissions(administrator=True)
-    @discord.option("origin", input_type=str, description="The city the railroad starts in.")
-    @discord.option("level", input_type=str, description="The level of railroad to build", choices=["simple", "quality"])
-    async def rail(self, ctx: ApplicationContext, origin: str, level: str):
-        # Region overhaul broke this, it has no behavior until after the logistics overhaul
-        pass
-
     # ----- MILITARY COMMANDS ----- #
 
     nation = discord.SlashCommandGroup("nation", description="Manage your nation")

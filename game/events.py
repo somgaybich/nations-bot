@@ -1,5 +1,10 @@
 ### This file handles simulation events. These allow cross-system interaction
 ### without entangling logic.
+###
+### As of the v2 overhaul, this module doesn't actually do anything, as it was
+### mainly for the authority system. I'll keep it around in case it's useful
+### at some point later.
+
 import logging
 from typing import TYPE_CHECKING
 from collections.abc import Callable
@@ -128,67 +133,3 @@ async def event(event: Event):
             if rule.check(listener, event):
                 logger.info(f"""{listener.parent} is responding to {event}""")
                 await rule.effect(listener, event)
-
-# --- EVENT CHECKS ---
-# NEW_TRADE_ROUTE
-def auth_new_trade(listener: Listener, event: Event):
-    """
-    Checks if a new trade route was made to or from this listener
-    """
-    if not hasattr(listener.parent, "name"):
-        return False
-    if not event.type == "NEW_TRADE_ROUTE":
-        return False
-    
-    for obj in event.objects:
-        if obj.authority == listener.parent.name:
-            return True
-    else:
-        return False
-
-# LOSE_TRADE_ROUTE
-def auth_lose_trade(listener: Listener, event: Event):
-    """
-    Checks if a trade route was cancelled to or from this listener
-    """
-    if not hasattr(listener.parent, "name"):
-        return False
-    if not event.type == "LOSE_TRADE_ROUTE":
-        return False
-    
-    for obj in event.objects:
-        if obj.authority == listener.parent.name:
-            return True
-    else:
-        return False
-
-# --- EFFECT CONSTRUCTORS ---
-def mod_cooperation(magnitude: float) -> Callable[[Listener, Event], None]:
-    """
-    Creates an effect function that changes the cooperation of an authority.
-
-    :param magnitude: The amount to increase the cooperation. Can be negative
-        for a decrease.
-    :type magnitude: float
-    """
-    def effect(listener: Listener, event: Event):
-        if not hasattr(listener.parent, "cooperation"):
-            raise TypeError(f"""{event} tried to mod_cooperation to {listener}, 
-                            but the parent object was not an Authority""")
-
-        listener.parent.cooperation += magnitude
-    
-    return effect
-
-authority_listeners = {
-    "Mercantile": [
-        Rule(
-            check=auth_new_trade,
-            effect=mod_cooperation(0.1)
-        ),
-        Rule(
-            check=auth_lose_trade,
-            effect=mod_cooperation(0.15)
-        )
-    ]
-}
