@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from game.military import Unit
     from game.espionage import Espionage
     from game.economy import Econ
-    from game.authority import Authority
     from game.region import Region
 
 class Nation:
@@ -48,17 +47,13 @@ class Nation:
     The list of NIDs this nation is allied with. Units belonging to these
     nations will assist this nation's units in combat.
     """
-    authorities: dict[str, "Authority"]
-    """
-    Maps names to this nation's authorities.
-    """
     color: Color
     """
     The color this nation appears on the map.
     """
     def __init__(self, name: str, userid: int, econ: "Econ", regions=None, 
                  military=None, espionage=None, dossier=None, allies=None, 
-                 authorities=None, color=Color.random()):
+                 color=Color.random()):
         """
         :param name: The name of this nation.
         :param userid: The NID of this nation and discord UID of its owner.
@@ -73,7 +68,6 @@ class Nation:
         :param allies: The list of NIDs this nation is allied with. Units 
             belonging to these nations will assist this nation's units in 
             combat.
-        :param authorities: Maps names to this nation's authorities.
         :param color: The color this nation appears on the map.
         :type name: str
         :type userid: int
@@ -83,7 +77,6 @@ class Nation:
         :type espionage: list[Espionage]
         :type dossier: dict[str, str]
         :type allies: list[int]
-        :type authorities: dict[str, Authority]
         :type color: Color
         """
         self.name: str = name
@@ -99,8 +92,6 @@ class Nation:
                                         else {})
         self.allies: list[int] = (allies if allies is not None
                                   else [])
-        self.authorities: dict[str, "Authority"] = (authorities if authorities
-                                                    is not None else {})
         self.color: Color = color
     
     async def save(self):

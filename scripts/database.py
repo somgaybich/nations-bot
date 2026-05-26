@@ -5,7 +5,6 @@ from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from game.nation import Nation
-    from game.authority import Authority
     from game.economy import Econ
     from game.military import Unit
     from game.region import Region
@@ -99,19 +98,6 @@ async def init_db(file: str = "data/nations.db"):
         """)
     logger.debug("Created economies table")
 
-    await _db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS authorities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            nationid INTEGER NOT NULL,
-            authtype TEXT NOT NULL,
-            cap INTEGER NOT NULL,
-            cooperation FLOAT NOT NULL,
-            region TEXT NOT NULL)
-        """)
-    logger.debug("Created authorities table")
-
     await _db.commit()
     logger.info("Database started")
 
@@ -156,22 +142,18 @@ async def save_region(region: "Region"):
     await get_db().execute(
         """
         INSERT INTO regions (
-            name, x, y, owner, tiles, inventory, authority, capital, 
-            city_tier, infrastructure, trades)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            name, x, y, owner, tiles, inventory, capital, city_tier
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(name) DO UPDATE SET
             name = excluded.name,
             tiles = excluded.tiles,
             inventory = excluded.inventory,
-            authority = excluded.authority,
             city_tier = excluded.city_tier,
-            infrastructure = excluded.infrastructure,
-            trades = excluded.trades
         """,
         (region.name, region.location[0], region.location[1], region.owner, 
          json.dumps(region.tiles), json.dumps(encoded_inventory), 
-         region.authority, json.dumps(region.is_capital), region.city_tier, 
-         region.infrastructure, region.trades)
+         json.dumps(region.is_capital), region.city_tier)
     )
 
 async def load_regions_rows():
@@ -238,53 +220,6 @@ async def delete_unit(unit: "Unit"):
 
 async def load_units_rows():
     async with get_db().execute("SELECT * FROM units") as cursor:
-        return await cursor.fetchall()
-
-# ---------------
-
-async def save_authority(authority: "Authority"):
-    logger.debug(f"Saving authority at {authority.id}")
-    if authority.id is None:
-        async with get_db().execute(
-            """
-            INSERT INTO authorities (
-                name, nationid, authtype, cooperation, region
-            )
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                authority.name,
-                authority.nationid,
-                authority.authtype,
-                authority.cooperation,
-                authority.region
-            )
-        ) as cursor: 
-            authority.id = cursor.lastrowid
-    else:
-        await get_db().execute(
-            """
-            UPDATE authorities
-            SET name = ?, nationid = ?, authtype = ?, region = ?, 
-                cooperation = ?
-            WHERE id = ?
-            """,
-            (
-                authority.name,
-                authority.nationid,
-                authority.authtype,
-                authority.region,
-                authority.cooperation,
-                authority.id
-            )
-        )
-
-async def delete_authority(authority: "Authority"):
-    if authority.id is not None:
-        await get_db().execute("DELETE FROM authorities WHERE id = ?", (authority.id))
-
-async def load_authorities_rows():
-    async with get_db().execute("SELECT * FROM authorities") as cursor:
         return await cursor.fetchall()
 
 # ---------------

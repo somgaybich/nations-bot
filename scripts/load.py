@@ -6,7 +6,6 @@ from discord import Color
 import scripts.database as db
 
 from game.military import Unit
-from game.authority import Authority
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
@@ -41,17 +40,6 @@ async def load(map_only: bool = False):
                 owner=structure_data['builder']
             )
             structures.append(structure)
-
-        link_structures = []
-        if row['link_structures'] != "[]":
-            link_structures_data = json.loads(row['link_structures'])
-            for link_structure in link_structures_data:
-                link_structures.append(Structure(
-                    structure_type=link_structure['structure_type'],
-                    location=(link_structure['x'], link_structure['y']),
-                    region=link_structure['region'],
-                    owner=link_structure['builder']
-                ))
 
         tile = Tile(
             terrain=Terrain(*json.loads(row["terrain"])),
@@ -90,7 +78,6 @@ async def load(map_only: bool = False):
             city_tier=row["city_tier"],
             owner=row["owner"],
             inventory=decoded_inventory,
-            authority=row["authority"],
             is_capital=row["capital"],
             tiles=[tuple(tile) for tile in json.loads(row["tiles"])]
         )
@@ -126,17 +113,6 @@ async def load(map_only: bool = False):
         )
         units.append(unit)
         nation_list[row["owner"]].military[row["name"]] = unit
-
-    authorities_data = await db.load_authorities_rows()
-    for row in authorities_data:
-        authority = Authority(
-            nationid=row["nationid"],
-            name=row["name"],
-            authtype=row["authtype"],
-            region=row["region"],
-            cooperation=row["cooperation"],
-            id=row["id"]
-        )
 
     logger.info("Loaded game data")
     logger.debug(nation_list)

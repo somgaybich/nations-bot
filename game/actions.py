@@ -10,22 +10,10 @@ from game.military import Unit
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
-from game.authority import Authority
 
 from world.map import hex_distance
 from world.structures import StructureType, Structure, structure_types
 from world.world import nation_list, tile_list, units, structures, regions
-
-async def new_authority(default_name: str, owner: int):
-    """
-    Creates, but does NOT bind or save the authority; these should be done AFTER selection or generation
-
-    :param default_name: The original name of the authority.
-    :param owner: The NID of the nation the authority is in.
-    :type default_name: str
-    :type owner: int
-    """
-    return Authority(owner, default_name)
 
 async def new_army(name: str, owner: int, region_name: str) -> Unit:
     """
@@ -54,24 +42,12 @@ async def new_army(name: str, owner: int, region_name: str) -> Unit:
         if unit.status == "TRAINING":
             raise errors.AlreadyTraining()
 
-    if region.authority != nation.name:
-        region_authority = nation.authorities[region.authority]
-
-        region_unit_cap = region.city_tier + 1
-        if region_authority.authtype == "Mercantile":
-            region_unit_cap -= 1
-        
-        if len(current_units) >= region_unit_cap:
-            raise errors.TooManyUnits()
-    
-    else:
-        # This settlement is an outpost. It can only raise 1 unit.
-        if len(current_units) >= 1:
-            raise errors.TooManyUnits()
+    region_unit_cap = region.city_tier + 1
+    if len(current_units) >= region_unit_cap:
+        raise errors.TooManyUnits()
 
     base_strength = 1
-    if "Foundry" in region.structure_types():
-        base_strength = 1.3
+    # FIXME: Modify base strength based on logistics
 
     if not admin_mode:
         econ.influence -= 1
@@ -116,24 +92,13 @@ async def new_fleet(name: str, userid: int, region_name: str) -> Unit:
         if unit.status == "TRAINING":
             raise errors.AlreadyTraining()
 
-    if region.authority != nation.name:
-        region_authority = nation.authorities[region.authority]
-
-        region_unit_cap = region.city_tier + 1
-        if region_authority.authtype == "Mercantile":
-            region_unit_cap -= 1
-        
-        if len(current_units) >= region_unit_cap:
-            raise errors.TooManyUnits()
-    
-    else:
-        # This settlement is an outpost. It can only raise 1 unit.
-        if len(current_units) >= 1:
-            raise errors.TooManyUnits()
+    region_unit_cap = region.city_tier + 1
+    if len(current_units) >= region_unit_cap:
+        raise errors.TooManyUnits()
 
     base_strength = 1
-    if "Foundry" in region.structure_types():
-        base_strength = 1.3
+    # FIXME: Modify base strength based on logistics
+
     if not admin_mode:
         econ.influence -= 2
     new_unit = Unit(name=name, type="fleet", location=region.location, 
@@ -289,56 +254,16 @@ async def new_structure(structure_type: StructureType,
     if tile not in region.tiles:
         raise errors.InvalidLocation(f"{structure_type.fname} creation", 
                                      "outide the region")
-    
-    if "city" in structure_type.usable_in:
-        urban = False
-        if tile in root_tile.area():
-            urban = True
-        elif tile in root_tile.metroarea() and region.city_tier >= 3:
-            urban = True
-
-        if not urban:
-            raise errors.InvalidLocation(f"{structure_type} creation",
-                                            "in an undeveloped tile")
-
-    if structure_type.tier_req != 0 and not admin_mode:
-        if region.city_tier < structure_type.tier_req:
-            raise errors.RegionTierTooLow(f"{structure_type.fname} creation", 
-                                        region.city_tier, structure_type.tier_req)
 
     if not admin_mode and hex_distance(root_tile, tile) >= 6:
             raise errors.InvalidLocation("Structure creation", 
                                          "too far from the root settlement")
-
-    if structure_type.prereq != '':
-        for region in nation.regions.values():
-            if structure_type.fname in region.structure_types():
-                raise errors.TooManyUniqueStructures(structure_type.fname)
-
-        # This check must always be last because it has behavior attached!
-        if structure_type.prereq in region_structures:
-            for structure in region_structures:
-                if structure.structure_type.fname == structure_type.prereq:
-                    target_tile = tile_list[structure.location]
-                    target_tile.structure = None
-                    await target_tile.save()
-                    break
-            else:
-                raise errors.MissingStructure(f"{structure_type.fname} creation", 
-                                              structure_type.prereq)
-        else:
-            raise errors.MissingStructure(f"{structure_type.fname} creation", 
-                                          structure_type.prereq)
 
     if not admin_mode:
         econ.influence -= structure_type.inf_cost
 
     new_structure = Structure(structure_type, location, region_name, owner)
     tile.structure = new_structure
-
-    if "Temple" in structure_type.fname:
-        current_stability = nation_list[owner].regions[region_name].stability
-        region.stability += min(100, round((current_stability / 20) + 5))
 
     structures.append(new_structure)
 

@@ -15,7 +15,7 @@ async def tick():
         for region in nation.regions.values():
             region.city_tier = region.calculate_tier()
 
-            # TODO: Authority cooperation calculations
+            # TODO: Stability calculations
 
             await region.save()
 

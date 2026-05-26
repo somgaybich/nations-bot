@@ -33,10 +33,6 @@ class Region():
     """
     The resources in this region.
     """
-    authority: str
-    """
-    The name of the authority that controls this region.
-    """
     is_capital: bool
     """
     Whether this region is the capital of its nation.
@@ -47,8 +43,7 @@ class Region():
     """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
                  city_tier: int = 0, inventory: list | None = None, 
-                 authority: str = None, is_capital: bool = False, 
-                 tiles: list[tuple[int, int]] = None):
+                 is_capital: bool = False, tiles: list[tuple[int, int]] = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -57,7 +52,6 @@ class Region():
         :param city_tier: The tier of this region's central city. Starts 
             at 0 and ranges to 4.
         :param inventory: The resources available to this region.
-        :param authority: The name of the authority that controls this region.
         :param is_capital: Whether this region is the capital of its nation.
         :param tiles: The list of tile coordinates that belong to this region.
         :type name: str
@@ -76,8 +70,6 @@ class Region():
         self.city_tier = city_tier
         self.tiles = tiles if tiles is not None else [tile.location for tile in tile_list[location].area()]
         self.inventory = inventory if inventory is not None else []
-        self.authority = (authority if authority is not None 
-                          else nation_list[owner].name)
 
     async def save(self):
         """
