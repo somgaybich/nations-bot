@@ -8,6 +8,7 @@ import scripts.errors as errors
 if TYPE_CHECKING:
     from game.nation import Nation
     from game.military import Unit
+    from game.market import Market, Trade
     from game.region import Region
     from game.events import Listener
     from world.map import Tile
@@ -33,27 +34,40 @@ class RegionDict(dict[str, "Region"]):
     A singleton for storing region data.
     """
 
+class MarketDict(dict[str, "Market"]):
+    """
+    A singleton for storing market data.
+    """
+
 tile_list: TileDict = TileDict()
 """
-A dictionary mapping locations to Tile objects.
+A dictionary mapping locations to :class:`Tile` objects.
 """
 units: list["Unit"] = []
 """
-A list of every unit, so they can easily be searched.
+A list of every :class:`Unit`, so they can easily be searched.
 """
 structures: list["Structure"] = []
 """
-A list of every structure, so they can easily be searched.
+A list of every :class:`Structure`, so they can easily be searched.
 """
 regions: RegionDict = RegionDict()
 """
-A dictionary mapping names to Region objects.
+A dictionary mapping names to :class:`Region` objects.
+"""
+markets: MarketDict = MarketDict()
+"""
+A dictionary mapping names to :class:`Market` objects.
+"""
+trades: list["Trade"] = []
+"""
+A list of every :class:`Trade`, so they can easily be searched.
 """
 nation_list: NationDict = NationDict()
 """
-A dictionary mapping NIDs to Nation objects.
+A dictionary mapping NIDs to :class:`Nation` objects.
 """
 listeners: list["Listener"] = []
 """
-A list of every event listener.
+A list of every event :class:`Listener`, so they can easily be searched.
 """
