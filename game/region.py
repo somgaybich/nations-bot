@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING
-import math
+
+from game.constants import empty_inventory
 
 import scripts.database as db
 
-from world.world import tile_list, structures, nation_list
+from world.world import tile_list, structures
 
 if TYPE_CHECKING:
     from world.structures import Structure
@@ -29,9 +30,10 @@ class Region():
     """
     The tier of this region's central city. Starts at 0 and ranges to 4.
     """
-    inventory: list
+    inventory: dict[str, float]
     """
-    The resources in this region.
+    The amounts of each resource in this region. See the structure of 
+    constants.empty_inventory for the guaranteed keys.
     """
     is_capital: bool
     """
@@ -42,8 +44,9 @@ class Region():
     The list of tile coordinates that belong to this region.
     """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
-                 city_tier: int = 0, inventory: list | None = None, 
-                 is_capital: bool = False, tiles: list[tuple[int, int]] = None):
+                 city_tier: int = 0, inventory: dict[str, float] | None = None, 
+                 is_capital: bool = False, 
+                 tiles: list[tuple[int, int]] = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -61,15 +64,18 @@ class Region():
         :type stability: int
         :type authority: str
         :type is_capital: bool
-        :type tiles: list[tuple[int, int]]
+        :type tiles: list[tuple[int, int]],
+        :type inventory: dict[str, float]
         """
         self.name = name
         self.location = location
         self.owner = owner
         self.is_capital = is_capital
         self.city_tier = city_tier
-        self.tiles = tiles if tiles is not None else [tile.location for tile in tile_list[location].area()]
-        self.inventory = inventory if inventory is not None else []
+        self.tiles = (tiles if tiles is not None 
+                      else [tile.location for tile in tile_list[location].area()])
+        self.inventory = (inventory if inventory is not None 
+                          else empty_inventory)
 
     async def save(self):
         """
