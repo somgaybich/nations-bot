@@ -51,18 +51,6 @@ class Econ:
         cap = 1
         nation = nation_list[self.nationid]
         for city in nation.regions.values():
-            cap = city.city_tier + 1
-            
-            if "District" in city.structure_types():
-                cap += 2
-            
-            luxuries = len(city.inventory)
-            if city.city_tier == 3:
-                luxuries -= 1
-            elif city.city_tier == 4:
-                luxuries -= 2
-            cap += luxuries
-        
-        # TODO: Consider infrastructure quality?
+            cap += city.city_tier + 1
 
         return cap
