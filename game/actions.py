@@ -189,7 +189,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     new_region.merge_markets()
 
     # Add base food production
-    new_region.supply_delta("food", new_region.arability)
+    new_region.supply_delta("food", new_region.arability())
     # Subtract base food consumption
     # FIXME
 
