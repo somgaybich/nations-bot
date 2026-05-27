@@ -97,7 +97,7 @@ class Region:
                 if region.has_port() and region.owner == self.owner:
                     # Join their market!
                     target_market = markets[region.market]
-                    target_market.merge_markets(current_market)
+                    await target_market.merge_markets(current_market)
                     return
         
         # Find all connected markets
