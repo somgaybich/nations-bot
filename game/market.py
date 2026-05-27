@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from game.constants import empty_inventory
 
-from world.world import markets
+from world.world import markets, nation_list, regions
 
 if TYPE_CHECKING:
     from game.region import Region
@@ -124,23 +124,3 @@ class Market:
                 return True
         
         return False
-    
-async def merge_all_markets(nid: int):
-    """
-    Loops through and tries to merge every market in a nation until it goes
-    through a full cycle and fails to find a merge. Involves a lot of
-    iteration, may be in need of performance improvements if creating new
-    regions starts to get slow.
-    """
-    merging = True
-    while merging:
-        merging = False
-        for market in markets.values():
-            if market.owner != nid:
-                # This isn't our market, we can't merge
-                continue
-            
-            for target_market in markets.values():
-                for target_region in target_market.regions:
-                    if market.connected(target_region):
-                        await market.merge_markets(target_market)

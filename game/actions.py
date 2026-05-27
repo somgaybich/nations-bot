@@ -186,6 +186,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     nation.regions[name] = new_region
 
     new_market = Market(name=name, owner=owner, regions=[new_region])
+    new_region.merge_markets()
 
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
@@ -193,12 +194,11 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
 
     regions[name] = new_region
 
-    await merge_all_markets(owner)
-
     await nation.save()
     await new_region.save()
     await city_tile.save()
-    
+    # Markets are saved in the merging proccess
+
     return new_region
 
 async def new_nation(name: str, userid: int) -> Nation:

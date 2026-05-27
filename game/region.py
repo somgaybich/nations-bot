@@ -2,9 +2,10 @@ from typing import TYPE_CHECKING
 
 import scripts.database as db
 
-from world.world import tile_list, structures, regions
+from world.world import tile_list, structures, regions, markets
 
 if TYPE_CHECKING:
+    from game.market import Market
     from world.structures import Structure
 
 class Region:
@@ -83,6 +84,42 @@ class Region:
         """
         await db.save_region(self)
 
+    async def merge_markets(self):
+        """
+        Finds a connected :class:`Market` to join. This should generally only 
+        be run once, when the region is first created.
+        """
+        current_market = markets[self.market]
+
+        if self.has_port():
+            # Find a port region owned by the same nation
+            for region in regions.values():
+                if region.has_port() and region.owner == self.owner:
+                    # Join their market!
+                    target_market = markets[region.market]
+                    target_market.merge_markets(current_market)
+                    return
+        
+        # Find all connected markets
+        neighbors = [regions[name] for name in self.neighbors()]
+
+        if len(neighbors) == 0:
+            # If there are none, we're done
+            return
+
+        connected_markets: set["Market"] = set()
+        for neighbor in neighbors:
+            if neighbor.owner != self.owner:
+                # Ignore foreign markets
+                continue
+
+            connected_markets.add(markets[neighbor.market])
+        
+        # Merge them together
+        primary_market = next(iter(connected_markets))
+        for market in connected_markets:
+            primary_market.merge_markets(market)
+
     def structures(self) -> list["Structure"]:
         """
         Returns a list of every structure in this region.
@@ -103,7 +140,7 @@ class Region:
     def connected(self, target: str) -> bool:
         """
         Returns True if this region has a direct connection to the target
-        region. Used for merging markets.
+        region. Used for trading.
         """
         target_region = regions[target]
         
