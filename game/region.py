@@ -120,6 +120,14 @@ class Region:
         for market in connected_markets:
             primary_market.merge_markets(market)
 
+    async def supply_delta(self, item: str, amount: float):
+        """
+        Changes the supply of an item in this region's :class:`Market`.
+        """
+        market = markets[self.market]
+        market.supply[item] += amount
+        await market.save()
+
     def structures(self) -> list["Structure"]:
         """
         Returns a list of every structure in this region.
@@ -186,3 +194,5 @@ class Region:
             arability += tile.arability()
         
         return arability
+
+    

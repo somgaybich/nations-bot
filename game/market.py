@@ -57,32 +57,42 @@ class Market:
     """
     The regions that are a part of this market.
     """
-    surplus: dict[str, float]
+    production: dict[str, float]
     """
-    The amount of each resource currently being overproduced in this market.
-    Negative values represent deficits.
+    Resource volumes produced by this market's regions.
+
+    See the structure of :class:`empty_inventory` for keys.
+    """
+    consumption: dict[str, float]
+    """
+    Resource volumes consumed by this market's regions.
+
     See the structure of :class:`empty_inventory` for keys.
     """
     trades: list[Trade]
     def __init__(self, name: str, owner: int, regions: list[Region], 
-                 surplus: dict[str, float] | None = None):
+                 production: dict[str, float] | None = None,
+                 consumption: dict[str, float] | None = None):
         """
         :param name: The name of this market, also the name of its founding 
             region.
         :param owner: The NID of the nation to whom this market belongs.
         :param regions: The regions that are a part of this market.
-        :param surplus: The amount of each resource currently being 
-            overproduced in this market. Negative values represent deficits.
+        :param production: Resource volumes produced by this market's regions.
+        :param consumption: Resource volumes consumed by this market's regions.
         :type name: str
         :type owner: int
         :type regions: list[Region]
-        :type surplus: dict[str, float]
+        :type production: dict[str, float]
+        :type consumption: dict[str, float]
         """
         self.name = name
         self.owner = owner
         self.regions = regions
-        self.surplus = (surplus if surplus is not None 
-                        else empty_inventory)
+        self.production = (production if production is not None 
+                           else empty_inventory)
+        self.consumption = (consumption if consumption is not None 
+                            else empty_inventory)
     
     async def save(self):
         """
@@ -124,3 +134,19 @@ class Market:
                 return True
         
         return False
+
+    def supply(self, item: str) -> float:
+        """
+        Calculates the current supply of an item in this market, from
+        production - consumption.
+        """
+        return (self.production[item] - self.consumption[item])
+    
+    def fulfillment(self, item: str) -> float:
+        """
+        Calculates the fulfillment ratio of an item in this market. Returns 
+        1.0 if produced > consumed, else returns produced/consumed.
+        """
+        if self.production[item] > self.consumption[item]:
+            return 1.0
+        return self.production[item] / self.consumption[item]

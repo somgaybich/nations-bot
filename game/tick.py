@@ -1,7 +1,8 @@
 import logging
 
-from world.world import nation_list
-from game.constants import update_season
+from game.constants import update_season, empty_inventory
+
+from world.world import nation_list, markets, regions
 
 logger = logging.getLogger(__name__)
 
@@ -10,16 +11,24 @@ async def tick():
     Processes a tick of the game system.
     """
     logger.info("Processing game tick...")
-    for nation in nation_list.values():
-        logger.debug(f"Processing tick for {nation.name}")
-        # Logistics pass
-        for market in nation.markets.values():
-            for region in market.regions:
-                # Passive food production
-                market.surplus["food"] += region.arability()
+    
+    # Resource distribution pass
+    for market in markets.values():
+        logger.debug(f"Processing distribution tick for {market.name}")
+        # Do distribution stuff :P
 
-                region.city_tier = region.calculate_tier()
-                await region.save()
+    # Region pass
+    for region in regions.values():
+        logger.debug(f"Processing region tick for {region.name}")
+        
+        # Stability, growth, etc. calculation
+        
+        region.city_tier = region.calculate_tier()
+        await region.save()
+
+    # Nation pass
+    for nation in nation_list.values():
+        logger.debug(f"Processing nation tick for {nation.name}")
 
         for unit in nation.military.values():
             # Any units that are currently in training graduate
@@ -32,6 +41,6 @@ async def tick():
         await nation.save()
         await nation.econ.save()
         logger.debug(f"Tick for {nation.name} complete")
-    
+
     update_season()
     logger.info("Game tick complete.")
