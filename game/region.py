@@ -73,8 +73,9 @@ class Region:
         if market is not None:
             self.market = market
         else:
-            #FIXME join one!
-            pass
+            # Will join a new market with itself as the only member
+            # This market has to be separately instatiated for import safety
+            self.market = name
 
     async def save(self):
         """

@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 import scripts.errors as errors
 
 from game.constants import admin_mode
+from game.market import Market, merge_all_markets
 from game.military import Unit
 from game.nation import Nation
 from game.region import Region
@@ -13,7 +14,8 @@ from game.economy import Econ
 
 from world.map import hex_distance
 from world.structures import StructureType, Structure, structure_types
-from world.world import nation_list, tile_list, units, structures, regions
+from world.world import (nation_list, tile_list, units, structures, regions, 
+                         markets)
 
 async def new_army(name: str, owner: int, region_name: str) -> Unit:
     """
@@ -183,11 +185,15 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
                         owner=owner, is_capital=capital)
     nation.regions[name] = new_region
 
+    new_market = Market(name=name, owner=owner, regions=[new_region])
+
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
                                     owner=owner)
 
     regions[name] = new_region
+
+    await merge_all_markets(owner)
 
     await nation.save()
     await new_region.save()
