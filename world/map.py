@@ -82,26 +82,26 @@ class Tile:
     """
     The (q, r) axial coordinates of this tile on the game map.
     """
-    owner: int | None
+    owner: str | None
     """
-    The NID of the nation that owns this tile, if any.
+    The name of the region that owns this tile, if any.
     """
     structure: "Structure | None"
     """
     The player-built object on this tile.
     """
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
-                 owner: int = None, structure: "Structure" = None):
+                 owner: str = None, structure: "Structure" = None):
         """
         :param terrain: A terrain object that contains the tile's physical 
             conditions.
         :param location: The (q, r) axial coordinates of this tile on the game 
             map.
-        :param owner: The NID of the nation that owns this tile, if any.
+        :param owner: The name of the region that owns this tile, if any.
         :param structure: The player-built object on this tile.
         :type terrain: Terrain
         :type location: tuple[int, int]
-        :type owner: int
+        :type owner: str
         :type structure: Structure
         """
         self.terrain = terrain

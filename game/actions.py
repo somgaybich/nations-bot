@@ -149,7 +149,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
             continue
         if tile.owner == None:
             to_be_claimed.append(tile.location)
-        elif tile.owner == owner:
+        elif regions[tile.owner].owner == owner:
             continue
         else:
             # Tile is owned by another player
@@ -176,7 +176,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     nation.econ.influence -= 4
 
     for claim_location in to_be_claimed:
-        tile_list[claim_location].owner = owner
+        tile_list[claim_location].owner = name
         await tile_list[claim_location].save()
 
     new_region = Region(name=name, location=location, 

@@ -1,7 +1,7 @@
 from PIL import Image
 import logging
 
-from world.world import tile_list, nation_list
+from world.world import tile_list, nation_list, regions
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +78,10 @@ def snapshot_corners(corner1: tuple[int, int], corner2: tuple[int, int],
             # The tile's corners are in the snapshot bounds
             # Half-represented tiles don't get overlays
             if tile.owner != None:
+                nid = regions[tile.owner].owner
                 mask = overlay_sprites["hex_mask"]
                 snapshot.paste(
-                    im=nation_list[tile.owner].color.to_rgb(),
+                    im=nation_list[nid].color.to_rgb(),
                     box=box,
                     mask=mask
                 )

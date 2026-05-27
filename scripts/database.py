@@ -82,7 +82,7 @@ async def init_db(file: str = "data/nations.db"):
         x INTEGER NOT NULL,
         y INTEGER NOT NULL,
         terrain TEXT NOT NULL,
-        owner INTEGER,
+        owner TEXT,
         structure TEXT,
         link_structures TEXT,
         PRIMARY KEY (x, y))
