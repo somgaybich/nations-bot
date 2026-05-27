@@ -86,6 +86,8 @@ biome_arability = {
 }
 coastal_arability_factor = 0.006 # a = ba + (caf / ba**2)
 
+food_surplus_use_rate = 0.2 # % of surplus to grow into
+food_shortage_contract_rate = 0.3 # slows contractions due to food shortage
 
 city_types = ["outpost", "village", "town", "city", "metropolis"]
 

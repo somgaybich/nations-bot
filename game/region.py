@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from game.constants import food_surplus_use_rate, food_shortage_contract_rate
+
 import scripts.database as db
 
 from world.world import tile_list, structures, regions, markets
@@ -27,7 +29,14 @@ class Region:
     """
     city_tier: int
     """
-    The tier of this region's central city. Starts at 0 and ranges to 4.
+    The tier of this region's central city. Starts at 0 and ranges to 4. Based
+    on population.
+    """
+    population: float
+    """
+    A measure of the size of this region's central city. Growth is based on
+    surplus of needed resources. Not an actual population count, can be thought
+    of as "the amount of people that consume x units of food."
     """
     is_capital: bool
     """
@@ -43,7 +52,7 @@ class Region:
     """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
                  city_tier: int = 0, is_capital: bool = False, 
-                 market: str | None = None,
+                 market: str | None = None, population: float = 1.0,
                  tiles: list[tuple[int, int]] = None):
         """
         :param name: The name of the central city of the region, and also the 
@@ -54,6 +63,10 @@ class Region:
             at 0 and ranges to 4.
         :param is_capital: Whether this region is the capital of its nation.
         :param market: The name of the market this region belongs to.
+        :param population: A measure of the size of this region's central city.
+            Growth is based on surplus of needed resources. Not an actual 
+            population count, can be thought of as "the amount of people that 
+            consume x units of food."
         :param tiles: The list of tile coordinates that belong to this region.
         :type name: str
         :type location: tuple[int, int]
@@ -68,6 +81,7 @@ class Region:
         self.owner = owner
         self.is_capital = is_capital
         self.city_tier = city_tier
+        self.population = population
         self.tiles = (tiles if tiles is not None 
                       else [tile.location for tile in tile_list[location].area()])
         
@@ -127,6 +141,24 @@ class Region:
         market = markets[self.market]
         market.supply[item] += amount
         await market.save()
+
+    def growth(self):
+        """
+        Returns the amount the population of this region will grow according
+        to the current supplies in the market.
+        """
+        market = markets[self.market]
+        regions = len(market.regions)
+        available_food = market.supply("food")
+        # We'll use some % of our surplus
+        growth_rate = available_food / regions * food_surplus_use_rate
+        if growth_rate < 0:
+            # If we have a shortage, we should shrink slower
+            growth_rate *= food_shortage_contract_rate
+        
+        # FIXME: Incorporate other resources based on tier
+
+        return growth_rate
 
     def structures(self) -> list["Structure"]:
         """

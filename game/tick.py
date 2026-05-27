@@ -21,7 +21,7 @@ async def tick():
     for region in regions.values():
         logger.debug(f"Processing region tick for {region.name}")
         
-        # Stability, growth, etc. calculation
+        region.population += region.growth()
         
         region.city_tier = region.calculate_tier()
         await region.save()
