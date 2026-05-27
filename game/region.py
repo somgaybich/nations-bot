@@ -1,10 +1,8 @@
 from typing import TYPE_CHECKING
 
-from game.constants import empty_inventory
-
 import scripts.database as db
 
-from world.world import tile_list, structures
+from world.world import tile_list, structures, regions
 
 if TYPE_CHECKING:
     from world.structures import Structure
@@ -96,8 +94,45 @@ class Region:
 
     def calculate_tier(self) -> int:
         """
-        Used to calculate the new tier of a city. Will always return the
-        current tier if it is 0 or 1.
+        Calculates the new tier of a city.
         """ 
         #FIXME
         pass
+
+    def connected(self, target: str) -> bool:
+        """
+        Returns True if this region has a direct connection to the target
+        region. Used for merging markets.
+        """
+        target_region = regions[target]
+        
+        if target in self.neighbors():
+            return True
+        
+        if self.has_port() and target_region.has_port():
+            return True
+        
+        return False
+
+    def neighbors(self) -> list[str]:
+        """
+        Returns a list of all the regions that border this one.
+        """
+        neighbors = set()
+
+        for location in self.tiles:
+            tile = tile_list[location]
+            for neighbor_tile in tile.area():
+                if neighbor_tile.location in self.tiles:
+                    # Ignore our own tiles
+                    continue
+
+                neighbors.add(tile.owner)
+        
+        return list(neighbor_tile)
+
+    def has_port(self) -> bool:
+        """
+        Returns True if this region's core city is coastal.
+        """
+        return tile_list[self.location].is_coastal()
