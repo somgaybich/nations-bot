@@ -174,3 +174,15 @@ class Region:
         Returns True if this region's core city is coastal.
         """
         return tile_list[self.location].is_coastal()
+    
+    def arability(self) -> float:
+        """
+        Determines the sum arability of a region. Just the sum of arability
+        of the region's tiles, see :class:`world.map.Tile.arability`
+        """
+        arability = 0
+        for location in self.tiles:
+            tile = tile_list[location]
+            arability += tile.arability()
+        
+        return arability

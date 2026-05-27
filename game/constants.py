@@ -65,11 +65,29 @@ empty_inventory = {
     "glass": 0.0
 }
 
-city_types = ["outpost", "village", "town", "city", "metropolis"]
+# arability = biome + (coastal_factor / biome ** 2)
+# [coastal term only added if coastal, obviously]
+biome_arability = {
+    "mediterranean": 1.0,
+    "humid_subtropical": 0.9,
+    "humid_continental": 0.8,
+    "monsoon": 0.7,
+    "subarctic_continental": 0.5,
+    "oceanic": 0.5,
+    "savanna": 0.3,
+    "hot_steppe": 0.2,
+    "cold_steppe": 0.2,
+    "mountains": 0.2,
+    "high_mountains": 0.1,
+    "cold_desert": 0.1,
+    "hot_desert": 0.1,
+    "tundra": 0.1,
+    "ice_caps": 0.0
+}
+coastal_arability_factor = 0.006 # a = ba + (caf / ba**2)
 
-arable_biomes = ["monsoon", "savanna", "humid_subtropical", "mediterranean", 
-                 "humid_continental", "subarctic_continental"]
-dry_biomes = ["hot_steppe", "hot_desert", "cold_steppe", "cold_desert"]
+
+city_types = ["outpost", "village", "town", "city", "metropolis"]
 
 backup_msg = """There was a problem processing that request! Ping @madaman and 
                 she will take care of it as soon as possible."""

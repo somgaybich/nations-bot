@@ -12,12 +12,14 @@ async def tick():
     logger.info("Processing game tick...")
     for nation in nation_list.values():
         logger.debug(f"Processing tick for {nation.name}")
-        for region in nation.regions.values():
-            region.city_tier = region.calculate_tier()
+        # Logistics pass
+        for market in nation.markets.values():
+            for region in market.regions:
+                # Passive food production
+                market.surplus["food"] += region.arability()
 
-            # TODO: Stability calculations
-
-            await region.save()
+                region.city_tier = region.calculate_tier()
+                await region.save()
 
         for unit in nation.military.values():
             # Any units that are currently in training graduate

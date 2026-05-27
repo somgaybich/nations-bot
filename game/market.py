@@ -65,24 +65,24 @@ class Market:
     """
     trades: list[Trade]
     def __init__(self, name: str, owner: int, regions: list[Region], 
-                 inventory: dict[str, float] | None = None):
+                 surplus: dict[str, float] | None = None):
         """
         :param name: The name of this market, also the name of its founding 
             region.
         :param owner: The NID of the nation to whom this market belongs.
         :param regions: The regions that are a part of this market.
-        :param inventory: The amount of each resource currently in this market.
-            See the structure of :class:`empty_inventory` for keys.
+        :param surplus: The amount of each resource currently being 
+            overproduced in this market. Negative values represent deficits.
         :type name: str
         :type owner: int
         :type regions: list[Region]
-        :type inventory: dict[str, float]
+        :type surplus: dict[str, float]
         """
         self.name = name
         self.owner = owner
         self.regions = regions
-        self.inventory = (inventory if inventory is not None 
-                          else empty_inventory)
+        self.surplus = (surplus if surplus is not None 
+                        else empty_inventory)
     
     async def save(self):
         """

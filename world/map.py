@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from world.structures import Structure
 
-from game.constants import arable_biomes, dry_biomes
+from game.constants import biome_arability, coastal_arability_factor
 
 import scripts.database as db
 
@@ -204,27 +204,16 @@ class Tile:
             case (-1, 1):
                 return "sw"
 
-    def is_arable(self) -> bool:
+    def arability(self) -> bool:
         """
-        Checks whether a tile meets the requirements for farming.
+        Returns the arability value for this tile, based on biome and whether
+        the tile is coastal. Used for calculating food production.
         """
-        if self.terrain.biome in arable_biomes:
-            return True
-
-        if self.terrain.biome not in dry_biomes:
-            # Tile isn't in arable or dry biomes
-            # This tile cannot be arable
-            return False
-
-        # If the biome is dry, it can be arable if it has water
+        arability = biome_arability[self.terrain.biome]
         if self.is_coastal():
-            return True
-        for area_tile in self.area():
-            if area_tile.structure == "Aqueduct":
-                return True
-
-        # This tile satisfies none of the conditions
-        return False
+            arability += coastal_arability_factor / arability**2
+        
+        return arability
 
     def is_coastal(self) -> bool:
         """
