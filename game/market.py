@@ -107,6 +107,7 @@ class Market:
         """
         # FIXME: Do database stuff
         markets.pop(self)
+        nation_list[self.owner].markets.pop(self)
 
     async def merge_markets(self, target: "Market"):
         """
