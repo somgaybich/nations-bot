@@ -38,9 +38,14 @@ class Terrain:
     Any straits that might be adjacent to this tile. Corresponds to a side of 
     this tile counting counterclockwise starting from the NE side with index 0.
     """
-
+    ores: dict[str, float]
+    """
+    The richnesses of ores in this tile. Has keys "iron", "copper", "gold", and
+    "coal", "oil".
+    """
     def __init__(self, biome: str, is_land: bool, is_water: bool, 
-                 difficulty: int, straits: list[int] | None = None):
+                 difficulty: int, straits: list[int] | None = None,
+                 ores: dict[str, float] | None = None):
         """
         :param biome: The climate biome of the parent tile.
         :param is_land: Whether this tile is land or not.
@@ -61,6 +66,7 @@ class Terrain:
         self.is_water = is_water
         self.difficulty = difficulty
         self.straits = straits if not straits is None else []
+        self.ores = ores if not ores is None else {}
     
     def data(self):
         """

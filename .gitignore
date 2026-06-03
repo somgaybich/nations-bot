@@ -4,5 +4,6 @@
 logs/
 data/
 test.py
+oregen.py
 map.png
 __pycache__/

@@ -1,10 +1,12 @@
 import pygame
 import os
-from math import sqrt, sin, cos, pi, radians
+from math import sqrt, sin, cos, radians, floor
 import asyncio
 import logging
+import random
+from noise import pnoise2
 
-from scripts.database import init_db, get_db
+from scripts.database import init_db, get_db, save_tiles
 from scripts.load import load
 from scripts.log import log_setup
 
@@ -22,46 +24,131 @@ def coast_color(color: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
     return (min(255, color[0] + COAST_BRIGHTENING),
             min(255, color[1] + COAST_BRIGHTENING), 
             min(255, color[2] + COAST_BRIGHTENING), 
-            HEX_OPACITY)
+            BIOME_OPACITY)
 
-HEX_OPACITY = 100 # 255 = opaque, 0 = transparent
+BIOME_OPACITY = 150 # 255 = opaque, 0 = transparent
+ORE_OPACITY = 255
 colors = {
-    "water": (0, 70, 150, HEX_OPACITY),            # slightly darker than the map
+    "water": (0, 70, 150, BIOME_OPACITY),            # slightly darker than the map
     # Tropical
-    "rainforest": (0, 92, 42, HEX_OPACITY),          # deep, saturated green
-    "monsoon": (40, 140, 90, HEX_OPACITY),           # lush but slightly lighter
-    "savanna": (230, 200, 80, HEX_OPACITY),          # yellow-green grassland
+    "rainforest": (0, 92, 42, BIOME_OPACITY),          # deep, saturated green
+    "monsoon": (40, 140, 90, BIOME_OPACITY),           # lush but slightly lighter
+    "savanna": (230, 200, 80, BIOME_OPACITY),          # yellow-green grassland
 
     # Hot arid / semi-arid
-    "hot_steppe": (210, 200, 120, HEX_OPACITY),      # pale dry grass
-    "hot_desert": (240, 220, 130, HEX_OPACITY),      # sand yellow
+    "hot_steppe": (210, 200, 120, BIOME_OPACITY),      # pale dry grass
+    "hot_desert": (240, 220, 130, BIOME_OPACITY),      # sand yellow
 
     # Mountains
-    "mountains": (90, 90, 90, HEX_OPACITY),          # dark stone
-    "high_mountains": (245, 245, 245, HEX_OPACITY), # snow / ice
+    "mountains": (90, 90, 90, BIOME_OPACITY),          # dark stone
+    "high_mountains": (245, 245, 245, BIOME_OPACITY), # snow / ice
 
     # Temperate
-    "oceanic": (70, 160, 110, HEX_OPACITY),          # cool maritime green
-    "humid_subtropical": (60, 170, 90, HEX_OPACITY), # warm, wet forests
-    "mediterranean": (120, 170, 90, HEX_OPACITY),    # olive / scrubland
+    "oceanic": (70, 160, 110, BIOME_OPACITY),          # cool maritime green
+    "humid_subtropical": (60, 170, 90, BIOME_OPACITY), # warm, wet forests
+    "mediterranean": (120, 170, 90, BIOME_OPACITY),    # olive / scrubland
 
     # Continental / cold
-    "humid_continental": (80, 140, 100, HEX_OPACITY),# mixed forest
-    "subarctic_continental": (60, 110, 90, HEX_OPACITY),
-    "cold_steppe": (180, 190, 150, HEX_OPACITY),     # dry cold grassland
-    "cold_desert": (210, 215, 200, HEX_OPACITY),     # pale, dusty gray
+    "humid_continental": (80, 140, 100, BIOME_OPACITY),# mixed forest
+    "subarctic_continental": (60, 110, 90, BIOME_OPACITY),
+    "cold_steppe": (180, 190, 150, BIOME_OPACITY),     # dry cold grassland
+    "cold_desert": (210, 215, 200, BIOME_OPACITY),     # pale, dusty gray
 
     # Polar
-    "tundra": (170, 185, 175, HEX_OPACITY),          # moss / permafrost
-    "ice_caps": (220, 235, 225, HEX_OPACITY),
+    "tundra": (170, 185, 175, BIOME_OPACITY),          # moss / permafrost
+    "ice_caps": (220, 235, 225, BIOME_OPACITY),
 
     # Land/Water layer
-    True: (255, 255, 255, HEX_OPACITY),
-    False: (0, 0, 0, HEX_OPACITY),
+    True: (255, 255, 255, BIOME_OPACITY),
+    False: (0, 0, 0, BIOME_OPACITY),
 
     # Blank terrain values
-    None: (0, 0, 0, HEX_OPACITY)
+    None: (0, 0, 0, BIOME_OPACITY)
 }
+
+ORE_TYPES = ["iron", "coal", "copper", "gold", "oil"]
+
+SEEDS = {
+    "geology": random.randint(1, 100000),
+    "iron": random.randint(1, 100000),
+    "coal": random.randint(1, 100000),
+    "copper": random.randint(1, 100000),
+    "gold": random.randint(1, 100000),
+    "oil": random.randint(1, 100000),
+}
+
+def _hash2(x, y, seed):
+    # deterministic integer hash → [0, 1]
+    n = x * 374761393 + y * 668265263 + seed * 1442695040888963407
+    n = (n ^ (n >> 13)) * 1274126177
+    n ^= (n >> 16)
+    return (n & 0xFFFFFFFF) / 0xFFFFFFFF
+
+
+def _smooth(t):
+    return t * t * (3 - 2 * t)
+
+
+def _lerp(a, b, t):
+    return a + (b - a) * t
+
+
+def _value_noise(x, y, seed):
+    xi = floor(x)
+    yi = floor(y)
+
+    xf = x - xi
+    yf = y - yi
+
+    v00 = _hash2(xi, yi, seed)
+    v10 = _hash2(xi + 1, yi, seed)
+    v01 = _hash2(xi, yi + 1, seed)
+    v11 = _hash2(xi + 1, yi + 1, seed)
+
+    u = _smooth(xf)
+    v = _smooth(yf)
+
+    x1 = _lerp(v00, v10, u)
+    x2 = _lerp(v01, v11, u)
+
+    return _lerp(x1, x2, v)
+
+
+def sample_noise(x, y, scale, seed):
+    # parameters matching your pnoise2 setup
+    octaves = 4
+    persistence = 0.5
+    lacunarity = 2.0
+
+    x *= scale
+    y *= scale
+
+    total = 0.0
+    amplitude = 1.0
+    frequency = 1.0
+    norm = 0.0
+
+    for i in range(octaves):
+        nx = x * frequency
+        ny = y * frequency
+
+        total += _value_noise(nx, ny, seed + i * 1013) * amplitude
+        norm += amplitude
+
+        amplitude *= persistence
+        frequency *= lacunarity
+
+    n = total / norm  # normalized to ~[0,1]
+
+    # match your original post-processing
+    n = n * 0.5 + 0.5
+
+    # safe clamp (NaN-proof)
+    if n < 0.0:
+        return 0.0
+    if n > 1.0:
+        return 1.0
+    return n
 
 # ===== HEX MATH =====
 
@@ -300,27 +387,84 @@ async def main():
     await init_db(file=terrain_file)
     await load(map_only=True)
 
-    # for tile in tile_list.values():
-    #     match tile.terrain.biome:
-    #         case "hot_desert":
-    #             tile.terrain.difficulty = 2
-    #         case "cold_desert":
-    #             tile.terrain.difficulty = 2
-    #         case "rainforest":
-    #             tile.terrain.difficulty = 3
-    #         case "monsoon":
-    #             tile.terrain.difficulty = 2
-    #         case "mountains":
-    #             tile.terrain.difficulty = 2
-    #         case "high_mountains":
-    #             tile.terrain.difficulty = 3
-    #         case "oceanic":
-    #             tile.terrain.difficulty = 2
-    #         case "ice_caps":
-    #             tile.terrain.difficulty = 2
-    #         case _:
-    #             tile.terrain.difficulty = 1
-    #     await tile.save()
+    # logger.info("Generating ore richness...")
+
+    # count = 0
+    # for (q, r), tile in list(tile_list.items()):
+    #     count += 1
+    #     # Skip ocean
+    #     if not tile.terrain.is_land:
+    #         continue
+        
+    #     wx = (3/2) * q
+    #     wy = (sqrt(3)/2 * q + sqrt(3) * r)
+
+    #     # Broad geological provinces
+    #     geology = sample_noise(wx, wy, 0.03, SEEDS["geology"])
+
+    #     # Terrain modifiers
+    #     mountain_factor = 1.0
+
+    #     if tile.terrain.biome == "mountains":
+    #         mountain_factor = 1.1
+
+    #     elif tile.terrain.biome == "high_mountains":
+    #         mountain_factor = 1.8
+
+    #     ores = {}
+
+    #     # ===== IRON =====
+    #     iron = sample_noise(wx, wy, 0.08, SEEDS["iron"])
+    #     iron *= geology
+    #     iron *= mountain_factor
+    #     iron = max(0.0, min(1.0, iron)) ** 6
+
+    #     # ===== COAL =====
+    #     coal = sample_noise(wx, wy, 0.14, SEEDS["coal"])
+    #     coal *= geology
+    #     coal *= mountain_factor * 1.4
+    #     coal = max(0.0, min(1.0, coal)) ** 6
+
+    #     # ===== COPPER =====
+    #     copper = sample_noise(wx, wy, 0.10, SEEDS["copper"])
+    #     copper *= geology * 1.2
+    #     copper *= mountain_factor
+    #     copper = max(0.0, min(1.0, copper)) ** 6
+
+    #     # ===== GOLD =====
+    #     gold = sample_noise(wx, wy, 0.06, SEEDS["gold"])
+    #     gold *= (1.2 - abs(geology - 0.5))
+    #     gold *= max(1.0, mountain_factor * 0.8)
+    #     gold = max(0.0, min(1.0, gold)) ** 6
+
+    #     # ===== OIL =====
+    #     oil = sample_noise(wx, wy, 0.25, SEEDS["oil"])
+
+    #     # Oil prefers flat dry regions
+    #     if tile.terrain.biome in [
+    #         "hot_desert",
+    #         "cold_desert",
+    #         "hot_steppe",
+    #         "cold_steppe"
+    #     ]:
+    #         oil *= 1.2
+
+    #     if mountain_factor > 1.0:
+    #         oil *= 0.3
+
+    #     oil = max(0.0, min(1.0, oil)) ** 7
+
+    #     ores["iron"] = min(1.0, iron)
+    #     ores["coal"] = min(1.0, coal)
+    #     ores["copper"] = min(1.0, copper)
+    #     ores["gold"] = min(1.0, gold)
+    #     ores["oil"] = min(1.0, oil)
+
+    #     tile.terrain.ores = ores
+
+    # logger.info("Finished ore generation.")
+
+    # await save_tiles(tile_list.values())
 
     running = True
     while running:
@@ -393,8 +537,22 @@ async def main():
                     await get_db().commit()
                     logger.info(f"Overlay alignment values are currently: (SIZE: {HEX_SIZE}), (X: {OFFSET_X}), (Y: {OFFSET_Y}) ")
 
+                # ==== Layer selection ====
+                elif event.key == pygame.K_F1:
+                    layer = "biome"
+                elif event.key == pygame.K_F2:
+                    layer = "iron"
+                elif event.key == pygame.K_F3:
+                    layer = "copper"
+                elif event.key == pygame.K_F4:
+                    layer = "gold"
+                elif event.key == pygame.K_F5:
+                    layer = "coal"
+                elif event.key == pygame.K_F6:
+                    layer = "oil"
+
                 # ==== Brush selection ====
-                if event.key == pygame.K_1:
+                elif event.key == pygame.K_1:
                     current_brush = "rainforest"
 
                 elif event.key == pygame.K_2:
@@ -543,48 +701,105 @@ async def main():
 
         overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
         for (q, r), tile in tile_list.items():
-            match layer:
-                case "biome":
-                    info = tile.terrain.biome
-                case "is_land":
-                    info = tile.terrain.is_land
-            if not info:
-                continue
-
             # compute center in world-space
             wx, wy = hex_to_pixel(q, r, world=True)
-
             # build world-space corners using actual HEX_SIZE
             world_corners = [(wx + HEX_SIZE * ux, wy + HEX_SIZE * uy) for (ux, uy) in UNIT_HEX]
-
             # convert corners to screen-space using the exact same transform used for the background
             screen_corners = [world_to_screen(cx, cy) for (cx, cy) in world_corners]
-
-            # draw base hex
-            color = colors[info]
-            if tile.terrain.is_land and tile.terrain.is_water:
-                color = coast_color(color)
-            pygame.draw.polygon(overlay, color, screen_corners, 0)
-            pygame.draw.polygon(overlay, (0, 0, 0, 255), screen_corners, 1)
-
-            # draw straits
-            if getattr(tile.terrain, "straits", None):
-                for side in tile.terrain.straits:
-                    start_idx = side
-                    end_idx = (side + 1) % 6
-                    pygame.draw.line(
-                        overlay,
-                        (0,0,0,255),
-                        screen_corners[start_idx],
-                        screen_corners[end_idx],
-                        int(5 * viewport_scale)  # thickness of the strait line
-                    )
             
-            # update terrain update cooldowns
-            if tile in cooldowns:
-                cooldowns[tile] -= 1
-                if cooldowns[tile] <= 0:
-                    cooldowns.pop(tile)
+            if layer == "biome":
+                info = tile.terrain.biome
+                # draw base hex
+                color = colors[info]
+                if tile.terrain.is_land and tile.terrain.is_water:
+                    color = coast_color(color)
+                pygame.draw.polygon(overlay, color, screen_corners, 0)
+                pygame.draw.polygon(overlay, (0, 0, 0, 255), screen_corners, 1)
+
+                # draw straits
+                if getattr(tile.terrain, "straits", None):
+                    for side in tile.terrain.straits:
+                        start_idx = side
+                        end_idx = (side + 1) % 6
+                        pygame.draw.line(
+                            overlay,
+                            (0,0,0,255),
+                            screen_corners[start_idx],
+                            screen_corners[end_idx],
+                            int(5 * viewport_scale)  # thickness of the strait line
+                        )
+                
+                # update terrain update cooldowns
+                if tile in cooldowns:
+                    cooldowns[tile] -= 1
+                    if cooldowns[tile] <= 0:
+                        cooldowns.pop(tile)
+            
+            elif layer in ORE_TYPES:
+                info = tile.terrain.ores.get(layer, 0.0)
+
+                # Clamp safely
+                value = max(0.0, min(1.0, info))
+
+                # ===== HEATMAP COLORING =====
+                # Most tiles dark, rich deposits glow brightly
+
+                if value <= 0.001:
+                    # Almost none
+                    color = (15, 15, 15, ORE_OPACITY)
+
+                else:
+                    # Strong nonlinear brightness
+                    brightness = value ** 0.4
+
+                    match layer:
+                        case "iron":
+                            color = (
+                                int(140 * brightness + 40),
+                                int(80 * brightness + 30),
+                                int(60 * brightness + 20),
+                                ORE_OPACITY
+                            )
+
+                        case "coal":
+                            color = (
+                                int(50 * brightness + 10),
+                                int(50 * brightness + 10),
+                                int(50 * brightness + 10),
+                                ORE_OPACITY
+                            )
+
+                        case "copper":
+                            color = (
+                                int(180 * brightness + 40),
+                                int(110 * brightness + 30),
+                                int(60 * brightness + 20),
+                                ORE_OPACITY
+                            )
+
+                        case "gold":
+                            color = (
+                                int(255 * brightness),
+                                int(215 * brightness),
+                                int(60 * brightness + 20),
+                                ORE_OPACITY
+                            )
+
+                        case "oil":
+                            color = (
+                                int(30 * brightness + 10),
+                                int(120 * brightness + 20),
+                                int(40 * brightness + 10),
+                                ORE_OPACITY
+                            )
+
+                        case _:
+                            gray = int(255 * brightness)
+                            color = (gray, gray, gray, BIOME_OPACITY)
+
+                pygame.draw.polygon(overlay, color, screen_corners, 0)
+                pygame.draw.polygon(overlay, (0, 0, 0, 255), screen_corners, 1)
 
         SCREEN.blit(overlay, (0, 0))
         draw_ui(SCREEN)
@@ -594,4 +809,4 @@ async def main():
     pygame.quit()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(), debug=True)
