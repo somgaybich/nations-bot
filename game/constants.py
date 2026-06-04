@@ -11,41 +11,42 @@ brand_color = Color(16417064)
 
 admin_mode = True
 
-# COMBAT SETTINGS
-combat_settings: dict[str, float] = {
-    # normalized probabilities
-    "ally_contribution": 0.5,
-    "base_stalemate_chance": 0.6,
-    "crush_a": 0.4,
-    "crush_b": 0.2,
-    # crush_a controls the slope (impact of gap on chance)
-    # crush_b controls the height/twist (how likely an unfavored crush can be)
+class CombatSettings:
+    def __init__(self):
+        # normalized probabilities
+        self.ally_contribution = 0.5
+        self.base_stalemate_chance = 0.6
+        self.crush_a = 0.4
+        self.crush_b = 0.2
+        # crush_a controls the slope (impact of effectiveness gap on chance)
+        # crush_b controls the height/twist (how "crushy" unfavored wins are)
 
-    # multiplied by a roll out of 1
-    "crush_loser_strength_loss": 2,
-    "crush_loser_morale_loss": 1.8,
-    "loser_strength_loss": 1.5,
-    "loser_morale_loss": 1.3,
+        # multiplied by a roll out of 1
+        self.crush_loser_strength_loss = 2,
+        self.crush_loser_morale_loss = 1.8,
+        self.loser_strength_loss = 1.5,
+        self.loser_morale_loss = 1.3,
 
-    "crush_winner_strength_loss": 0.3,
-    "crush_winner_morale_loss": 0,
-    "winner_strength_loss": 1.0,
-    "winner_morale_loss": 0.7,
+        self.crush_winner_strength_loss = 0.3,
+        self.crush_winner_morale_loss = 0,
+        self.winner_strength_loss = 1.0,
+        self.winner_morale_loss = 0.7,
 
-    "stalemate_strength_loss": 1.2,
-    "stalemate_morale_loss": 1.0,
+        self.stalemate_strength_loss = 1.2,
+        self.stalemate_morale_loss = 1.0,
 
-    "crush_coop_modifier": 0.2,
-    "decisive_coop_modifier": 0.1,
-    "stalemate_coop_modifier": 0.05,
+        self.crush_coop_modifier = 0.2,
+        self.decisive_coop_modifier = 0.1,
+        self.stalemate_coop_modifier = 0.05
 
-    # normalized probabilities
-    "home_terrain_buff": 0.15,
-    "home_city_buff": 0.1,
-    "terrain_difficulty_debuff": 0.1, # for each point of terrain diff over 1
-    "fort_buff": 0.15,
-    "fort_area_buff": 0.05
-}
+        # normalized probabilities
+        self.home_terrain_buff = 0.15,
+        self.home_city_buff = 0.1,
+        self.terrain_difficulty_debuff = 0.1, # for each point of terrain diff
+        self.fort_buff = 0.15,
+        self.fort_area_buff = 0.05
+
+combat_settings = CombatSettings()
 
 city_types = ["outpost", "village", "town", "city", "metropolis"]
 

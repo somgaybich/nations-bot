@@ -132,14 +132,14 @@ class Unit:
         home_tile = tile_list[home_region.location]
         
         if battle_terrain == home_tile.terrain.biome:
-            eff += combat_settings["home_terrain_buff"]
+            eff += combat_settings.home_terrain_buff
         elif attacking:
-            eff -= (battle_terrain.difficulty - 1) * combat_settings["terrain_difficulty_debuff"]
+            eff -= (battle_terrain.difficulty - 1) * combat_settings.terrain_difficulty_debuff
             
         if (tile.location in home_region.tiles):
-            eff += combat_settings["home_city_buff"]
+            eff += combat_settings.home_city_buff
             if tile is home_tile:
-                eff += combat_settings["home_city_buff"]
+                eff += combat_settings.home_city_buff
             
         allies = nation_list[self.owner].allies
         allies.append(self.owner)
@@ -151,11 +151,11 @@ class Unit:
                     continue
         
         if tile.structure.structure_type.fname == "Fort":
-            eff += combat_settings["fort_buff"]
+            eff += combat_settings.fort_buff
         else:
             for tile in tile.area():
                 if tile.structure.structure_type.fname == "Fort":
-                    eff += combat_settings["fort_area_buff"]
+                    eff += combat_settings.fort_area_buff
                     break
         
         return eff
@@ -242,8 +242,8 @@ class Unit:
         :type scaled_impact: float
         :type battle_location: tuple[int, int]
         """
-        self.strength = max(0.0, self.strength - combat_settings["crush_loser_strength_loss"] * scaled_impact)
-        self.morale = max(0.0, self.strength - combat_settings["crush_loser_morale_loss"] * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings.crush_loser_strength_loss * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings.crush_loser_morale_loss * scaled_impact)
 
         nation = nation_list[self.owner]
         for region in nation.regions.values():
@@ -265,8 +265,8 @@ class Unit:
         :type battle_location: tuple[int, int]
 
         """
-        self.strength = max(0.0, self.strength - combat_settings["loser_strength_loss"] * scaled_impact)
-        self.morale = max(0.0, self.strength - combat_settings["loser_morale_loss"] * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings.loser_strength_loss * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings.loser_morale_loss * scaled_impact)
 
         nation = nation_list[self.owner]
         for region in nation.regions.values():
@@ -287,8 +287,8 @@ class Unit:
         :type scaled_impact: float
         :type battle_location: tuple[int, int]
         """
-        self.strength = max(0.0, self.strength - combat_settings["winner_strength_loss"] * scaled_impact)
-        self.morale = max(0.0, self.strength - combat_settings["winner_morale_loss"] * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings.winner_strength_loss * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings.winner_morale_loss * scaled_impact)
 
         nation = nation_list[self.owner]
         for region in nation.regions.values():
@@ -307,8 +307,8 @@ class Unit:
         :type scaled_impact: float
         :type battle_location: tuple[int, int]
         """
-        self.strength = max(0.0, self.strength - combat_settings["crush_winner_strength_loss"] * scaled_impact)
-        self.morale = max(0.0, self.strength - combat_settings["crush_winner_morale_loss"] * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings.crush_winner_strength_loss * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings.crush_winner_morale_loss * scaled_impact)
 
         nation = nation_list[self.owner]
         for region in nation.regions.values():
@@ -325,8 +325,8 @@ class Unit:
         :type scaled_impact: float
         :type battle_location: tuple[int, int]
         """
-        self.strength = max(0.0, self.strength - combat_settings["stalemate_strength_loss"] * scaled_impact)
-        self.morale = max(0.0, self.strength - combat_settings["stalemate_morale_loss"] * scaled_impact)
+        self.strength = max(0.0, self.strength - combat_settings.stalemate_strength_loss * scaled_impact)
+        self.morale = max(0.0, self.strength - combat_settings.stalemate_morale_loss * scaled_impact)
 
         nation = nation_list[self.owner]
         for region in nation.regions.values():
@@ -371,8 +371,8 @@ class Unit:
                         target_allies_eff += unit.effectiveness(False, 
                                                                 self.location)
         
-        self_eff += combat_settings["ally_contribution"] * self_allies_eff
-        target_eff += combat_settings["ally_contribution"] * target_allies_eff
+        self_eff += combat_settings.ally_contribution * self_allies_eff
+        target_eff += combat_settings.ally_contribution * target_allies_eff
         
         # All effectiveness modifiers must be done at this point
 
@@ -433,7 +433,7 @@ def crushing_chance(gap: float) -> float:
         units. 
     :type gap: float
     """
-    return max(0.0, min(1.0, combat_settings["crush_a"] * (gap + 1) ** 2 - combat_settings["crush_b"]))
+    return max(0.0, min(1.0, combat_settings.crush_a * (gap + 1) ** 2 - combat_settings.crush_b))
 
 def gap_stalemate_chance(gap: float) -> float:
     """
@@ -443,4 +443,4 @@ def gap_stalemate_chance(gap: float) -> float:
         units. 
     :type gap: float
     """
-    return combat_settings["base_stalemate_chance"] * (math.e ** (-10 * (gap ** 2)))
+    return combat_settings.base_stalemate_chance * (math.e ** (-10 * (gap ** 2)))
