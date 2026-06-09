@@ -227,4 +227,19 @@ class Region:
         
         return arability
 
-    
+    def richness(self, ore: str) -> float:
+        """
+        Determines the richness of a region in a specific ore. Just the sum
+        of the richness values of the region's tiles, see 
+        :class:`world.map.Terrain.ores`.
+        
+        :param ore: The name of the ore to check richness for. Must be a valid
+            ore, one of "iron", "copper", "gold", "coal", or "oil".
+        :type ore: str
+        """
+        richness = 0
+        for location in self.tiles:
+            tile = tile_list[location]
+            richness += tile.terrain.ores[ore]
+        
+        return richness
