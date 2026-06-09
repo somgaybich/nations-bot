@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-from game.constants import empty_inventory
-
-from world.world import markets, nation_list, regions
+from world.world import markets, nation_list
 
 if TYPE_CHECKING:
     from game.region import Region
@@ -57,31 +55,20 @@ class Market:
     """
     The regions that are a part of this market.
     """
-    production: dict[str, float]
-    """
-    Resource volumes produced by this market's regions.
-
-    See the structure of :class:`empty_inventory` for keys.
-    """
     trades: list[Trade]
-    def __init__(self, name: str, owner: int, regions: list[Region], 
-                 production: dict[str, float] | None = None):
+    def __init__(self, name: str, owner: int, regions: list[Region]):
         """
         :param name: The name of this market, also the name of its founding 
             region.
         :param owner: The NID of the nation to whom this market belongs.
         :param regions: The regions that are a part of this market.
-        :param production: Resource volumes produced by this market's regions.
         :type name: str
         :type owner: int
         :type regions: list[Region]
-        :type production: dict[str, float]
         """
         self.name = name
         self.owner = owner
         self.regions = regions
-        self.production = (production if production is not None 
-                           else empty_inventory)
     
     async def save(self):
         """
@@ -125,6 +112,18 @@ class Market:
         
         return False
 
+    def production(self, item: str):
+        """
+        Calculates the amount of an item produced by the regions in this
+        market.
+        """
+        production = 0
+
+        for region in self.regions:
+            production += region.production(item)
+        
+        return production
+
     def consumption(self, item: str):
         """
         Calculates the amount of an item that would ideally be consumed in this
@@ -146,13 +145,13 @@ class Market:
         Calculates the current supply of an item in this market, from
         production - consumption.
         """
-        return (self.production[item] - self.consumption(item))
+        return (self.production(item) - self.consumption(item))
     
     def fulfillment(self, item: str) -> float:
         """
         Calculates the fulfillment ratio of an item in this market. Returns 
         1.0 if produced > consumed, else returns produced/consumed.
         """
-        if self.production[item] > self.consumption(item):
+        if self.production(item) > self.consumption(item):
             return 1.0
-        return self.production[item] / self.consumption(item)
+        return self.production(item) / self.consumption(item)

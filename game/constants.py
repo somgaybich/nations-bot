@@ -47,23 +47,27 @@ combat_settings: dict[str, float] = {
     "fort_area_buff": 0.05
 }
 
-empty_inventory = {
-    "food": 0.0, 
-    "iron": 0.0, 
-    "copper": 0.0, 
-    "gold": 0.0, 
-    "coal": 0.0, 
-    "steel": 0.0, 
-    "machinery": 0.0, 
-    "oil": 0.0, 
-    "textiles": 0.0, 
-    "jewelry": 0.0, 
-    "spice": 0.0, 
-    "consumer goods": 0.0, 
-    "horses": 0.0, 
-    "gems": 0.0, 
-    "glass": 0.0
-}
+# This has been deprecated functionally but is still useful for reference
+# FIXME: Remove in production
+# empty_inventory = {
+#     "food": 0.0, 
+#     "iron": 0.0, 
+#     "copper": 0.0, 
+#     "gold": 0.0, 
+#     "coal": 0.0, 
+#     "steel": 0.0, 
+#     "machinery": 0.0, 
+#     "oil": 0.0, 
+#     "textiles": 0.0, 
+#     "jewelry": 0.0, 
+#     "spice": 0.0, 
+#     "consumer goods": 0.0, 
+#     "horses": 0.0, 
+#     "gems": 0.0, 
+#     "glass": 0.0
+# }
+
+ores = ["iron", "copper", "gold", "coal", "oil"]
 
 # arability = biome + (coastal_factor / biome ** 2)
 # [coastal term only added if coastal, obviously]

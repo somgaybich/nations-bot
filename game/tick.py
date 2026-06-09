@@ -1,6 +1,6 @@
 import logging
 
-from game.constants import update_season, empty_inventory
+from game.constants import update_season
 
 from world.world import nation_list, markets, regions
 

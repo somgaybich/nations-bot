@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
-from game.constants import food_surplus_use_rate, food_shortage_contract_rate
+from game.constants import (food_surplus_use_rate, 
+                            food_shortage_contract_rate, ores)
 
 import scripts.database as db
 
@@ -119,6 +120,7 @@ class Region:
 
         if len(neighbors) == 0:
             # If there are none, we're done
+            current_market.save()
             return
 
         connected_markets: set["Market"] = set()
@@ -133,14 +135,6 @@ class Region:
         primary_market = next(iter(connected_markets))
         for market in connected_markets:
             primary_market.merge_markets(market)
-
-    async def supply_delta(self, item: str, amount: float):
-        """
-        Changes the supply of an item in this region's :class:`Market`.
-        """
-        market = markets[self.market]
-        market.supply[item] += amount
-        await market.save()
 
     def growth(self):
         """
@@ -215,31 +209,26 @@ class Region:
         """
         return tile_list[self.location].is_coastal()
     
-    def arability(self) -> float:
+    def production(self, item) -> float:
         """
-        Determines the sum arability of a region. Just the sum of arability
-        of the region's tiles, see :class:`world.map.Tile.arability`
-        """
-        arability = 0
-        for location in self.tiles:
-            tile = tile_list[location]
-            arability += tile.arability()
+        Calculates the amount of a certain item type produced by this region.
         
-        return arability
+        For food, this is the sum of the arabilities of the region's tiles,
+        see :class:`world.map.Tile.arability`. 
+        
+        For ores, this is the sum of the richness values of the region's tiles,
+        see :class:`world.map.Terrain.ores`.
+        """
+        production = 0
 
-    def richness(self, ore: str) -> float:
-        """
-        Determines the richness of a region in a specific ore. Just the sum
-        of the richness values of the region's tiles, see 
-        :class:`world.map.Terrain.ores`.
-        
-        :param ore: The name of the ore to check richness for. Must be a valid
-            ore, one of "iron", "copper", "gold", "coal", or "oil".
-        :type ore: str
-        """
-        richness = 0
-        for location in self.tiles:
-            tile = tile_list[location]
-            richness += tile.terrain.ores[ore]
-        
-        return richness
+        if item == "food":
+            for location in self.tiles:
+                tile = tile_list[location]
+                production += tile.arability()
+            
+        elif item in ores:
+            for location in self.tiles:
+                tile = tile_list[location]
+                production += tile.terrain.ores[item]
+
+        return production
