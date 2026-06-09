@@ -188,11 +188,6 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     new_market = Market(name=name, owner=owner, regions=[new_region])
     new_region.merge_markets()
 
-    # Add base food production
-    new_region.supply_delta("food", new_region.arability())
-    # Subtract base food consumption
-    # FIXME
-
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
                                     owner=owner)
@@ -202,7 +197,6 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     await nation.save()
     await new_region.save()
     await city_tile.save()
-
 
     return new_region
 
