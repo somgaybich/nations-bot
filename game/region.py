@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from game.constants import (food_surplus_use_rate, 
-                            food_shortage_contract_rate, ores)
+                            food_shortage_contract_rate)
 
 import scripts.database as db
 
@@ -9,6 +9,7 @@ from world.world import tile_list, structures, regions, markets
 
 if TYPE_CHECKING:
     from game.market import Market
+    from game.industry import IndustryType
     from world.structures import Structure
 
 class Region:
@@ -51,10 +52,15 @@ class Region:
     """
     The name of the market this region belongs to.
     """
+    industries: list["IndustryType"]
+    """
+    The industries in this region. See :class:`game.industry.IndustryType`
+    """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
                  city_tier: int = 0, is_capital: bool = False, 
                  market: str | None = None, population: float = 1.0,
-                 tiles: list[tuple[int, int]] = None):
+                 tiles: list[tuple[int, int]] | None = None, 
+                 industries: list["IndustryType"] | None = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -69,13 +75,16 @@ class Region:
             population count, can be thought of as "the amount of people that 
             consume x units of food."
         :param tiles: The list of tile coordinates that belong to this region.
+        :param industries: The industries in this region. See 
+            :class:`game.industry.IndustryType`
         :type name: str
         :type location: tuple[int, int]
         :type owner: int
         :type city_tier: int
         :type is_capital: bool
         :type market: str
-        :type tiles: list[tuple[int, int]],
+        :type tiles: list[tuple[int, int]]
+        :type industries: list["IndustryType"]
         """
         self.name = name
         self.location = location
@@ -85,6 +94,8 @@ class Region:
         self.population = population
         self.tiles = (tiles if tiles is not None 
                       else [tile.location for tile in tile_list[location].area()])
+        self.industries = (industries if industries is not None
+                           else [])
         
         if market is not None:
             self.market = market
@@ -209,26 +220,13 @@ class Region:
         """
         return tile_list[self.location].is_coastal()
     
-    def production(self, item) -> float:
+    def arability(self) -> float:
         """
-        Calculates the amount of a certain item type produced by this region.
-        
-        For food, this is the sum of the arabilities of the region's tiles,
-        see :class:`world.map.Tile.arability`. 
-        
-        For ores, this is the sum of the richness values of the region's tiles,
-        see :class:`world.map.Terrain.ores`.
+        Returns the sum arability of the region's tiles. See 
+        :class:`world.map.Tile.arability`.
         """
-        production = 0
-
-        if item == "food":
-            for location in self.tiles:
-                tile = tile_list[location]
-                production += tile.arability()
-            
-        elif item in ores:
-            for location in self.tiles:
-                tile = tile_list[location]
-                production += tile.terrain.ores[item]
-
-        return production
+        arability = 0
+        for location in self.tiles:
+            tile = tile_list[location]
+            arability += tile.arability()
+        return arability

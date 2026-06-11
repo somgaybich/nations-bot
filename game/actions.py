@@ -6,16 +6,16 @@ logger = logging.getLogger(__name__)
 import scripts.errors as errors
 
 from game.constants import admin_mode
-from game.market import Market, merge_all_markets
+from game.market import Market
 from game.military import Unit
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
+from game.industry import industry_types
 
 from world.map import hex_distance
 from world.structures import StructureType, Structure, structure_types
-from world.world import (nation_list, tile_list, units, structures, regions, 
-                         markets)
+from world.world import (nation_list, tile_list, units, structures, regions)
 
 async def new_army(name: str, owner: int, region_name: str) -> Unit:
     """
@@ -188,6 +188,8 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
     new_market = Market(name=name, owner=owner, regions=[new_region])
     new_region.merge_markets()
 
+    await new_industry("subsistence", name)
+
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
                                     owner=owner)
@@ -278,3 +280,19 @@ async def new_structure(structure_type: StructureType,
     await tile.save()
 
     return new_structure
+
+async def new_industry(industry_name: str, region_name: str):
+    industry_type = industry_types[industry_name]
+    region = regions[region_name]
+    nation = nation_list[region.owner]
+    if nation.econ.influence < industry_type.cost:
+        raise errors.NotEnoughInfluence(
+            action="Industry creation",
+            required=industry_type.cost,
+            had=nation.econ.influence)
+
+    nation.econ.influence -= industry_type.cost
+    region.industries.append(industry_type)
+    
+    await region.save()
+    await nation.save()

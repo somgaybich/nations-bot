@@ -210,7 +210,7 @@ class Tile:
             case (-1, 1):
                 return "sw"
 
-    def arability(self) -> bool:
+    def arability(self) -> float:
         """
         Returns the arability value for this tile, based on biome and whether
         the tile is coastal. Used for calculating food production.

@@ -120,7 +120,11 @@ class Market:
         production = 0
 
         for region in self.regions:
-            production += region.production(item)
+            for industry in region.industries:
+                output = industry.production(region)
+                if output[0] != item:
+                    continue
+                production += output[1]
         
         return production
 

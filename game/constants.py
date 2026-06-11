@@ -67,9 +67,7 @@ combat_settings: dict[str, float] = {
 #     "glass": 0.0
 # }
 
-ores = ["iron", "copper", "gold", "coal", "oil"]
-
-# arability = biome + (coastal_factor / biome ** 2)
+# arability = biome + (coastal_arability_factor / biome ** 2)
 # [coastal term only added if coastal, obviously]
 biome_arability = {
     "mediterranean": 1.0,
@@ -88,10 +86,11 @@ biome_arability = {
     "tundra": 0.1,
     "ice_caps": 0.0
 }
-coastal_arability_factor = 0.006 # a = ba + (caf / ba**2)
+coastal_arability_factor = 0.006
 
 food_surplus_use_rate = 0.2 # % of surplus to grow into
 food_shortage_contract_rate = 0.3 # slows contractions due to food shortage
+textile_food_debuff = 0.4 # % of food produced with a textile industry
 
 city_types = ["outpost", "village", "town", "city", "metropolis"]
 
