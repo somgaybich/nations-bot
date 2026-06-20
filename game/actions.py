@@ -6,14 +6,17 @@ logger = logging.getLogger(__name__)
 import scripts.errors as errors
 
 from game.constants import admin_mode
+from game.market import Market
 from game.military import Unit
 from game.nation import Nation
 from game.region import Region
 from game.economy import Econ
+from game.industry import industry_types
 
 from world.map import hex_distance
 from world.structures import StructureType, Structure, structure_types
-from world.world import nation_list, tile_list, units, structures, regions
+from world.world import (nation_list, tile_list, units, structures, regions, 
+                         markets)
 
 async def new_army(name: str, owner: int, region_name: str) -> Unit:
     """
@@ -149,7 +152,7 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
             continue
         if tile.owner == None:
             to_be_claimed.append(tile.location)
-        elif tile.owner == owner:
+        elif regions[tile.owner].owner == owner:
             continue
         else:
             # Tile is owned by another player
@@ -173,26 +176,30 @@ async def new_region(name: str, location: tuple[int, int], owner: int,
             raise errors.NotEnoughInfluence('Settlement creation', 4, 
                                             nation.econ.influence)
         
-    nation.econ.influence -= 4
+        nation.econ.influence -= 4
 
     for claim_location in to_be_claimed:
-        tile_list[claim_location].owner = owner
+        tile_list[claim_location].owner = name
         await tile_list[claim_location].save()
 
     new_region = Region(name=name, location=location, 
                         owner=owner, is_capital=capital)
     nation.regions[name] = new_region
+    regions[name] = new_region
+
+    new_market = Market(name=name, owner=owner, regions=[new_region])
+    markets[name] = new_market
+    await new_region.merge_markets()
+    await new_industry("subsistence", name)
 
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
                                     owner=owner)
 
-    regions[name] = new_region
-
     await nation.save()
     await new_region.save()
     await city_tile.save()
-    
+
     return new_region
 
 async def new_nation(name: str, userid: int) -> Nation:
@@ -273,3 +280,19 @@ async def new_structure(structure_type: StructureType,
     await tile.save()
 
     return new_structure
+
+async def new_industry(industry_name: str, region_name: str):
+    industry_type = industry_types[industry_name]
+    region = regions[region_name]
+    nation = nation_list[region.owner]
+    if nation.econ.influence < industry_type.cost:
+        raise errors.NotEnoughInfluence(
+            action="Industry creation",
+            required=industry_type.cost,
+            had=nation.econ.influence)
+
+    nation.econ.influence -= industry_type.cost
+    region.industries.append(industry_name)
+    
+    await region.save()
+    await nation.save()

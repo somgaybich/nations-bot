@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 import scripts.database as db
 
 if TYPE_CHECKING:
+    from game.market import Market
     from game.military import Unit
     from game.espionage import Espionage
     from game.economy import Econ
@@ -37,6 +38,10 @@ class Nation:
     """
     The list of ongoing espionage plots by this nation's leadership.
     """
+    markets: dict[str, "Market"]
+    """
+    Maps names to this nation's markets.
+    """
     dossier: dict[str, str]
     """
     The dossier for this nation.\n\nWhen shown to the user, will be formatted
@@ -53,7 +58,7 @@ class Nation:
     """
     def __init__(self, name: str, userid: int, econ: "Econ", regions=None, 
                  military=None, espionage=None, dossier=None, allies=None, 
-                 color=Color.random()):
+                 markets=None, color=Color.random()):
         """
         :param name: The name of this nation.
         :param userid: The NID of this nation and discord UID of its owner.
@@ -92,6 +97,8 @@ class Nation:
                                         else {})
         self.allies: list[int] = (allies if allies is not None
                                   else [])
+        self.markets: dict[str, "Market"] = (markets if markets is not None
+                                             else {})
         self.color: Color = color
     
     async def save(self):
@@ -113,3 +120,11 @@ class Nation:
             title=self.name,
             text=message
         )
+    
+    def capital(self) -> "Region":
+        """
+        Returns this nation's capital.
+        """
+        for region in self.regions.values():
+            if region.is_capital:
+                return region

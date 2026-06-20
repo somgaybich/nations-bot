@@ -27,9 +27,7 @@ class StructureType:
     The internal name for this structure type.
     """
 
-    def __init__(self, usable_in: list, inf_cost: int, fname: str, name: str,
-                 resource_cost: list[str] = [], prereq: str = '', 
-                 tier_req: int = 0, resource_prod: str = ''):
+    def __init__(self, usable_in: list, inf_cost: int, fname: str, name: str):
         """
         :param usable_in: A list of the environments required for this 
             structure to be built. Currently implemented: arable, coastal, 

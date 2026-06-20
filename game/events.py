@@ -4,6 +4,7 @@
 ### As of the v2 overhaul, this module doesn't actually do anything, as it was
 ### mainly for the authority system. I'll keep it around in case it's useful
 ### at some point later.
+### FIXME: Remove in release unless a use is found
 
 import logging
 from typing import TYPE_CHECKING

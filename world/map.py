@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from world.structures import Structure
 
-from game.constants import arable_biomes, dry_biomes
+from game.constants import biome_arability, coastal_arability_factor
 
 import scripts.database as db
 
@@ -38,9 +38,14 @@ class Terrain:
     Any straits that might be adjacent to this tile. Corresponds to a side of 
     this tile counting counterclockwise starting from the NE side with index 0.
     """
-
+    ores: dict[str, float]
+    """
+    The richnesses of ores in this tile. Has keys "iron", "copper", "gold", and
+    "coal", "oil".
+    """
     def __init__(self, biome: str, is_land: bool, is_water: bool, 
-                 difficulty: int, straits: list[int] | None = None):
+                 difficulty: int, straits: list[int] | None = None,
+                 ores: dict[str, float] | None = None):
         """
         :param biome: The climate biome of the parent tile.
         :param is_land: Whether this tile is land or not.
@@ -61,6 +66,7 @@ class Terrain:
         self.is_water = is_water
         self.difficulty = difficulty
         self.straits = straits if not straits is None else []
+        self.ores = ores if not ores is None else {}
     
     def data(self):
         """
@@ -68,7 +74,7 @@ class Terrain:
         in the database.
         """
         return json.dumps([self.biome, self.is_land, self.is_water, 
-                           self.difficulty, self.straits])
+                           self.difficulty, self.straits, self.ores])
 
 class Tile:
     """
@@ -82,26 +88,26 @@ class Tile:
     """
     The (q, r) axial coordinates of this tile on the game map.
     """
-    owner: int | None
+    owner: str | None
     """
-    The NID of the nation that owns this tile, if any.
+    The name of the region that owns this tile, if any.
     """
     structure: "Structure | None"
     """
     The player-built object on this tile.
     """
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
-                 owner: int = None, structure: "Structure" = None):
+                 owner: str = None, structure: "Structure" = None):
         """
         :param terrain: A terrain object that contains the tile's physical 
             conditions.
         :param location: The (q, r) axial coordinates of this tile on the game 
             map.
-        :param owner: The NID of the nation that owns this tile, if any.
+        :param owner: The name of the region that owns this tile, if any.
         :param structure: The player-built object on this tile.
         :type terrain: Terrain
         :type location: tuple[int, int]
-        :type owner: int
+        :type owner: str
         :type structure: Structure
         """
         self.terrain = terrain
@@ -204,27 +210,16 @@ class Tile:
             case (-1, 1):
                 return "sw"
 
-    def is_arable(self) -> bool:
+    def arability(self) -> float:
         """
-        Checks whether a tile meets the requirements for farming.
+        Returns the arability value for this tile, based on biome and whether
+        the tile is coastal. Used for calculating food production.
         """
-        if self.terrain.biome in arable_biomes:
-            return True
-
-        if self.terrain.biome not in dry_biomes:
-            # Tile isn't in arable or dry biomes
-            # This tile cannot be arable
-            return False
-
-        # If the biome is dry, it can be arable if it has water
+        arability = biome_arability[self.terrain.biome]
         if self.is_coastal():
-            return True
-        for area_tile in self.area():
-            if area_tile.structure == "Aqueduct":
-                return True
-
-        # This tile satisfies none of the conditions
-        return False
+            arability += coastal_arability_factor / arability**2
+        
+        return arability
 
     def is_coastal(self) -> bool:
         """

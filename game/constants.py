@@ -48,11 +48,52 @@ class CombatSettings:
 
 combat_settings = CombatSettings()
 
-city_types = ["outpost", "village", "town", "city", "metropolis"]
+# This has been deprecated functionally but is still useful for reference
+# FIXME: Remove in production
+# empty_inventory = {
+#     "food": 0.0, 
+#     "iron": 0.0, 
+#     "copper": 0.0, 
+#     "gold": 0.0, 
+#     "coal": 0.0, 
+#     "steel": 0.0, 
+#     "machinery": 0.0, 
+#     "oil": 0.0, 
+#     "textiles": 0.0, 
+#     "jewelry": 0.0, 
+#     "spice": 0.0, 
+#     "consumer goods": 0.0, 
+#     "horses": 0.0, 
+#     "gems": 0.0, 
+#     "glass": 0.0
+# }
 
-arable_biomes = ["monsoon", "savanna", "humid_subtropical", "mediterranean", 
-                 "humid_continental", "subarctic_continental"]
-dry_biomes = ["hot_steppe", "hot_desert", "cold_steppe", "cold_desert"]
+# arability = biome + (coastal_arability_factor / biome ** 2)
+# [coastal term only added if coastal, obviously]
+biome_arability = {
+    "mediterranean": 1.0,
+    "humid_subtropical": 0.9,
+    "humid_continental": 0.8,
+    "monsoon": 0.7,
+    "subarctic_continental": 0.5,
+    "oceanic": 0.5,
+    "savanna": 0.3,
+    "hot_steppe": 0.2,
+    "cold_steppe": 0.2,
+    "mountains": 0.2,
+    "high_mountains": 0.1,
+    "cold_desert": 0.1,
+    "hot_desert": 0.1,
+    "tundra": 0.1,
+    "ice_caps": 0.0
+}
+coastal_arability_factor = 0.006
+
+food_surplus_use_rate = 0.2 # % of surplus to grow into
+food_shortage_contract_rate = 0.3 # slows contractions due to food shortage
+textile_food_debuff = 0.4 # % of food produced with a textile industry
+
+city_types = ["outpost", "village", "town", "city", "metropolis"]
 
 backup_msg = """There was a problem processing that request! Ping @madaman and 
                 she will take care of it as soon as possible."""
