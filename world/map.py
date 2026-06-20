@@ -74,7 +74,7 @@ class Terrain:
         in the database.
         """
         return json.dumps([self.biome, self.is_land, self.is_water, 
-                           self.difficulty, self.straits])
+                           self.difficulty, self.straits, self.ores])
 
 class Tile:
     """

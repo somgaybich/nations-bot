@@ -52,7 +52,7 @@ class Region:
     """
     The name of the market this region belongs to.
     """
-    industries: list["IndustryType"]
+    industries: list[str]
     """
     The industries in this region. See :class:`game.industry.IndustryType`
     """
@@ -60,7 +60,7 @@ class Region:
                  city_tier: int = 0, is_capital: bool = False, 
                  market: str | None = None, population: float = 1.0,
                  tiles: list[tuple[int, int]] | None = None, 
-                 industries: list["IndustryType"] | None = None):
+                 industries: list[str] | None = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -75,8 +75,8 @@ class Region:
             population count, can be thought of as "the amount of people that 
             consume x units of food."
         :param tiles: The list of tile coordinates that belong to this region.
-        :param industries: The industries in this region. See 
-            :class:`game.industry.IndustryType`
+        :param industries: The names of industries in this region. See 
+            :class:`game.industry.industry_types`
         :type name: str
         :type location: tuple[int, int]
         :type owner: int
@@ -109,43 +109,6 @@ class Region:
         Saves this region to the database.
         """
         await db.save_region(self)
-
-    async def merge_markets(self):
-        """
-        Finds a connected :class:`Market` to join. This should generally only 
-        be run once, when the region is first created.
-        """
-        current_market = markets[self.market]
-
-        if self.has_port():
-            # Find a port region owned by the same nation
-            for region in regions.values():
-                if region.has_port() and region.owner == self.owner:
-                    # Join their market!
-                    target_market = markets[region.market]
-                    await target_market.merge_markets(current_market)
-                    return
-        
-        # Find all connected markets
-        neighbors = [regions[name] for name in self.neighbors()]
-
-        if len(neighbors) == 0:
-            # If there are none, we're done
-            current_market.save()
-            return
-
-        connected_markets: set["Market"] = set()
-        for neighbor in neighbors:
-            if neighbor.owner != self.owner:
-                # Ignore foreign markets
-                continue
-
-            connected_markets.add(markets[neighbor.market])
-        
-        # Merge them together
-        primary_market = next(iter(connected_markets))
-        for market in connected_markets:
-            primary_market.merge_markets(market)
 
     def growth(self):
         """
@@ -212,7 +175,7 @@ class Region:
 
                 neighbors.add(tile.owner)
         
-        return list(neighbor_tile)
+        return list(neighbors)
 
     def has_port(self) -> bool:
         """

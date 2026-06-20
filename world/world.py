@@ -38,6 +38,8 @@ class MarketDict(dict[str, "Market"]):
     """
     A singleton for storing market data.
     """
+    def reset(self):
+        self = {}
 
 tile_list: TileDict = TileDict()
 """

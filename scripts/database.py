@@ -5,6 +5,7 @@ from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from game.nation import Nation
+    from game.market import Market
     from game.economy import Econ
     from game.military import Unit
     from game.region import Region
@@ -50,10 +51,11 @@ async def init_db(file: str = "data/nations.db"):
         y INTEGER NOT NULL,
         owner INTEGER NOT NULL,
         tiles TEXT,
-        inventory TEXT,
         authority TEXT,
         capital TEXT,
-        city_tier INTEGER)
+        city_tier INTEGER,
+        market TEXT,
+        industries TEXT)
     """
     )
     logger.debug("Created regions table")
@@ -98,6 +100,16 @@ async def init_db(file: str = "data/nations.db"):
         """)
     logger.debug("Created economies table")
 
+    await _db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS markets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            owner INTEGER NOT NULL,
+            regions TEXT NOT NULL)
+        """)
+    logger.debug("Created markets table")
+
     await _db.commit()
     logger.info("Database started")
 
@@ -135,25 +147,23 @@ async def load_nations_rows():
 # ---------------
 
 async def save_region(region: "Region"):
-    logger.debug(f"Saving nation at {region.name}")
-    encoded_inventory = []
-    for item in region.inventory:
-        encoded_inventory.append(item.encode())
+    logger.debug(f"Saving region at {region.name}")
     await get_db().execute(
         """
         INSERT INTO regions (
-            name, x, y, owner, tiles, inventory, capital, city_tier
+            name, x, y, owner, tiles, capital, city_tier, market, industries
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(name) DO UPDATE SET
             name = excluded.name,
             tiles = excluded.tiles,
-            inventory = excluded.inventory,
             city_tier = excluded.city_tier,
+            market = excluded.market,
+            industries = excluded.industries
         """,
         (region.name, region.location[0], region.location[1], region.owner, 
-         json.dumps(region.tiles), json.dumps(encoded_inventory), 
-         json.dumps(region.is_capital), region.city_tier)
+         json.dumps(region.tiles), json.dumps(region.is_capital), 
+         region.city_tier, region.market, json.dumps(region.industries))
     )
 
 async def load_regions_rows():
@@ -280,4 +290,46 @@ async def save_economy(econ: "Econ"):
 
 async def load_economies_rows():
     async with get_db().execute("SELECT * FROM economies") as cursor:
+        return await cursor.fetchall()
+    
+# ----------------
+
+async def save_market(market: "Market"):
+    logger.debug(f"Saving market at {market.id}")
+    if market.id is None:
+        async with get_db().execute(
+            """
+            INSERT INTO markets (
+                name, owner, regions
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                market.name,
+                market.owner,
+                json.dumps(market.regions)
+            )
+        ) as cursor:
+            market.id = cursor.lastrowid
+    else:
+        await get_db().execute(
+            """
+            UPDATE markets
+            SET name = ?, owner = ?, regions = ?
+            WHERE id = ?
+            """,
+            (
+                market.name,
+                market.owner,
+                json.dumps(market.regions),
+                market.id
+            )
+        )
+
+async def delete_market(market: "Market"):
+    if market.id is not None:
+        await get_db().execute("DELETE FROM markets WHERE id = ?", (market.id,))
+
+async def load_markets_rows():
+    async with get_db().execute("SELECT * FROM markets") as cursor:
         return await cursor.fetchall()

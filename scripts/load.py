@@ -66,20 +66,15 @@ async def load(map_only: bool = False):
 
     region_data = await db.load_regions_rows()
     for row in region_data:
-        decoded_inventory = []
-        inventory_data = json.loads(row['inventory'])
-        for item_data in inventory_data:
-            #FIXME
-            pass
-
         region = Region(
             name=row["name"],
             location=(row["x"], row["y"]),
             city_tier=row["city_tier"],
             owner=row["owner"],
-            inventory=decoded_inventory,
             is_capital=row["capital"],
-            tiles=[tuple(tile) for tile in json.loads(row["tiles"])]
+            tiles=[tuple(tile) for tile in json.loads(row["tiles"])],
+            market=row["market"],
+            industries=json.loads(row["industries"])
         )
 
         nation_list[row["owner"]].regions.update({

@@ -120,3 +120,11 @@ class Nation:
             title=self.name,
             text=message
         )
+    
+    def capital(self) -> "Region":
+        """
+        Returns this nation's capital.
+        """
+        for region in self.regions.values():
+            if region.is_capital:
+                return region

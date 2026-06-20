@@ -46,7 +46,7 @@ def subsistence_production(region: "Region") -> tuple[str, float]:
     see :class:`world.map.Tile.arability`. 
     """
     production = region.arability() / math.sqrt(region.population)
-    if industry_types["textile"] in region.industries:
+    if "textile" in region.industries:
         production *= 0.4
     return ("food", production)
 

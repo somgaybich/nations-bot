@@ -3,7 +3,9 @@ from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-from world.world import markets, nation_list
+from game.industry import industry_types
+
+from world.world import markets, regions, nation_list
 
 if TYPE_CHECKING:
     from game.region import Region
@@ -56,7 +58,7 @@ class Market:
     The regions that are a part of this market.
     """
     trades: list[Trade]
-    def __init__(self, name: str, owner: int, regions: list[Region]):
+    def __init__(self, name: str, owner: int, regions: list["Region"]):
         """
         :param name: The name of this market, also the name of its founding 
             region.
@@ -69,36 +71,6 @@ class Market:
         self.name = name
         self.owner = owner
         self.regions = regions
-    
-    async def save(self):
-        """
-        Saves this market to the database.
-        """
-        # FIXME: Do database stuff
-        pass
-
-    async def delete(self):
-        """
-        Deletes this market from the database.
-        """
-        # FIXME: Do database stuff
-        markets.pop(self)
-        nation_list[self.owner].markets.pop(self)
-
-    async def merge_markets(self, target: "Market"):
-        """
-        Subsumes another market into this one.
-        :param target: The market to merge with. This market will no longer
-            exist.
-        :type target: Market
-        """
-        for region in target.regions:
-            self.regions.append(region)
-            region.market = self.name
-            await region.save()
-        
-        await self.save()
-        await target.delete()
 
     def connected(self, target: str) -> bool:
         """
@@ -120,7 +92,8 @@ class Market:
         production = 0
 
         for region in self.regions:
-            for industry in region.industries:
+            for industry_name in region.industries:
+                industry = industry_types[industry_name]
                 output = industry.production(region)
                 if output[0] != item:
                     continue
@@ -143,7 +116,6 @@ class Market:
         
         return consumption
 
-
     def supply(self, item: str) -> float:
         """
         Calculates the current supply of an item in this market, from
@@ -159,3 +131,54 @@ class Market:
         if self.production(item) > self.consumption(item):
             return 1.0
         return self.production(item) / self.consumption(item)
+
+async def build_markets():
+    markets.reset()
+    
+    for nation in nation_list.values():
+        capital = nation.capital()
+        capital_market = Market(
+            name=capital.name,
+            owner=nation.userid,
+            regions=[capital]
+        )
+        
+        nation_regions = nation.regions.values()
+        connecting = True
+        while connecting:
+            connecting = False
+            for region in nation_regions:
+                if (capital_market.connected(region.name) 
+                    and region not in capital_market.regions):
+                    capital_market.regions.append(region)
+                    region.market = capital_market.name
+                    connecting = True
+
+        markets[capital.name] = capital_market
+
+        isolated = set(nation_regions) - set(capital_market.regions)
+        while len(isolated) != 0:
+            sorted_regions = sorted(
+                isolated, 
+                key=lambda region: region.population, 
+                reverse=True
+            )
+            largest = sorted_regions[0]
+            new_market = Market(
+                name=largest.name,
+                owner=nation.userid,
+                regions=[largest]
+            )
+            
+            connecting = True
+            while connecting:
+                connecting = False
+                for region in isolated:
+                    if (new_market.connected(region.name) 
+                        and region not in new_market.regions):
+                        new_market.regions.append(region)
+                        region.market = new_market.name
+                        connecting = True
+            
+            markets[largest.name] = new_market
+            isolated -= set(new_market.regions)
