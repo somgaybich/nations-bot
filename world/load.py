@@ -5,7 +5,7 @@ from discord import Color
 
 import world.database as db
 
-from game.objs.military import Unit
+from game.objs.unit import Unit
 from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ

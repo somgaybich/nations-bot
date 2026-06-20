@@ -8,7 +8,7 @@ import world.database as db
 
 if TYPE_CHECKING:
     from game.objs.market import Market
-    from game.objs.military import Unit
+    from game.objs.unit import Unit
     from game.objs.espionage import Espionage
     from game.objs.economy import Econ
     from game.objs.region import Region

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from game.objs.nation import Nation
     from game.objs.market import Market
     from game.objs.economy import Econ
-    from game.objs.military import Unit
+    from game.objs.unit import Unit
     from game.objs.region import Region
     from game.objs.map import Tile
     from game.objs.structures import Structure
