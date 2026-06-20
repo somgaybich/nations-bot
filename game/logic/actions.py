@@ -5,16 +5,16 @@ logger = logging.getLogger(__name__)
 
 import scripts.errors as errors
 
-from game.constants import admin_mode
-from game.market import Market
-from game.military import Unit
-from game.nation import Nation
-from game.region import Region
-from game.economy import Econ
-from game.industry import industry_types
+from data.constants import admin_mode
+from game.objs.market import Market
+from game.objs.military import Unit
+from game.objs.nation import Nation
+from game.objs.region import Region
+from game.objs.economy import Econ
+from game.objs.industry import industry_types
 
-from game.map import hex_distance
-from game.structures import StructureType, Structure, structure_types
+from game.objs.map import hex_distance
+from game.objs.structures import StructureType, Structure, structure_types
 from world.world import (nation_list, tile_list, units, structures, regions, 
                          markets)
 

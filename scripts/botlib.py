@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from discord.ext import tasks
 
 from world.load import load
-from game.funcs.tick import tick
+from game.logic.tick import tick
 from world.database import init_db
 from world.database import get_db
 

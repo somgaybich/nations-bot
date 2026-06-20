@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from game.structures import Link
+    from game.objs.structures import Link
 
 class NationsException(Exception):
     """

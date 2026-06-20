@@ -4,13 +4,13 @@ import logging
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from game.nation import Nation
-    from game.market import Market
-    from game.economy import Econ
-    from game.military import Unit
-    from game.region import Region
-    from game.map import Tile
-    from game.structures import Structure
+    from game.objs.nation import Nation
+    from game.objs.market import Market
+    from game.objs.economy import Econ
+    from game.objs.military import Unit
+    from game.objs.region import Region
+    from game.objs.map import Tile
+    from game.objs.structures import Structure
 
 logger = logging.getLogger(__name__)
 

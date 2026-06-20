@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
-import game.actions as actions
-from game.tick import tick
+import game.logic.actions as actions
+from game.logic.tick import tick
 
 from world.load import load
 from world.database import init_db, get_db

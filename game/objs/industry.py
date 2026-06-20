@@ -8,7 +8,7 @@ import math
 from world.world import tile_list, markets
 
 if TYPE_CHECKING:
-    from game.region import Region
+    from game.objs.region import Region
 
 class IndustryType:
     """

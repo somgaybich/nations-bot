@@ -6,13 +6,13 @@ logger = logging.getLogger(__name__)
 import scripts.errors as errors
 
 if TYPE_CHECKING:
-    from game.nation import Nation
-    from game.military import Unit
-    from game.market import Market, Trade
-    from game.region import Region
-    from game.events import Listener
-    from game.map import Tile
-    from game.structures import Structure
+    from game.objs.nation import Nation
+    from game.objs.military import Unit
+    from game.objs.market import Market, Trade
+    from game.objs.region import Region
+    from game.objs.events import Listener
+    from game.objs.map import Tile
+    from game.objs.structures import Structure
 
 class TileDict(dict[tuple[int, int], "Tile"]):
     """

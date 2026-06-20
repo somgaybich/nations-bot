@@ -1,6 +1,6 @@
 import logging
 
-from game.constants import update_season
+from data.constants import update_season
 
 from world.world import nation_list, markets, regions
 
