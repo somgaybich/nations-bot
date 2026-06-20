@@ -89,7 +89,7 @@ class DoesNotExist(NationsException):
     def __init__(self, object_type: str, action: str, name: str):
         super().__init__(f"""{action} failed: {object_type} '{name}' does not 
                          exist""")
-        self.user_message = f"Couldn't find a {object_type} at {name}!"
+        self.user_message = f"Couldn't find a {object_type} named {name}!"
 
 class NotOwned(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
