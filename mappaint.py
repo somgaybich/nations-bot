@@ -6,11 +6,11 @@ import logging
 import random
 from noise import pnoise2
 
-from scripts.database import init_db, get_db, save_tiles
-from scripts.load import load
+from world.database import init_db, get_db, save_tiles
+from world.load import load
 from scripts.log import log_setup
 
-from world.map import Tile, Terrain
+from game.map import Tile, Terrain
 from world.world import tile_list
 
 # === DISCLAIMER REGARDING AI-GENERATED CONTENT ===

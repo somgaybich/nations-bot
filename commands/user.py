@@ -14,7 +14,7 @@ from scripts.ui import ConfirmView
 from game.constants import brand_color
 from game.actions import new_nation, new_region, new_army, new_fleet
 
-from world.structures import structure_types
+from game.structures import structure_types
 from world.world import nation_list
 
 logger = logging.getLogger(__name__)

@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-import scripts.database as db
+import world.database as db
 
 if TYPE_CHECKING:
-    from game.market import Market
-    from game.military import Unit
-    from game.espionage import Espionage
-    from game.economy import Econ
-    from game.region import Region
+    from game.objs.market import Market
+    from game.objs.military import Unit
+    from game.objs.espionage import Espionage
+    from game.objs.economy import Econ
+    from game.objs.region import Region
 
 class Nation:
     name: str

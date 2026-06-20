@@ -3,15 +3,15 @@ import logging
 import ast
 from discord import Color
 
-import scripts.database as db
+import world.database as db
 
-from game.military import Unit
-from game.nation import Nation
-from game.region import Region
-from game.economy import Econ
+from game.objs.military import Unit
+from game.objs.nation import Nation
+from game.objs.region import Region
+from game.objs.economy import Econ
 
-from world.map import Tile, Terrain
-from world.structures import Structure, structure_types
+from game.objs.map import Tile, Terrain
+from game.objs.structures import Structure, structure_types
 from world.world import tile_list, nation_list, units, structures, regions
 
 logger = logging.getLogger(__name__)

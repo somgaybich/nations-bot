@@ -4,8 +4,8 @@ import logging
 import game.actions as actions
 from game.tick import tick
 
-from scripts.load import load
-from scripts.database import init_db, get_db
+from world.load import load
+from world.database import init_db, get_db
 from scripts.log import log_setup
 from scripts.rendering import snapshot_center
 

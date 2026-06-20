@@ -9,8 +9,8 @@ if TYPE_CHECKING:
     from game.economy import Econ
     from game.military import Unit
     from game.region import Region
-    from world.map import Tile
-    from world.structures import Structure
+    from game.map import Tile
+    from game.structures import Structure
 
 logger = logging.getLogger(__name__)
 

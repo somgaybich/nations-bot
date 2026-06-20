@@ -1,16 +1,16 @@
 from typing import TYPE_CHECKING
 
-from game.constants import (food_surplus_use_rate, 
+from data.constants import (food_surplus_use_rate, 
                             food_shortage_contract_rate)
 
-import scripts.database as db
+import world.database as db
 
 from world.world import tile_list, structures, regions, markets
 
 if TYPE_CHECKING:
-    from game.market import Market
-    from game.industry import IndustryType
-    from world.structures import Structure
+    from game.objs.market import Market
+    from game.objs.industry import IndustryType
+    from game.objs.structures import Structure
 
 class Region:
     """

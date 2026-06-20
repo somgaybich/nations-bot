@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
-from game.industry import industry_types
+from game.objs.industry import industry_types
 
 from world.world import markets, regions, nation_list
 
 if TYPE_CHECKING:
-    from game.region import Region
+    from game.objs.region import Region
 
 class Trade:
     """

@@ -4,7 +4,7 @@ import os
 import tracemalloc
 import logging
 
-from scripts.database import get_db
+from world.database import get_db
 from scripts.log import log_setup
 log_setup()
 

@@ -1,12 +1,12 @@
 import random
 import math
 
-import scripts.database as db
+import world.database as db
 import scripts.errors as errors
 
-from game.constants import (combat_settings, current_season)
+from data.constants import (combat_settings, current_season)
 
-from world.map import Tile, move_in_direction
+from game.objs.map import Tile, move_in_direction
 from world.world import nation_list, tile_list
 
 class Unit:

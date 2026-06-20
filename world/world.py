@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from game.market import Market, Trade
     from game.region import Region
     from game.events import Listener
-    from world.map import Tile
-    from world.structures import Structure
+    from game.map import Tile
+    from game.structures import Structure
 
 class TileDict(dict[tuple[int, int], "Tile"]):
     """

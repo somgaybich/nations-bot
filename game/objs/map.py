@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from world.structures import Structure
+    from game.objs.structures import Structure
 
-from game.constants import biome_arability, coastal_arability_factor
+from data.constants import biome_arability, coastal_arability_factor
 
-import scripts.database as db
+import world.database as db
 
 from world.world import tile_list
 

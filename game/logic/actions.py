@@ -13,8 +13,8 @@ from game.region import Region
 from game.economy import Econ
 from game.industry import industry_types
 
-from world.map import hex_distance
-from world.structures import StructureType, Structure, structure_types
+from game.map import hex_distance
+from game.structures import StructureType, Structure, structure_types
 from world.world import (nation_list, tile_list, units, structures, regions, 
                          markets)
 

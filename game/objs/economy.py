@@ -2,7 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-import scripts.database as db
+import world.database as db
 
 from world.world import nation_list
 
