@@ -50,15 +50,15 @@ def get_area(tile: "Tile", state: "GameState") -> list["Tile"]:
     """
     Returns all the tiles that directly border the target.
     """
-    area = set([tile])
+    area = set([tile.location])
     for fn in (n, nw, ne, s, sw, se):
         try:
             area_tile = fn(tile, state)
             if area_tile is not None:
-                area.add(area_tile)
+                area.add(area_tile.location)
         except:
             pass
-    return list(set(area))
+    return [state.tiles[location] for location in area]
 
 def get_metroarea(tile: "Tile", state: "GameState") -> list["Tile"]:
     """
@@ -171,7 +171,7 @@ def region_structures(region: "Region", state: "GameState") -> list["Structure"]
         city_structures.append(tile.structure)
     return city_structures
 
-def move_in_direction(current_tile: Tile, direction: str, state: "GameState") -> tuple[Tile, Tile]:
+def move_in_direction(current_tile: "Tile", direction: str, state: "GameState") -> tuple["Tile", "Tile"]:
     """
     An undo-safe function for fetching tiles based on direction. Used in cases
     where the user is manually moving something. Returns a tuple of the new
@@ -187,7 +187,7 @@ def move_in_direction(current_tile: Tile, direction: str, state: "GameState") ->
 
     return new_tile, last_tile
 
-def hex_distance(a: Tile | tuple[int, int], b: Tile | tuple[int, int]) -> int:
+def hex_distance(a: "Tile | tuple[int, int]", b: "Tile | tuple[int, int]") -> int:
     """
     Finds the distance between two tiles.
     """

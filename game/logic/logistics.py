@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING
 from game.data.industry import industry_types
 from game.logic.map import nation_capital, neighbors, has_port
 
+from game.objs.market import Market
+
 if TYPE_CHECKING:
     from game.objs.region import Region
-    from game.objs.market import Market
     from world.world import GameState
 
-def market_connected(market: "Market", target: int, state: "GameState") -> bool:
+def market_connected(market: Market, target: int, state: "GameState") -> bool:
     """
     Determines if this market is connected to a region by its ID.
     :param target: The ID of the target to try to connect to.
@@ -16,7 +17,7 @@ def market_connected(market: "Market", target: int, state: "GameState") -> bool:
     """
     for region_id in market.regions:
         region = state.regions[region_id]
-        if region_connected(region, target):
+        if region_connected(region, target, state):
             return True
     
     return False
@@ -36,7 +37,7 @@ def region_connected(region: "Region", target: int, state: "GameState") -> bool:
     
     return False
 
-def get_production(market: "Market", item: str, state: "GameState"):
+def get_production(market: Market, item: str, state: "GameState"):
     """
     Calculates the amount of an item produced by the regions in this
     market.
@@ -54,7 +55,7 @@ def get_production(market: "Market", item: str, state: "GameState"):
     
     return production
 
-def get_consumption(market: "Market", item: str, state: "GameState"):
+def get_consumption(market: Market, item: str, state: "GameState"):
     """
     Calculates the amount of an item that would ideally be consumed in this
     market. If the resource is in a deficit, this will not reflect actual
@@ -70,7 +71,7 @@ def get_consumption(market: "Market", item: str, state: "GameState"):
     
     return consumption
 
-def get_supply(market: "Market", item: str, state: "GameState") -> float:
+def get_supply(market: Market, item: str, state: "GameState") -> float:
     """
     Calculates the current supply of an item in this market, from
     production - consumption.
@@ -78,7 +79,7 @@ def get_supply(market: "Market", item: str, state: "GameState") -> float:
     return (get_production(market, item, state) - get_consumption(market, item, state))
 
 def get_fulfillment(
-        market: "Market", 
+        market: Market, 
         item: str, 
         state: "GameState"
     ) -> float:
@@ -100,7 +101,7 @@ async def build_markets(state: "GameState"):
         capital_market = Market(
             name=capital.name,
             owner=nation.userid,
-            regions=[capital]
+            regions=[capital.id]
         )
         
         nation_regions = nation.regions
@@ -117,8 +118,8 @@ async def build_markets(state: "GameState"):
         state.markets[capital_market.id] = capital_market
 
         isolated_ids = set(nation_regions) - set(capital_market.regions)
-        isolated = [state.regions[id] for id in isolated_ids]
-        while len(isolated) != 0:
+        while len(isolated_ids) != 0:
+            isolated = [state.regions[id] for id in isolated_ids]
             sorted_regions = sorted(
                 isolated, 
                 key=lambda region: region.population, 
@@ -142,4 +143,4 @@ async def build_markets(state: "GameState"):
                         connecting = True
             
             state.markets[new_market.id] = new_market
-            isolated -= set(new_market.regions)
+            isolated_ids -= set(new_market.regions)

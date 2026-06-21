@@ -2,8 +2,7 @@
 .venv/
 .vscode
 logs/
-data/**/*.db
-data/**/*.png
+data/
 test.py
 oregen.py
 map.png

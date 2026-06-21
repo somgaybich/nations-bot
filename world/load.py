@@ -11,7 +11,8 @@ from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ
 from game.objs.trade import Trade
-from game.objs.tile import Tile, Terrain
+from game.objs.tile import Tile
+from game.objs.terrain import Terrain
 from game.objs.structure import Structure
 from game.logic.logistics import build_markets
 
@@ -71,14 +72,14 @@ async def load(state: "GameState", map_only: bool = False):
             name=row["name"],
             location=(row["x"], row["y"]),
             city_tier=row["city_tier"],
-            owner=row["owner"],
+            owner=json.loads(row["owner"]),
             is_capital=row["capital"],
             tiles=[tuple(tile) for tile in json.loads(row["tiles"])],
             industries=json.loads(row["industries"]),
-            id=row["id"],
-            state=state
+            id=row["id"]
         )
 
+        #FIXME: Check if other things have incorrectly been cast to strings like region.owner was ???
         state.nations[region.owner].regions.append(region.id)
         state.regions[region.id] = region
         state.region_ids[region.name] = region.id

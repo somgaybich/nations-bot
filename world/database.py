@@ -52,7 +52,6 @@ async def init_db(file: str = "data/nations.db"):
         y INTEGER NOT NULL,
         owner INTEGER NOT NULL,
         tiles TEXT,
-        authority TEXT,
         capital TEXT,
         city_tier INTEGER,
         industries TEXT)
@@ -103,8 +102,8 @@ async def init_db(file: str = "data/nations.db"):
     await _db.execute(
         """
         CREATE TABLE IF NOT EXISTS trades (
-            id INTEGER PRIMARY KEY AUTOINCREMENT
-            nations TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nations TEXT,
             resource TEXT)
         """)
 

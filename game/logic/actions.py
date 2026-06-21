@@ -208,10 +208,14 @@ async def new_region(
         
         nation.econ.influence -= 4
 
-    area = get_area(city_tile, state)
-    new_region = Region(name=name, location=location, 
-                        owner=owner, is_capital=capital, state=state,
-                        tiles=area)
+    area = [tile.location for tile in get_area(city_tile, state)]
+    new_region = Region(
+        name=name, 
+        location=location, 
+        owner=owner, 
+        is_capital=capital,
+        tiles=area
+    )
     
     await new_region.save()
     state.regions[new_region.id] = new_region
