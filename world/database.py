@@ -50,6 +50,7 @@ async def init_db(file: str = "data/nations.db"):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         x INTEGER NOT NULL,
         y INTEGER NOT NULL,
+        population REAL,
         owner INTEGER NOT NULL,
         tiles TEXT,
         capital TEXT,
@@ -150,9 +151,9 @@ async def save_region(region: "Region"):
             """
             INSERT INTO regions (
                 name, x, y, owner, tiles, capital, 
-                city_tier, industries
+                city_tier, industries, population
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)   
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)   
             """,
             (
                 region.name, 
@@ -162,7 +163,8 @@ async def save_region(region: "Region"):
                 json.dumps(region.tiles), 
                 json.dumps(region.is_capital), 
                 region.city_tier,
-                json.dumps(region.industries)
+                json.dumps(region.industries),
+                region.population
             )
         ) as cursor:
             region.id = cursor.lastrowid
@@ -170,13 +172,14 @@ async def save_region(region: "Region"):
         await get_db().execute(
             """
             UPDATE regions
-            SET tiles = ?, city_tier = ?, industries = ?
+            SET tiles = ?, city_tier = ?, industries = ?, population = ?
             WHERE id = ?
             """,
             (
                 json.dumps(region.tiles),
                 region.city_tier,
                 json.dumps(region.industries),
+                region.population,
                 region.id
             )
         )

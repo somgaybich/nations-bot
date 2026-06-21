@@ -76,6 +76,7 @@ async def load(state: "GameState", map_only: bool = False):
             is_capital=row["capital"],
             tiles=[tuple(tile) for tile in json.loads(row["tiles"])],
             industries=json.loads(row["industries"]),
+            population=row["population"],
             id=row["id"]
         )
 
