@@ -7,7 +7,7 @@ import scripts.errors as errors
 
 from game.data.constants import (combat_settings, current_season)
 
-from game.logic.map import move_in_direction, area, is_coastal
+from game.logic.map import move_in_direction, get_area, is_coastal
 from game.objs.tile import Tile
 
 if TYPE_CHECKING:
@@ -162,7 +162,7 @@ class Unit:
         if tile.structure.structure_type.fname == "Fort":
             eff += combat_settings.fort_buff
         else:
-            battle_area = area(tile, state)
+            battle_area = get_area(tile, state)
             for tile in battle_area:
                 if tile.structure.structure_type.fname == "Fort":
                     eff += combat_settings.fort_area_buff
@@ -208,7 +208,7 @@ class Unit:
         its movement to 0.
         """
         retreat_candidates: list[Tile] = []
-        for tile in area(state.tiles[self.location], state):
+        for tile in get_area(state.tiles[self.location], state):
             if tile.terrain.difficulty <= self.movement_free:
                 for unit in state.units.values():
                     if unit.location == tile.location:
@@ -372,7 +372,7 @@ class Unit:
         defending_team = [target]
         target_allies_eff = 0
         
-        for tile in area(state.tiles[battle_location], state):
+        for tile in get_area(state.tiles[battle_location], state):
             for unit in state.units.values():
                 if unit.location == tile.location:
                     # This unit is in a neighboring tile!

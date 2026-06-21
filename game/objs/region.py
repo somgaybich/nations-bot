@@ -5,7 +5,8 @@ from game.data.constants import (food_surplus_use_rate,
 
 import world.database as db
 
-from game.logic.map import area, is_coastal, arability
+from game.logic.map import get_area, is_coastal, get_arability
+from game.logic.logistics import get_supply
 
 if TYPE_CHECKING:
     from game.objs.structure import Structure
@@ -95,7 +96,7 @@ class Region:
         self.city_tier = city_tier
         self.population = population
         self.tiles = (tiles if tiles is not None 
-                      else [tile.location for tile in area(state.tiles[location], state)])
+                      else [tile.location for tile in get_area(state.tiles[location], state)])
         self.industries = (industries if industries is not None
                            else [])
         self.id = id
@@ -114,7 +115,7 @@ class Region:
         """
         market = state.markets[self.market]
         regions = len(market.regions)
-        available_food = market.supply("food")
+        available_food = get_supply(market, "food", state)
         # We'll use some % of our surplus
         growth_rate = available_food / regions * food_surplus_use_rate
         if growth_rate < 0:
@@ -168,7 +169,7 @@ class Region:
 
         for location in self.tiles:
             tile = state.tiles[location]
-            for neighbor_tile in area(tile, state):
+            for neighbor_tile in get_area(tile, state):
                 if neighbor_tile.location in self.tiles:
                     # Ignore our own tiles
                     continue
@@ -191,5 +192,5 @@ class Region:
         region_arability = 0
         for location in self.tiles:
             tile = state.tiles[location]
-            region_arability += arability(tile)
+            region_arability += get_arability(tile)
         return region_arability

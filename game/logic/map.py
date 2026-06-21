@@ -43,7 +43,7 @@ def se(tile: "Tile", state: "GameState") -> "Tile":
     """
     return state.tiles[(tile.location[0] + 1, tile.location[1])]
 
-def area(tile: "Tile", state: "GameState") -> list["Tile"]:
+def get_area(tile: "Tile", state: "GameState") -> list["Tile"]:
     """
     Returns all the tiles that directly border the target.
     """
@@ -57,16 +57,16 @@ def area(tile: "Tile", state: "GameState") -> list["Tile"]:
             pass
     return list(set(area))
 
-def metroarea(tile: "Tile", state: "GameState") -> list["Tile"]:
+def get_metroarea(tile: "Tile", state: "GameState") -> list["Tile"]:
     """
     Returns all the tiles within two of the target.
     """
     result = set()
-    for area_tile in area(tile, state):
-        result.update(area(area_tile, state))
+    for area_tile in get_area(tile, state):
+        result.update(get_area(area_tile, state))
     return list(result)
 
-def direction_to(source: "Tile", target: "Tile") -> str | None:
+def get_direction_to(source: "Tile", target: "Tile") -> str | None:
     """
     Returns the lowercase name of the direction from the source tile to the
     target tile. If there is no direct path, returns None.
@@ -92,7 +92,7 @@ def direction_to(source: "Tile", target: "Tile") -> str | None:
         case (-1, 1):
             return "sw"
 
-def arability(tile: "Tile") -> float:
+def get_arability(tile: "Tile") -> float:
     """
     Returns the arability value for the target tile, based on biome and whether
     the tile is coastal. Used for calculating food production.

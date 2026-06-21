@@ -1,7 +1,7 @@
 import logging
 import json
 from typing import TYPE_CHECKING
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 

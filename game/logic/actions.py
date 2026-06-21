@@ -14,7 +14,7 @@ from game.objs.economy import Econ
 from game.objs.structure import Structure
 from game.data.industry import industry_types
 
-from game.logic.map import hex_distance, area
+from game.logic.map import hex_distance, get_area
 from game.data.structures import StructureType, structure_types
 
 if TYPE_CHECKING:
@@ -175,7 +175,7 @@ async def new_region(
                                      "in high mountains")
     
     to_be_claimed = []
-    for tile in area(city_tile, state):
+    for tile in get_area(city_tile, state):
         if tile.location == location:
             continue
         if tile.owner == None:
