@@ -7,7 +7,8 @@ import scripts.errors as errors
 
 from data.constants import (combat_settings, current_season)
 
-from game.objs.map import Tile, move_in_direction
+from game.logic.map import move_in_direction, area, is_coastal
+from game.objs.tile import Tile
 
 if TYPE_CHECKING:
     from world.world import GameState
@@ -154,15 +155,15 @@ class Unit:
             nation = state.nations[nationid]
             for region_id in nation.regions:
                 region = state.regions[region_id]
-                area = region.tiles
-                if location not in area:
+                region_area = region.tiles
+                if location not in region_area:
                     continue
         
         if tile.structure.structure_type.fname == "Fort":
             eff += combat_settings.fort_buff
         else:
-            area = tile.area(state)
-            for tile in area:
+            battle_area = area(tile, state)
+            for tile in battle_area:
                 if tile.structure.structure_type.fname == "Fort":
                     eff += combat_settings.fort_area_buff
                     break
@@ -181,7 +182,7 @@ class Unit:
         """
         new_tile, last_tile = move_in_direction(state.tiles[self.location], 
                                                 direction.lower(), state)
-        if new_tile.difficulty > self.movement_free:
+        if new_tile.terrain.difficulty > self.movement_free:
             raise errors.OutOfMovement()
         if new_tile.terrain.biome == "high_mountains" and current_season == 3:
             raise errors.TileImpassable("armies cannot enter high mountains during winter")
@@ -191,7 +192,7 @@ class Unit:
             raise errors.TileImpassable("fleets can only move in water")
         
         self.location = new_tile.location
-        self.movement_free -= new_tile.difficulty
+        self.movement_free -= new_tile.terrain.difficulty
 
         for unit in state.units.values():
             if (unit.location == new_tile.location 
@@ -207,19 +208,19 @@ class Unit:
         its movement to 0.
         """
         retreat_candidates: list[Tile] = []
-        for tile in state.tiles[self.location].area(state):
-            if tile.difficulty <= self.movement_free:
+        for tile in area(state.tiles[self.location], state):
+            if tile.terrain.difficulty <= self.movement_free:
                 for unit in state.units.values():
                     if unit.location == tile.location:
                         # This tile has an enemy, we can't retreat there.
                         break
                 
                 if (tile.terrain.is_water 
-                    and not tile.is_coastal() 
+                    and not is_coastal(tile)
                     and self.type == "army"):
                     break
                 elif (tile.terrain.is_land 
-                    and not tile.is_coastal() 
+                    and not is_coastal(tile)
                     and self.type == "fleet"):
                     break
                 
@@ -371,7 +372,7 @@ class Unit:
         defending_team = [target]
         target_allies_eff = 0
         
-        for tile in state.tiles[battle_location].area(state):
+        for tile in area(state.tiles[battle_location], state):
             for unit in state.units.values():
                 if unit.location == tile.location:
                     # This unit is in a neighboring tile!

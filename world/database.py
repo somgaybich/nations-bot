@@ -8,8 +8,8 @@ if TYPE_CHECKING:
     from game.objs.economy import Econ
     from game.objs.military import Unit
     from game.objs.region import Region
-    from game.objs.map import Tile
-    from game.objs.structures import Structure
+    from game.objs.tile import Tile
+    from game.objs.structure import Structure
 
 logger = logging.getLogger(__name__)
 
@@ -250,7 +250,7 @@ def encode_structure(structure: "Structure") -> dict:
         "x": structure.location[0],
         "y": structure.location[1],
         "region": structure.region,
-        "builder": structure.owner
+        "owner": structure.owner
     }
 
 async def save_tile(tile: "Tile"):

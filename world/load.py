@@ -4,6 +4,7 @@ from discord import Color
 from typing import TYPE_CHECKING
 
 import world.database as db
+from data.structures import structure_types
 
 from game.objs.military import Unit
 from game.objs.nation import Nation
@@ -11,8 +12,8 @@ from game.objs.region import Region
 from game.objs.economy import Econ
 from game.objs.market import build_markets
 
-from game.objs.map import Tile, Terrain
-from game.objs.structures import Structure, structure_types
+from game.objs.tile import Tile, Terrain
+from game.objs.structure import Structure
 
 if TYPE_CHECKING:
     from world.world import GameState
@@ -46,7 +47,7 @@ async def load(state: "GameState", map_only: bool = False):
                 structure_type=structure_types[structure_data['structure_type']],
                 location=(structure_data['x'], structure_data['y']),
                 region=structure_data['region'],
-                owner=structure_data['builder']
+                owner=structure_data['owner']
             )
             tile.structure = structure
 

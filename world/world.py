@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from game.objs.military import Unit
     from game.objs.market import Market
     from game.objs.region import Region
-    from game.objs.map import Tile
+    from game.objs.tile import Tile
 
 @dataclass
 class GameState:

@@ -14,7 +14,6 @@ from scripts.ui import ConfirmView
 from data.constants import brand_color
 from game.logic.actions import new_nation, new_region, new_army, new_fleet
 
-from game.objs.structures import structure_types
 from world.world import get_state
 
 logger = logging.getLogger(__name__)

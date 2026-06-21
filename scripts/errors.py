@@ -1,8 +1,3 @@
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from game.objs.structures import Link
-
 class NationsException(Exception):
     """
     A parent class for all custom exceptions invoked by nations. Should never be invoked directly.

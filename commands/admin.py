@@ -1,7 +1,5 @@
-import traceback
 import logging
 import asyncio
-import json
 
 import discord
 from discord import Embed, ApplicationContext
@@ -9,7 +7,6 @@ from discord import Embed, ApplicationContext
 from game.logic.tick import tick
 from scripts.ui import ConfirmView
 from data.constants import brand_color
-from scripts.botlib import sync
 from world.world import get_state
 
 logger = logging.getLogger(__name__)

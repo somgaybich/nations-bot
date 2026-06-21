@@ -5,8 +5,10 @@ from data.constants import (food_surplus_use_rate,
 
 import world.database as db
 
+from game.logic.map import area, is_coastal, arability
+
 if TYPE_CHECKING:
-    from game.objs.structures import Structure
+    from game.objs.structure import Structure
     from world.world import GameState
 
 class Region:
@@ -93,7 +95,7 @@ class Region:
         self.city_tier = city_tier
         self.population = population
         self.tiles = (tiles if tiles is not None 
-                      else [tile.location for tile in state.tiles[location].area(state)])
+                      else [tile.location for tile in area(state.tiles[location], state)])
         self.industries = (industries if industries is not None
                            else [])
         self.id = id
@@ -166,7 +168,7 @@ class Region:
 
         for location in self.tiles:
             tile = state.tiles[location]
-            for neighbor_tile in tile.area(state):
+            for neighbor_tile in area(tile, state):
                 if neighbor_tile.location in self.tiles:
                     # Ignore our own tiles
                     continue
@@ -179,15 +181,15 @@ class Region:
         """
         Returns True if this region's core city is coastal.
         """
-        return state.tiles[self.location].is_coastal()
+        return is_coastal(state.tiles[self.location])
     
     def arability(self, state: "GameState") -> float:
         """
         Returns the sum arability of the region's tiles. See 
         :class:`world.map.Tile.arability`.
         """
-        arability = 0
+        region_arability = 0
         for location in self.tiles:
             tile = state.tiles[location]
-            arability += tile.arability()
-        return arability
+            region_arability += arability(tile)
+        return region_arability
