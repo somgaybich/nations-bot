@@ -4,6 +4,8 @@ from game.data.constants import biome_arability, coastal_arability_factor
 
 if TYPE_CHECKING:
     from game.objs.tile import Tile
+    from game.objs.nation import Nation
+    from game.objs.region import Region
     from world.world import GameState
 
 def n(tile: "Tile", state: "GameState") -> "Tile":
@@ -111,7 +113,16 @@ def is_coastal(tile: "Tile") -> bool:
         return True
     else:
         return False
-        
+
+def nation_capital(nation: "Nation", state: "GameState") -> "Region":
+    """
+    Returns this nation's capital region.
+    """
+    for region_id in nation.regions:
+        region = state.regions[region_id]
+        if region.is_capital:
+            return region
+
 def move_in_direction(current_tile: Tile, direction: str, state: "GameState") -> tuple[Tile, Tile]:
     """
     An undo-safe function for fetching tiles based on direction. Used in cases

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from game.data.industry import industry_types
+from game.logic.map import nation_capital
 
 if TYPE_CHECKING:
     from game.objs.market import Market
@@ -79,7 +80,7 @@ async def build_markets(state: "GameState"):
     state.markets.clear()
     
     for nation in state.nations.values():
-        capital = nation.capital(state)
+        capital = nation_capital(nation, state)
         capital_market = Market(
             name=capital.name,
             owner=nation.userid,
