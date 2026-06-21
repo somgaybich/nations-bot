@@ -14,12 +14,6 @@ class Market:
     transactions of the economy are actually of markets (even when they are 
     shown to the player as transactions of regions).
     """
-    id: int | None = field(default_factory=_id_generator.__next__, init=False)
-    """
-    The object ID of this market. Unlike other object IDs, these are assigned
-    on initialization of the market object. They are also not persistent
-    between calls of :class:`build_markets`.
-    """
     name: str
     """
     The name of this market, also the name of its founding region.
@@ -31,4 +25,10 @@ class Market:
     regions: list[int]
     """
     The IDs of the regions that are a part of this market.
+    """
+    id: int | None = field(default_factory=_id_generator.__next__, init=False)
+    """
+    The object ID of this market. Unlike other object IDs, these are assigned
+    on initialization of the market object. They are also not persistent
+    between calls of :class:`build_markets`.
     """
