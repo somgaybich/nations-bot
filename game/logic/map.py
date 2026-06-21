@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from game.objs.tile import Tile
     from game.objs.nation import Nation
     from game.objs.region import Region
+    from game.objs.structure import Structure
     from world.world import GameState
 
 def n(tile: "Tile", state: "GameState") -> "Tile":
@@ -68,6 +69,23 @@ def get_metroarea(tile: "Tile", state: "GameState") -> list["Tile"]:
         result.update(get_area(area_tile, state))
     return list(result)
 
+def neighbors(region: "Region", state: "GameState") -> list[int]:
+    """
+    Returns a list of the IDs of the regions that border the target region.
+    """
+    neighbors = set()
+
+    for location in region.tiles:
+        tile = state.tiles[location]
+        for neighbor_tile in get_area(tile, state):
+            if neighbor_tile.location in region.tiles:
+                # Ignore our own tiles
+                continue
+
+            neighbors.add(tile.owner)
+    
+    return list(neighbors)
+
 def get_direction_to(source: "Tile", target: "Tile") -> str | None:
     """
     Returns the lowercase name of the direction from the source tile to the
@@ -94,7 +112,7 @@ def get_direction_to(source: "Tile", target: "Tile") -> str | None:
         case (-1, 1):
             return "sw"
 
-def get_arability(tile: "Tile") -> float:
+def tile_arability(tile: "Tile") -> float:
     """
     Returns the arability value for the target tile, based on biome and whether
     the tile is coastal. Used for calculating food production.
@@ -105,6 +123,17 @@ def get_arability(tile: "Tile") -> float:
     
     return arability
 
+def region_arability(region: "Region", state: "GameState") -> float:
+    """
+    Returns the sum arability of the target region's tiles. See 
+    :class:`tile_arability`.
+    """
+    region_arability = 0
+    for location in region.tiles:
+        tile = state.tiles[location]
+        region_arability += tile_arability(tile)
+    return region_arability
+
 def is_coastal(tile: "Tile") -> bool:
     """
     Returns True if tile.terrain.is_water and tile.terrain.is_land.
@@ -114,6 +143,12 @@ def is_coastal(tile: "Tile") -> bool:
     else:
         return False
 
+def has_port(region: "Region", state: "GameState") -> bool:
+    """
+    Returns True if the target region's core city is coastal.
+    """
+    return is_coastal(state.tiles[region.location])
+
 def nation_capital(nation: "Nation", state: "GameState") -> "Region":
     """
     Returns this nation's capital region.
@@ -122,6 +157,19 @@ def nation_capital(nation: "Nation", state: "GameState") -> "Region":
         region = state.regions[region_id]
         if region.is_capital:
             return region
+
+def region_structures(region: "Region", state: "GameState") -> list["Structure"]:
+    """
+    Returns a list of every structure in the target region.
+    """
+    city_structures = []
+    for location in region.tiles:
+        tile = state.tiles[location]
+        if tile.structure == None:
+            continue
+
+        city_structures.append(tile.structure)
+    return city_structures
 
 def move_in_direction(current_tile: Tile, direction: str, state: "GameState") -> tuple[Tile, Tile]:
     """

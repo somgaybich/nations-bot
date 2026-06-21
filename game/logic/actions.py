@@ -14,7 +14,7 @@ from game.objs.economy import Econ
 from game.objs.structure import Structure
 from game.data.industry import industry_types
 
-from game.logic.map import hex_distance, get_area
+from game.logic.map import hex_distance, get_area, region_structures, has_port
 from game.data.structures import StructureType, structure_types
 
 if TYPE_CHECKING:
@@ -101,8 +101,8 @@ async def new_fleet(
 
     if region is None:
         raise errors.DoesNotExist("region", "Fleet creation", region_name)
-    if not "Port" in region.structure_types():
-        raise errors.MissingStructure("Fleet creation", "Port")
+    if not has_port(region, state):
+        raise errors.InvalidLocation("Fleet creation", "a region without a port")
     if econ.influence < 2 and not admin_mode:
         raise errors.NotEnoughInfluence("Fleet creation", 2, econ.influence)
     
@@ -208,8 +208,10 @@ async def new_region(
         
         nation.econ.influence -= 4
 
+    area = get_area(city_tile, state)
     new_region = Region(name=name, location=location, 
-                        owner=owner, is_capital=capital, state=state)
+                        owner=owner, is_capital=capital, state=state,
+                        tiles=area)
     
     await new_region.save()
     state.regions[new_region.id] = new_region
@@ -289,11 +291,11 @@ async def new_structure(
     region_id = state.region_ids[region_name]
     region = state.regions[region_id]
     root_tile = state.tiles[region.location]
-    region_structures = region.structures(state)
+    structures = region_structures(region, state)
 
-    if len(region_structures) >= 2 and not region.city_tier >= 2:
+    if len(structures) >= 2 and not region.city_tier >= 2:
         raise errors.TooManyStructures(f"{structure_type.fname} creation", 2)
-    if len(region_structures) >= 3 and not region.city_tier == 4:
+    if len(structures) >= 3 and not region.city_tier == 4:
         raise errors.TooManyStructures(f"{structure_type.fname} creation", 3)
     
     if tile.structure is not None:

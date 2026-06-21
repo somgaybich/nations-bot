@@ -1,13 +1,14 @@
 from typing import TYPE_CHECKING
 
 from game.data.industry import industry_types
-from game.logic.map import nation_capital
+from game.logic.map import nation_capital, neighbors, has_port
 
 if TYPE_CHECKING:
+    from game.objs.region import Region
     from game.objs.market import Market
     from world.world import GameState
 
-def is_connected(market: "Market", target: int, state: "GameState") -> bool:
+def market_connected(market: "Market", target: int, state: "GameState") -> bool:
     """
     Determines if this market is connected to a region by its ID.
     :param target: The ID of the target to try to connect to.
@@ -15,8 +16,23 @@ def is_connected(market: "Market", target: int, state: "GameState") -> bool:
     """
     for region_id in market.regions:
         region = state.regions[region_id]
-        if region.connected(target):
+        if region_connected(region, target):
             return True
+    
+    return False
+
+def region_connected(region: "Region", target: int, state: "GameState") -> bool:
+    """
+    Returns True if the target region has a direct logistic connection to the 
+    region with the target ID.
+    """
+    target_region = state.regions[target]
+    
+    if target in neighbors(region, state):
+        return True
+    
+    if has_port(region, state) and has_port(target_region, state):
+        return True
     
     return False
 
@@ -92,7 +108,7 @@ async def build_markets(state: "GameState"):
         while connecting:
             connecting = False
             for region_id in nation_regions:
-                if (is_connected(capital_market, region_id, state) 
+                if (market_connected(capital_market, region_id, state) 
                     and region_id not in capital_market.regions):
                     capital_market.regions.append(region_id)
                     state.regions[region_id].market = capital_market.name
@@ -119,7 +135,7 @@ async def build_markets(state: "GameState"):
             while connecting:
                 connecting = False
                 for region_id in isolated_ids:
-                    if (is_connected(new_market, region_id, state) 
+                    if (market_connected(new_market, region_id, state) 
                         and region_id not in new_market.regions):
                         new_market.regions.append(region_id)
                         state.regions[region_id].market = new_market.name
