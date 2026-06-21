@@ -97,7 +97,7 @@ def get_arability(tile: "Tile") -> float:
     Returns the arability value for the target tile, based on biome and whether
     the tile is coastal. Used for calculating food production.
     """
-    arability = biome_arability[tile.terrain.biome]
+    arability = biome_arability.__getattribute__(tile.terrain.biome)
     if is_coastal(tile):
         arability += coastal_arability_factor / arability**2
     
