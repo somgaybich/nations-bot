@@ -62,7 +62,8 @@ async def load(state: "GameState", map_only: bool = False):
             name=row["name"],
             userid=row["id"],
             dossier=json.loads(row["dossier"]),
-            color=Color(row["color"])
+            color=Color(row["color"]),
+            allies=json.loads(row["allies"])
         )
         state.nations[row["id"]] = nation
 

@@ -39,7 +39,8 @@ async def init_db(file: str = "data/nations.db"):
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         dossier TEXT,
-        color INTEGER)
+        color INTEGER,
+        allies TEXT)
     """)
     logger.debug("Created nations table")
 
@@ -128,14 +129,21 @@ async def save_nation(nation: "Nation"):
     logger.debug(f"Saving nation at {nation.userid}")
     await get_db().execute(
         """
-        INSERT INTO nations (id, name, dossier, color)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO nations (id, name, dossier, color, allies)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             dossier = excluded.dossier,
-            color = excluded.color
+            color = excluded.color,
+            allies = excluded.allies
         """,
-        (nation.userid, nation.name, json.dumps(nation.dossier), int(nation.color))
+        (
+            nation.userid, 
+            nation.name, 
+            json.dumps(nation.dossier), 
+            int(nation.color),
+            json.dumps(nation.allies)
+        )
     )
 
 async def load_nations_rows():
