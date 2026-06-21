@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from data.structures import StructureType
+    from game.data.structures import StructureType
 
 @dataclass
 class Structure:
