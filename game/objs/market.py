@@ -10,35 +10,6 @@ from game.data.industry import industry_types
 if TYPE_CHECKING:
     from world.world import GameState
 
-# FIXME: Figure out how trades work
-# class Trade:
-#     """
-#     Connects two markets in terms of a certain resource. A trade agreement may
-#     create multiple, as there is only one per resource.
-#     """
-#     markets: tuple[str, str]
-#     """
-#     The markets connected by this trade.
-#     """
-#     connections: list[tuple[str, str]]
-#     """
-#     A list of tuples of region names. Represents the possible trade routes
-#     that resources could flow from one market to another through. These pairs
-#     of regions must touch or both be based around coastal cities.
-#     """
-#     resource: str
-#     """
-#     The name of the resource being connected. See :class:`empty_inventory` for
-#     valid values.
-#     """
-#     def __init__(self, markets, connections, resource):
-#         """
-#         :param markets: The markets connected by this trade.
-#         """
-#         self.markets = markets
-#         self.connections = connections
-#         self.resource = resource
-
 _id_generator = count(start=1)
 
 @dataclass

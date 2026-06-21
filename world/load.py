@@ -10,6 +10,7 @@ from game.objs.military import Unit
 from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ
+from game.objs.trade import Trade
 from game.objs.market import build_markets
 
 from game.objs.tile import Tile, Terrain
@@ -111,6 +112,16 @@ async def load(state: "GameState", map_only: bool = False):
         state.nations[unit.owner].units.append(unit.id)
         state.units[unit.id] = unit
         state.unit_ids[unit.name] = unit.id
+
+    trades_data = await db.load_trades_rows()
+    for row in trades_data:
+        trade = Trade(
+            id=row["id"],
+            nations=json.loads(row["nations"]),
+            resource=row["resoruce"]
+        )
+
+        state.trades[trade.id] = trade
 
     await build_markets(state)
 

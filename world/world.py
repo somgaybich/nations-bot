@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from game.objs.market import Market
     from game.objs.region import Region
     from game.objs.tile import Tile
+    from game.objs.trade import Trade
 
 @dataclass
 class GameState:
@@ -51,6 +52,7 @@ class GameState:
     """
     Maps unit names to IDs.
     """
+    trades: dict[int, "Trade"] = field(default_factory=dict)
 
 global state
 state = GameState()

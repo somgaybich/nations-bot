@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from game.objs.region import Region
     from game.objs.tile import Tile
     from game.objs.structure import Structure
+    from game.objs.trade import Trade
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,14 @@ async def init_db(file: str = "data/nations.db"):
             influence_cap INTEGER NOT NULL)
         """)
     logger.debug("Created economies table")
+
+    await _db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT
+            nations TEXT
+            resource TEXT)
+        """)
 
     await _db.commit()
     logger.info("Database started")
@@ -297,4 +306,31 @@ async def save_economy(econ: "Econ"):
 
 async def load_economies_rows():
     async with get_db().execute("SELECT * FROM economies") as cursor:
+        return await cursor.fetchall()
+
+# ---------------
+
+async def save_trade(trade: "Trade"):
+    logger.debug(f"Saving trade between {trade.nations[0] and {trade.nations[1]}}")
+    if trade.id is None:
+        async with get_db().execute(
+            """
+            INSERT INTO trades (nations, resource)
+            VALUES (?, ?)
+            """,
+            (json.dumps(trade.nations), trade.resource)
+        ) as cursor:
+            trade.id = cursor.lastrowid
+    else:
+        await get_db().execute(
+            """
+            UPDATE trades
+            SET nations = ?, resource = ?
+            WHERE id = ?
+            """,
+            (json.dumps(trade.nations), trade.resource, trade.id)
+        )
+
+async def load_trades_rows():
+    async with get_db().execute("SELECT * FROM trades") as cursor:
         return await cursor.fetchall()
