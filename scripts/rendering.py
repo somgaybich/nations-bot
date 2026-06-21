@@ -1,9 +1,11 @@
 from PIL import Image
 import logging
-
-from world.world import tile_list, nation_list, regions
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from world.world import GameState
 
 HEX_WIDTH = 78.7
 HEX_HEIGHT = 68.22
@@ -42,6 +44,7 @@ def m_corner(q, r) -> tuple[int, int]:
     )
 
 def snapshot_corners(corner1: tuple[int, int], corner2: tuple[int, int], 
+                     state: "GameState", 
                      overlays: dict[tuple[int, int], str] = {}) -> Image.Image:
     """
     Takes a rectangular snapshot of the source image based on
@@ -66,7 +69,7 @@ def snapshot_corners(corner1: tuple[int, int], corner2: tuple[int, int],
 
     snapshot = source_image.crop((x_min, y_min, x_max, y_max))
 
-    for location, tile in tile_list.items():
+    for location, tile in state.tiles.items():
         qt, rt = location
 
         n_x, n_y = n_corner(qt, rt)
@@ -78,10 +81,10 @@ def snapshot_corners(corner1: tuple[int, int], corner2: tuple[int, int],
             # The tile's corners are in the snapshot bounds
             # Half-represented tiles don't get overlays
             if tile.owner != None:
-                nid = regions[tile.owner].owner
+                nid = state.regions[tile.owner].owner
                 mask = overlay_sprites["hex_mask"]
                 snapshot.paste(
-                    im=nation_list[nid].color.to_rgb(),
+                    im=state.nations[nid].color.to_rgb(),
                     box=box,
                     mask=mask
                 )
@@ -97,9 +100,9 @@ def snapshot_corners(corner1: tuple[int, int], corner2: tuple[int, int],
             
     return snapshot
 
-def snapshot_center(q, r, overlays: dict = {}) -> Image.Image:
+def snapshot_center(q, r, state: "GameState", overlays: dict = {}) -> Image.Image:
     """
     Takes a single hex coordinate and takes a screenshot of the area q +- 5, 
     r +- 1 around that hex
     """
-    return snapshot_corners((q-5, r-1), (q+5, r+1), overlays)
+    return snapshot_corners((q-5, r-1), (q+5, r+1), state, overlays)

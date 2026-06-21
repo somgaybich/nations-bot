@@ -59,26 +59,26 @@ class Structure:
     """
     The location of the tile where this structure is built.
     """
-    region: str
+    region: int
     """
-    The name of the region this structure belongs to.
+    The ID of the region that owns this structure.
     """
     owner: int
     """
     The NID of the nation that this structure belongs to.
     """
     def __init__(self, structure_type: StructureType, 
-                 location: tuple[int, int], region: str, owner: int):
+                 location: tuple[int, int], region: int, owner: int):
         """
         :param structure_type: The type of structure that this is. Encodes the 
             costs and behaviors of this structure.
         :param location: The location of the tile where this structure is 
             built.
-        :param region: The name of the region this structure belongs to.
+        :param region: The ID of the region that owns this structure.
         :param owner: The NID of the nation that this structure belongs to.
         :type structure_type: StructureType
         :type location: tuple[int, int]
-        :type region: str
+        :type region: int
         :type owner: int
         """
         self.structure_type = structure_type

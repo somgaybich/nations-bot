@@ -1,24 +1,26 @@
 import logging
+from typing import TYPE_CHECKING
 
 from data.constants import update_season
 
-from world.world import nation_list, markets, regions
+if TYPE_CHECKING:
+    from world.world import GameState
 
 logger = logging.getLogger(__name__)
 
-async def tick():
+async def tick(state: "GameState"):
     """
     Processes a tick of the game system.
     """
     logger.info("Processing game tick...")
     
     # Resource distribution pass
-    for market in markets.values():
+    for market in state.markets.values():
         logger.debug(f"Processing distribution tick for {market.name}")
         # Do distribution stuff :P
 
     # Region pass
-    for region in regions.values():
+    for region in state.regions.values():
         logger.debug(f"Processing region tick for {region.name}")
         
         region.population += region.growth()
@@ -27,15 +29,16 @@ async def tick():
         await region.save()
 
     # Nation pass
-    for nation in nation_list.values():
+    for nation in state.nations.values():
         logger.debug(f"Processing nation tick for {nation.name}")
 
-        for unit in nation.military.values():
+        for unit_id in nation.units:
+            unit = state.units[unit_id]
             # Any units that are currently in training graduate
             if unit.status == "TRAINING":
                 unit.status = ""
 
-        nation.econ.influence_cap = nation.econ.calculate_cap()
+        nation.econ.influence_cap = nation.econ.calculate_cap(state)
         nation.econ.influence = nation.econ.influence_cap
         
         await nation.save()

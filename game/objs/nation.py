@@ -7,11 +7,9 @@ logger = logging.getLogger(__name__)
 import world.database as db
 
 if TYPE_CHECKING:
-    from game.objs.market import Market
-    from game.objs.military import Unit
-    from game.objs.espionage import Espionage
     from game.objs.economy import Econ
     from game.objs.region import Region
+    from world.world import GameState
 
 class Nation:
     name: str
@@ -26,22 +24,18 @@ class Nation:
     """
     This nation's economy.
     """
-    regions: dict[str, "Region"]
+    regions: list[int]
     """
-    Maps names to this nation's regions.
+    The IDs of this nation's regions.
     """
-    miltiary: dict[str, "Unit"]
+    units: list[int]
     """
-    Maps names to this nation's units.
+    The IDs of this nation's units.
     """
-    espionage: list["Espionage"]
-    """
-    The list of ongoing espionage plots by this nation's leadership.
-    """
-    markets: dict[str, "Market"]
-    """
-    Maps names to this nation's markets.
-    """
+    # espionage: list["Espionage"]
+    # """
+    # The list of ongoing espionage plots by this nation's leadership.
+    # """
     dossier: dict[str, str]
     """
     The dossier for this nation.\n\nWhen shown to the user, will be formatted
@@ -56,15 +50,15 @@ class Nation:
     """
     The color this nation appears on the map.
     """
-    def __init__(self, name: str, userid: int, econ: "Econ", regions=None, 
-                 military=None, espionage=None, dossier=None, allies=None, 
-                 markets=None, color=Color.random()):
+    def __init__(self, name: str, userid: int, econ: "Econ"=None, regions=None, 
+                 units=None, espionage=None, dossier=None, allies=None, 
+                 color=Color.random()):
         """
         :param name: The name of this nation.
         :param userid: The NID of this nation and discord UID of its owner.
         :param econ: This nation's economy.
         :param regions: Maps names to this nation's regions.
-        :param miltiary: Maps names to this nation's units.
+        :param units: Maps names to this nation's units.
         :param espionage: The list of ongoing espionage plots by this nation's 
             leadership.
         :param dossier: The dossier for this nation.\n\nWhen shown to the user, 
@@ -73,33 +67,32 @@ class Nation:
         :param allies: The list of NIDs this nation is allied with. Units 
             belonging to these nations will assist this nation's units in 
             combat.
+        :param markets: 
         :param color: The color this nation appears on the map.
         :type name: str
         :type userid: int
-        :type econ: int
-        :type regions: dict[str, Region]
-        :type miltiary: dict[str, Unit]
+        :type econ: Econ
+        :type regions: list[int]
+        :type units: list[int]
         :type espionage: list[Espionage]
         :type dossier: dict[str, str]
         :type allies: list[int]
         :type color: Color
         """
-        self.name: str = name
-        self.userid: int = userid
-        self.econ: "Econ" = econ
-        self.regions: dict[str, "Region"] = (regions if regions is not None 
-                                             else {})
-        self.military: dict[str, "Unit"] = (military if military is not None 
-                                            else {})
-        self.espionage: list["Espionage"] = (espionage if espionage is not None
+        self.name = name
+        self.userid = userid
+        self.econ = econ
+        self.regions = (regions if regions is not None 
                                              else [])
-        self.dossier: dict[str, str] = (dossier if dossier is not None
+        self.units = (units if units is not None 
+                                            else [])
+        self.espionage = (espionage if espionage is not None
+                                             else [])
+        self.dossier = (dossier if dossier is not None
                                         else {})
-        self.allies: list[int] = (allies if allies is not None
+        self.allies = (allies if allies is not None
                                   else [])
-        self.markets: dict[str, "Market"] = (markets if markets is not None
-                                             else {})
-        self.color: Color = color
+        self.color = color
     
     async def save(self):
         """
@@ -121,10 +114,11 @@ class Nation:
             text=message
         )
     
-    def capital(self) -> "Region":
+    def capital(self, state: "GameState") -> "Region":
         """
-        Returns this nation's capital.
+        Returns this nation's capital region.
         """
-        for region in self.regions.values():
+        for region_id in self.regions:
+            region = state.regions[region_id]
             if region.is_capital:
                 return region

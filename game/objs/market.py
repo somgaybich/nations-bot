@@ -1,49 +1,59 @@
 import logging 
 from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from itertools import count
 
 logger = logging.getLogger(__name__)
 
 from game.objs.industry import industry_types
 
-from world.world import markets, regions, nation_list
-
 if TYPE_CHECKING:
-    from game.objs.region import Region
+    from world.world import GameState
 
-class Trade:
-    """
-    Connects two markets in terms of a certain resource. A trade agreement may
-    create multiple, as there is only one per resource.
-    """
-    markets: tuple[str, str]
-    """
-    The markets connected by this trade.
-    """
-    connections: list[tuple[str, str]]
-    """
-    A list of tuples of region names. Represents the possible trade routes
-    that resources could flow from one market to another through. These pairs
-    of regions must touch or both be based around coastal cities.
-    """
-    resource: str
-    """
-    The name of the resource being connected. See :class:`empty_inventory` for
-    valid values.
-    """
-    def __init__(self, markets, connections, resource):
-        """
-        :param markets: The markets connected by this trade.
-        """
-        self.markets = markets
-        self.connections = connections
-        self.resource = resource
+# FIXME: Figure out how trades work
+# class Trade:
+#     """
+#     Connects two markets in terms of a certain resource. A trade agreement may
+#     create multiple, as there is only one per resource.
+#     """
+#     markets: tuple[str, str]
+#     """
+#     The markets connected by this trade.
+#     """
+#     connections: list[tuple[str, str]]
+#     """
+#     A list of tuples of region names. Represents the possible trade routes
+#     that resources could flow from one market to another through. These pairs
+#     of regions must touch or both be based around coastal cities.
+#     """
+#     resource: str
+#     """
+#     The name of the resource being connected. See :class:`empty_inventory` for
+#     valid values.
+#     """
+#     def __init__(self, markets, connections, resource):
+#         """
+#         :param markets: The markets connected by this trade.
+#         """
+#         self.markets = markets
+#         self.connections = connections
+#         self.resource = resource
 
+_id_generator = count(start=1)
+
+@dataclass
 class Market:
     """
     A market encompasses multiple regions and connects their economies. This
     allows resources to be "automatically traded" (shared) between regions. All
     transactions of the economy are actually of markets (even when they are 
     shown to the player as transactions of regions).
+    """
+    id: int | None = field(default_factory=_id_generator.__next__, init=False)
+    """
+    The object ID of this market. Unlike other object IDs, these are assigned
+    on initialization of the market object. They are also not persistent
+    between calls of :class:`build_markets`.
     """
     name: str
     """
@@ -53,55 +63,43 @@ class Market:
     """
     The NID of the nation to whom this market belongs.
     """
-    regions: list["Region"]
+    regions: list[int]
     """
-    The regions that are a part of this market.
+    The IDs of the regions that are a part of this market.
     """
-    trades: list[Trade]
-    def __init__(self, name: str, owner: int, regions: list["Region"]):
-        """
-        :param name: The name of this market, also the name of its founding 
-            region.
-        :param owner: The NID of the nation to whom this market belongs.
-        :param regions: The regions that are a part of this market.
-        :type name: str
-        :type owner: int
-        :type regions: list[Region]
-        """
-        self.name = name
-        self.owner = owner
-        self.regions = regions
 
-    def connected(self, target: str) -> bool:
+    def connected(self, target: int, state: "GameState") -> bool:
         """
-        Determines if this market is connected to a region.
-        :param target: The name of the target to try to connect to.
-        :type target: str
+        Determines if this market is connected to a region by its ID.
+        :param target: The ID of the target to try to connect to.
+        :type target: int
         """
-        for region in self.regions:
+        for region_id in self.regions:
+            region = state.regions[region_id]
             if region.connected(target):
                 return True
         
         return False
 
-    def production(self, item: str):
+    def production(self, item: str, state: "GameState"):
         """
         Calculates the amount of an item produced by the regions in this
         market.
         """
         production = 0
 
-        for region in self.regions:
+        for region_id in self.regions:
+            region = state.regions[region_id]
             for industry_name in region.industries:
                 industry = industry_types[industry_name]
-                output = industry.production(region)
+                output = industry.production(region, state)
                 if output[0] != item:
                     continue
                 production += output[1]
         
         return production
 
-    def consumption(self, item: str):
+    def consumption(self, item: str, state: "GameState"):
         """
         Calculates the amount of an item that would ideally be consumed in this
         market. If the resource is in a deficit, this will not reflect actual
@@ -111,52 +109,54 @@ class Market:
         
         match item:
             case "food":
-                for region in self.regions:
+                for region_id in self.regions:
+                    region = state.regions[region_id]
                     consumption += region.population
         
         return consumption
 
-    def supply(self, item: str) -> float:
+    def supply(self, item: str, state: "GameState") -> float:
         """
         Calculates the current supply of an item in this market, from
         production - consumption.
         """
-        return (self.production(item) - self.consumption(item))
+        return (self.production(item, state) - self.consumption(item, state))
     
-    def fulfillment(self, item: str) -> float:
+    def fulfillment(self, item: str, state: "GameState") -> float:
         """
         Calculates the fulfillment ratio of an item in this market. Returns 
         1.0 if produced > consumed, else returns produced/consumed.
         """
-        if self.production(item) > self.consumption(item):
+        if self.production(item, state) > self.consumption(item, state):
             return 1.0
-        return self.production(item) / self.consumption(item)
+        return self.production(item, state) / self.consumption(item, state)
 
-async def build_markets():
-    markets.reset()
+async def build_markets(state: "GameState"):
+    state.markets.clear()
     
-    for nation in nation_list.values():
-        capital = nation.capital()
+    for nation in state.nations.values():
+        capital = nation.capital(state)
         capital_market = Market(
             name=capital.name,
             owner=nation.userid,
             regions=[capital]
         )
         
-        nation_regions = nation.regions.values()
+        nation_regions = nation.regions
         connecting = True
         while connecting:
             connecting = False
-            for region in nation_regions:
-                if (capital_market.connected(region.name) 
-                    and region not in capital_market.regions):
-                    capital_market.regions.append(region)
-                    region.market = capital_market.name
+            for region_id in nation_regions:
+                if (capital_market.connected(region_id, state) 
+                    and region_id not in capital_market.regions):
+                    capital_market.regions.append(region_id)
+                    state.regions[region_id].market = capital_market.name
                     connecting = True
 
-        markets[capital.name] = capital_market
+        state.markets[capital_market.id] = capital_market
 
-        isolated = set(nation_regions) - set(capital_market.regions)
+        isolated_ids = set(nation_regions) - set(capital_market.regions)
+        isolated = [state.regions[id] for id in isolated_ids]
         while len(isolated) != 0:
             sorted_regions = sorted(
                 isolated, 
@@ -173,12 +173,12 @@ async def build_markets():
             connecting = True
             while connecting:
                 connecting = False
-                for region in isolated:
-                    if (new_market.connected(region.name) 
-                        and region not in new_market.regions):
-                        new_market.regions.append(region)
-                        region.market = new_market.name
+                for region_id in isolated_ids:
+                    if (new_market.connected(region_id, state) 
+                        and region_id not in new_market.regions):
+                        new_market.regions.append(region_id)
+                        state.regions[region_id].market = new_market.name
                         connecting = True
             
-            markets[largest.name] = new_market
+            state.markets[new_market.id] = new_market
             isolated -= set(new_market.regions)

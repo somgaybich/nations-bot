@@ -1,10 +1,12 @@
 import logging
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
 import world.database as db
 
-from world.world import nation_list
+if TYPE_CHECKING:
+    from world.world import GameState
 
 class Econ:
     """
@@ -43,14 +45,15 @@ class Econ:
         """
         await db.save_economy(self)
     
-    def calculate_cap(self) -> int:
+    def calculate_cap(self, state: "GameState") -> int:
         """
         Calculates a new influence cap for this economy. Does not actually
         assign or save the new cap value.
         """
         cap = 1
-        nation = nation_list[self.nationid]
-        for city in nation.regions.values():
-            cap += city.city_tier + 1
+        nation = state.nations[self.nationid]
+        for region_id in nation.regions:
+            region = state.regions[region_id]
+            cap += region.city_tier + 1
 
         return cap

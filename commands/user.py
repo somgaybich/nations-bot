@@ -15,7 +15,7 @@ from data.constants import brand_color
 from game.logic.actions import new_nation, new_region, new_army, new_fleet
 
 from game.objs.structures import structure_types
-from world.world import nation_list
+from world.world import get_state
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class UserCog(discord.Cog):
             await ctx.interaction.response.defer()
             followup_msg: discord.WebhookMessage = None
 
-            virtual_snapshot = rendering.snapshot_center(capital_x, capital_y, {(capital_x, capital_y): "metropolis"})
+            virtual_snapshot = rendering.snapshot_center(capital_x, capital_y, get_state(), {(capital_x, capital_y): "metropolis"})
             map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
             virtual_snapshot.save(map_filepath)
             with open(map_filepath, "rb") as f:
@@ -79,12 +79,13 @@ class UserCog(discord.Cog):
                 raise CancelledException("Nation creation")
 
             logger.debug(f"Making new nation for {ctx.interaction.user.name}...")
-            await new_nation(name, ctx.interaction.user.id)
+            await new_nation(name, ctx.interaction.user.id, state=get_state())
             logger.debug(f"Made new nation, making new city for {ctx.interaction.user.name}...")
             await new_region(name=capital_name, 
                              location=(capital_x, capital_y), 
                              owner=ctx.interaction.user.id, 
-                             capital=True)
+                             capital=True,
+                             state=get_state())
             logger.debug(f"Finished making nation & city for {ctx.interaction.user.name}")
         except NationsException as e:
             await followup_msg.delete()
@@ -112,7 +113,7 @@ class UserCog(discord.Cog):
             target = ctx.user()
 
         try:
-            nation = nation_list[target.id]
+            nation = get_state().nations[target.id]
             await ctx.interaction.response.send_message(embed=nation.profile())
         except NationsException as e:
             await interacton_error(ctx.interaction, e.user_message)
@@ -127,7 +128,7 @@ class UserCog(discord.Cog):
     @discord.option("location_y", input_type=int, description="The y-coordinate (2nd on the map) of the hex to show.")
     async def map(self, ctx: ApplicationContext, location_x: int, location_y: int):
         try:
-            map_image = rendering.snapshot_center(location_x, location_y)
+            map_image = rendering.snapshot_center(location_x, location_y, get_state())
             map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
             map_image.save(map_filepath)
 
@@ -151,7 +152,7 @@ class UserCog(discord.Cog):
     @discord.option("city", input_type=str, description="The city to train in.")
     async def newarmy(self, ctx: ApplicationContext, name: str, city: str):
         try:
-            await new_army(name, ctx.interaction.user.id, city)
+            await new_army(name, ctx.interaction.user.id, city, get_state())
         except NationsException as e:
             await interacton_error(ctx.interaction, e.user_message)
             raise
@@ -168,7 +169,7 @@ class UserCog(discord.Cog):
     @discord.option("city", input_type=str, description="The city to train in.")
     async def fleet(self, ctx: ApplicationContext, name: str, city: str):
         try:
-            await new_fleet(name, ctx.interaction.user.id, city)
+            await new_fleet(name, ctx.interaction.user.id, city, get_state())
         except NationsException as e:
             await interacton_error(ctx.interaction, e.user_message)
             raise
@@ -193,7 +194,7 @@ class UserCog(discord.Cog):
         followup_msg: discord.WebhookMessage = None
         
         try:
-            virtual_snapshot = rendering.snapshot_center(x, y, {(x, y): "metropolis"})
+            virtual_snapshot = rendering.snapshot_center(x, y, get_state(), {(x, y): "metropolis"})
             map_filepath = "data/snapshot" + str(ctx.interaction.user.id) + ".png"
             virtual_snapshot.save(map_filepath)
 
@@ -222,7 +223,8 @@ class UserCog(discord.Cog):
             logger.debug(f"Making new city for {ctx.interaction.user.name}...")
             await new_region(name=name, 
                              location=(x, y), 
-                             owner=ctx.interaction.user.id)
+                             owner=ctx.interaction.user.id,
+                             state=get_state())
         except NationsException as e:
             await followup_error(ctx.followup, e.user_message)
             raise
@@ -244,8 +246,8 @@ class UserCog(discord.Cog):
     @discord.option("title", input_type=str, description="The title of this dossier block", default="Dossier")
     async def dossier(self, ctx: ApplicationContext, text: str, title: str):
         try:
-            nation_list[ctx.interaction.user.id].dossier[title] = text
-            await nation_list[ctx.interaction.user.id].save()
+            get_state().nations[ctx.interaction.user.id].dossier[title] = text
+            await get_state().nations[ctx.interaction.user.id].save()
             logger.info(f"{ctx.interaction.user.name} changed their profile's {title} block to {text}")
             await interaction_response(ctx.interaction, f"{title} block changed!", f"Your profile's {title} block has been changed to: \n'{text}'")
         except NationsException as e:
@@ -260,8 +262,8 @@ class UserCog(discord.Cog):
     @discord.option("hex", input_type=str, description="The hex value of the new color")
     async def color(self, ctx: ApplicationContext, hex: str):
         try:
-            nation_list[ctx.interaction.user.id].color = discord.Colour.from_rgb(ImageColor.getrgb(hex))
-            await nation_list[ctx.interaction.user.id].save()
+            get_state().nations[ctx.interaction.user.id].color = discord.Colour.from_rgb(ImageColor.getrgb(hex))
+            await get_state().nations[ctx.interaction.user.id].save()
             logger.info(f"{ctx.interaction.user.name} changed their nation color to '{hex}'")
             await interaction_response(ctx.interaction, f"Color changed!", f"Your nation color has been changed to '{hex}'")
         except NationsException as e:

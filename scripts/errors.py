@@ -97,7 +97,6 @@ class NotOwned(NationsException):
                          {location}""")
         self.user_message = f"You don't own {location}!"
 
-
 class NotEnoughInfluence(NationsException):
     def __init__(self, action: str, required: int, had: int):
         super().__init__(f"""{action} failed: User needed {required} 

@@ -10,6 +10,7 @@ from game.logic.tick import tick
 from scripts.ui import ConfirmView
 from data.constants import brand_color
 from scripts.botlib import sync
+from world.world import get_state
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class AdminCog(discord.Cog):
             return
         
         try:
-            await tick()
+            await tick(get_state())
             await message.edit(embed=Embed(
                 color=brand_color,
                 title="Success!",

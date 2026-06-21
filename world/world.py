@@ -1,75 +1,62 @@
 from typing import TYPE_CHECKING
 import logging
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
-
-import scripts.errors as errors
 
 if TYPE_CHECKING:
     from game.objs.nation import Nation
     from game.objs.military import Unit
-    from game.objs.market import Market, Trade
+    from game.objs.market import Market
     from game.objs.region import Region
-    from game.objs.events import Listener
     from game.objs.map import Tile
-    from game.objs.structures import Structure
 
-class TileDict(dict[tuple[int, int], "Tile"]):
+@dataclass
+class GameState:
     """
-    A singleton class for storing tile data.
+    A collection of all of the global level repositories. Records the entirety
+    of the game state at any given time.
+    """
+    tiles: dict[tuple[int, int], "Tile"] = field(default_factory=dict)
+    """
+    Provides searchable access to tiles. Keys are location tuples, of form 
+    (q, r), indicating the location of the tile on the map.
+    """
+    nations: dict[int, "Nation"] = field(default_factory=dict)
+    """
+    Provides searchable access to nations. Keys are the discord user ID of the
+    player who created the nation.
+    """
+    nation_ids: dict[str, int] = field(default_factory=dict)
+    """
+    Maps nation names to NIDs.
+    """
+    regions: dict[int, "Region"] = field(default_factory=dict)
+    """
+    Provides searchable access to regions. Keys are unqiuely generated IDs.
+    """
+    region_ids: dict[str, int] = field(default_factory=dict)
+    """
+    Maps region names to IDs.
+    """
+    markets: dict[int, "Market"] = field(default_factory=dict)
+    """
+    Provides searchable access to markets. Keys are uniquely generated IDs.
+    """
+    units: dict[int, "Unit"] = field(default_factory=dict)
+    """
+    Provides searchable access to units. Keys are uniquely generated IDs.
+    """
+    unit_ids: dict[str, int] = field(default_factory=dict)
+    """
+    Maps unit names to IDs.
     """
 
-class NationDict(dict[int, "Nation"]):
-    """
-    A singleton for storing nation data.
-    """
-    def __getitem__(self, key: int) -> "Nation":
-        if key not in self.keys():
-            raise errors.NationIDNotFound(key)
-        else:
-            return super().__getitem__(key)
+global state
+state = GameState()
 
-class RegionDict(dict[str, "Region"]):
+def get_state():
     """
-    A singleton for storing region data.
+    Returns the current game state.
     """
-
-class MarketDict(dict[str, "Market"]):
-    """
-    A singleton for storing market data.
-    """
-    def reset(self):
-        self = {}
-
-tile_list: TileDict = TileDict()
-"""
-A dictionary mapping locations to :class:`Tile` objects.
-"""
-units: list["Unit"] = []
-"""
-A list of every :class:`Unit`, so they can easily be searched.
-"""
-structures: list["Structure"] = []
-"""
-A list of every :class:`Structure`, so they can easily be searched.
-"""
-regions: RegionDict = RegionDict()
-"""
-A dictionary mapping names to :class:`Region` objects.
-"""
-markets: MarketDict = MarketDict()
-"""
-A dictionary mapping names to :class:`Market` objects.
-"""
-trades: list["Trade"] = []
-"""
-A list of every :class:`Trade`, so they can easily be searched.
-"""
-nation_list: NationDict = NationDict()
-"""
-A dictionary mapping NIDs to :class:`Nation` objects.
-"""
-listeners: list["Listener"] = []
-"""
-A list of every event :class:`Listener`, so they can easily be searched.
-"""
+    return state

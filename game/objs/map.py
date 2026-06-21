@@ -6,12 +6,11 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from game.objs.structures import Structure
+    from world.world import GameState
 
 from data.constants import biome_arability, coastal_arability_factor
 
 import world.database as db
-
-from world.world import tile_list
 
 class Terrain:
     """
@@ -88,26 +87,26 @@ class Tile:
     """
     The (q, r) axial coordinates of this tile on the game map.
     """
-    owner: str | None
+    owner: int | None
     """
-    The name of the region that owns this tile, if any.
+    The id of the region that owns this tile, if any.
     """
     structure: "Structure | None"
     """
     The player-built object on this tile.
     """
     def __init__(self, terrain: Terrain, location: tuple[int, int] = (0, 0), 
-                 owner: str = None, structure: "Structure" = None):
+                 owner: int = None, structure: "Structure" = None):
         """
         :param terrain: A terrain object that contains the tile's physical 
             conditions.
         :param location: The (q, r) axial coordinates of this tile on the game 
             map.
-        :param owner: The name of the region that owns this tile, if any.
+        :param owner: The id of the region that owns this tile, if any.
         :param structure: The player-built object on this tile.
         :type terrain: Terrain
         :type location: tuple[int, int]
-        :type owner: str
+        :type owner: int
         :type structure: Structure
         """
         self.terrain = terrain
@@ -124,65 +123,65 @@ class Tile:
         """
         await db.save_tile(self)
     
-    def n(self) -> "Tile":
+    def n(self, state: "GameState") -> "Tile":
         """
         Returns the tile North of this one.
         """
-        return tile_list[(self.location[0], self.location[1] - 1)]
+        return state.tiles[(self.location[0], self.location[1] - 1)]
 
-    def nw(self) -> "Tile":
+    def nw(self, state: "GameState") -> "Tile":
         """
         Returns the tile Northwest of this one.
         """
-        return tile_list[(self.location[0] - 1, self.location[1])]
+        return state.tiles[(self.location[0] - 1, self.location[1])]
 
-    def sw(self) -> "Tile":
+    def sw(self, state: "GameState") -> "Tile":
         
         """
         Returns the tile Southwest of this one.
         """
-        return tile_list[(self.location[0] - 1, self.location[1] + 1)]
+        return state.tiles[(self.location[0] - 1, self.location[1] + 1)]
 
-    def s(self) -> "Tile":
+    def s(self, state: "GameState") -> "Tile":
         """
         Returns the tile South of this one.
         """
-        return tile_list[(self.location[0], self.location[1] + 1)]
+        return state.tiles[(self.location[0], self.location[1] + 1)]
 
-    def ne(self) -> "Tile":
+    def ne(self, state: "GameState") -> "Tile":
         """
         Returns the tile Northeast of this one.
         """
-        return tile_list[(self.location[0] + 1, self.location[1] - 1)]
+        return state.tiles[(self.location[0] + 1, self.location[1] - 1)]
 
-    def se(self) -> "Tile":
+    def se(self, state: "GameState") -> "Tile":
         """
         Returns the tile Southeast of this one.
         """
-        return tile_list[(self.location[0] + 1, self.location[1])]
+        return state.tiles[(self.location[0] + 1, self.location[1])]
 
-    def area(self) -> list["Tile"]:
+    def area(self, state: "GameState") -> list["Tile"]:
         """
         Returns all the tiles that directly border this one.
         """
-        area = [self]
+        area = set([self])
         for fn in (self.n, self.nw, self.sw, self.s, self.ne, self.se):
             try:
-                tile = fn()
+                tile = fn(state)
                 if tile is not None:
-                    area.append(tile)
+                    area.add(tile)
             except:
                 pass
-        return set(area)
+        return list(set(area))
 
-    def metroarea(self) -> set["Tile"]:
+    def metroarea(self, state: "GameState") -> list["Tile"]:
         """
         Returns all the tiles within two of this one.
         """
         result = set()
-        for tile in self.area():
-            result |= tile.area()
-        return result
+        for tile in self.area(state):
+            result.update(tile.area())
+        return list(result)
 
     def direction_to(self, target: "Tile") -> str | None:
         """
@@ -230,7 +229,7 @@ class Tile:
         else:
             return False
         
-def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
+def move_in_direction(current_tile: Tile, direction: str, state: "GameState") -> tuple[Tile, Tile]:
     """
     An undo-safe function for fetching tiles based on direction. Used in cases
     where the user is manually moving something. Returns a tuple of the new
@@ -242,7 +241,7 @@ def move_in_direction(current_tile: Tile, direction: str) -> tuple[Tile, Tile]:
     :type direction: str
     """
     last_tile = current_tile
-    new_tile: Tile = getattr(current_tile, direction)()
+    new_tile: Tile = getattr(current_tile, direction)(state)
 
     return new_tile, last_tile
 
@@ -259,6 +258,7 @@ def hex_distance(a: Tile | tuple[int, int], b: Tile | tuple[int, int]) -> int:
         bq, br = b.location
     else:
         bq, br = b[0], b[1]
+    
     bq, br = b.location
     return (abs(aq - bq)
           + abs(aq + ar - bq - br)

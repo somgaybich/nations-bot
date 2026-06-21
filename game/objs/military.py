@@ -1,5 +1,6 @@
 import random
 import math
+from typing import TYPE_CHECKING
 
 import world.database as db
 import scripts.errors as errors
@@ -7,7 +8,9 @@ import scripts.errors as errors
 from data.constants import (combat_settings, current_season)
 
 from game.objs.map import Tile, move_in_direction
-from world.world import nation_list, tile_list
+
+if TYPE_CHECKING:
+    from world.world import GameState
 
 class Unit:
     """
@@ -23,9 +26,9 @@ class Unit:
     """
     The type of the unit, either "army" or "fleet".
     """
-    home: str
+    home: int
     """
-    The region the unit was created in.
+    The ID of the region the unit was created in.
     """
     owner: int
     """
@@ -58,17 +61,16 @@ class Unit:
     """
     id: int | None
     """
-    The database ID of this unit. Generally shouldn't be touched, use owner 
-    and name as identifiers.
+    The database ID of this unit.
     """
-    def __init__(self, name: str, type: str, home: str, owner: int, 
+    def __init__(self, name: str, type: str, home: int, owner: int, 
                  movement_free: int, location: tuple[int, int] = (0, 0), 
                  strength: float = 1.0, morale: float = 1.0, exp: int = 0, 
                  status: str = "", id: int | None = None):
         """
         :param name: The name of the unit.
         :param type: The type of the unit, either "army" or "fleet".
-        :param home: The region the unit was created in.
+        :param home: The ID of the region the unit was created in.
         :param owner: The NID of the nation this unit belongs to.
         :param movement_free: The number of tiles left this unit is allowed to 
             move this season.
@@ -85,7 +87,7 @@ class Unit:
             touched, use owner and name as identifiers.
         :type name: str
         :type type: str
-        :type home: str
+        :type home: int
         :type owner: str
         :type movement_free: int
         :type location: tuple[int, int]
@@ -110,7 +112,12 @@ class Unit:
     async def save(self):
         await db.save_unit(self)
     
-    def effectiveness(self, attacking: bool, location: tuple[int, int] = (0, 0)) -> int:
+    def effectiveness(
+            self, 
+            attacking: bool, 
+            state: "GameState", 
+            location: tuple[int, int] = (0, 0)
+        ) -> int:
         """
         Calculates the effective combat strength of this unit.
 
@@ -126,10 +133,10 @@ class Unit:
         base_eff = self.morale * self.strength
         eff = base_eff
 
-        home_region = nation_list[self.owner].regions[self.home]
-        tile = tile_list[location]
+        home_region = state.regions[self.home]
+        tile = state.tiles[location]
         battle_terrain = tile.terrain
-        home_tile = tile_list[home_region.location]
+        home_tile = state.tiles[home_region.location]
         
         if battle_terrain == home_tile.terrain.biome:
             eff += combat_settings.home_terrain_buff
@@ -141,11 +148,12 @@ class Unit:
             if tile is home_tile:
                 eff += combat_settings.home_city_buff
             
-        allies = nation_list[self.owner].allies
+        allies = state.nations[self.owner].allies
         allies.append(self.owner)
         for nationid in allies:
-            nation = nation_list[nationid]
-            for region in nation.regions.values():
+            nation = state.nations[nationid]
+            for region_id in nation.regions:
+                region = state.regions[region_id]
                 area = region.tiles
                 if location not in area:
                     continue
@@ -153,14 +161,15 @@ class Unit:
         if tile.structure.structure_type.fname == "Fort":
             eff += combat_settings.fort_buff
         else:
-            for tile in tile.area():
+            area = tile.area(state)
+            for tile in area:
                 if tile.structure.structure_type.fname == "Fort":
                     eff += combat_settings.fort_area_buff
                     break
         
         return eff
     
-    async def move(self, direction: str):
+    async def move(self, direction: str, state: "GameState"):
         """
         Moves a unit in a specific direction.
         
@@ -170,9 +179,8 @@ class Unit:
             understand axial coordinates.
         :type direction: str in ['n', 's'...]
         """
-        from world.world import units
-        new_tile, last_tile = move_in_direction(tile_list[self.location], 
-                                                direction.lower())
+        new_tile, last_tile = move_in_direction(state.tiles[self.location], 
+                                                direction.lower(), state)
         if new_tile.difficulty > self.movement_free:
             raise errors.OutOfMovement()
         if new_tile.terrain.biome == "high_mountains" and current_season == 3:
@@ -185,25 +193,23 @@ class Unit:
         self.location = new_tile.location
         self.movement_free -= new_tile.difficulty
 
-        for unit in units:
+        for unit in state.units.values():
             if (unit.location == new_tile.location 
                 and unit.owner != self.owner and 
-                not unit.owner in nation_list[self.owner].allies):
+                not unit.owner in state.nations[self.owner].allies):
                 await self.attack(unit, last_tile)
         
         await self.save()
 
-    async def retreat(self):
+    async def retreat(self, state: "GameState"):
         """
         Moves this unit to the neighboring tile where they'd be safest and sets
         its movement to 0.
         """
-        from world.world import units
-        
         retreat_candidates: list[Tile] = []
-        for tile in tile_list[self.location].area():
+        for tile in state.tiles[self.location].area(state):
             if tile.difficulty <= self.movement_free:
-                for unit in units:
+                for unit in state.units.values():
                     if unit.location == tile.location:
                         # This tile has an enemy, we can't retreat there.
                         break
@@ -232,7 +238,7 @@ class Unit:
 
         self.movement_free = 0
 
-    async def crushing_loss(self, scaled_impact, battle_location):
+    async def crushing_loss(self, scaled_impact, battle_location, state: "GameState"):
         """
         Deals damage to this unit corresponding to a crushing loss and 
         retreats.
@@ -245,8 +251,9 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings.crush_loser_strength_loss * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings.crush_loser_morale_loss * scaled_impact)
 
-        nation = nation_list[self.owner]
-        for region in nation.regions.values():
+        nation = state.nations[self.owner]
+        for region_id in nation.regions:
+            region = state.regions[region_id]
             if battle_location in region.tiles:
                 # FIXME: Lower stability
                 pass
@@ -255,7 +262,7 @@ class Unit:
 
         self.movement_free = 0
     
-    async def loss(self, scaled_impact, battle_location):
+    async def loss(self, scaled_impact, battle_location, state: "GameState"):
         """
         Deals damage to this unit corresponding to a loss and retreats.
 
@@ -268,8 +275,9 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings.loser_strength_loss * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings.loser_morale_loss * scaled_impact)
 
-        nation = nation_list[self.owner]
-        for region in nation.regions.values():
+        nation = state.nations[self.owner]
+        for region_id in nation.regions:
+            region = state.regions[region_id]
             if battle_location in region.tiles:
                 # FIXME: Lower stability
                 pass
@@ -278,7 +286,7 @@ class Unit:
         
         self.movement_free = 0
     
-    async def victory(self, scaled_impact, battle_location):
+    async def victory(self, scaled_impact, battle_location, state: "GameState"):
         """
         Deals damage to this unit corresponding to a victory.
         
@@ -290,15 +298,16 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings.winner_strength_loss * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings.winner_morale_loss * scaled_impact)
 
-        nation = nation_list[self.owner]
-        for region in nation.regions.values():
+        nation = state.nations[self.owner]
+        for region_id in nation.regions:
+            region = state.regions[region_id]
             if battle_location in region.tiles:
                 # FIXME: Increase stability
                 pass
         
         self.movement_free = 0
     
-    async def crushing_victory(self, scaled_impact, battle_location):
+    async def crushing_victory(self, scaled_impact, battle_location, state: "GameState"):
         """
         Deals damage to this unit corresponding to a crushing victory.
 
@@ -310,13 +319,14 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings.crush_winner_strength_loss * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings.crush_winner_morale_loss * scaled_impact)
 
-        nation = nation_list[self.owner]
-        for region in nation.regions.values():
+        nation = state.nations[self.owner]
+        for region_id in nation.regions:
+            region = state.regions[region_id]
             if battle_location in region.tiles:
                 # FIXME: Increase stability
                 pass
           
-    async def stalemate(self, scaled_impact, battle_location):
+    async def stalemate(self, scaled_impact, battle_location, state: "GameState"):
         """
         Deals damage to this unit corresponding to a stalemate.
 
@@ -328,15 +338,21 @@ class Unit:
         self.strength = max(0.0, self.strength - combat_settings.stalemate_strength_loss * scaled_impact)
         self.morale = max(0.0, self.strength - combat_settings.stalemate_morale_loss * scaled_impact)
 
-        nation = nation_list[self.owner]
-        for region in nation.regions.values():
+        nation = state.nations[self.owner]
+        for region_id in nation.regions:
+            region = state.regions[region_id]
             if battle_location in region.tiles:
                 # FIXME: Lower stability
                 pass
         
         self.movement_free = 0
 
-    async def attack(self, target: "Unit", last_tile: tuple[int, int]):
+    async def attack(
+            self, 
+            target: "Unit", 
+            last_tile: tuple[int, int], 
+            state: "GameState"
+        ):
         """
         Attacks another unit in this tile.
 
@@ -346,7 +362,6 @@ class Unit:
         :type target: Unit
         :type last_tile: tuple[int, int]
         """
-        from world.world import units
         self_eff = self.effectiveness(True, self.location)
         target_eff = target.effectiveness(False, self.location)
         
@@ -356,17 +371,17 @@ class Unit:
         defending_team = [target]
         target_allies_eff = 0
         
-        for tile in tile_list[battle_location].area():
-            for unit in units:
+        for tile in state.tiles[battle_location].area(state):
+            for unit in state.units.values():
                 if unit.location == tile.location:
                     # This unit is in a neighboring tile!
                     if (unit.owner == self.owner 
-                        or unit.owner in nation_list[self.owner].allies):
+                        or unit.owner in state.nations[self.owner].allies):
                         attacking_team.append(unit)
                         self_allies_eff += unit.effectiveness(True, 
                                                               self.location)
                     elif (unit.owner == target.owner 
-                          or unit.owner in nation_list[target.owner].allies):
+                          or unit.owner in state.nations[target.owner].allies):
                         defending_team.append(unit)
                         target_allies_eff += unit.effectiveness(False, 
                                                                 self.location)

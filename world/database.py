@@ -5,7 +5,6 @@ from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from game.objs.nation import Nation
-    from game.objs.market import Market
     from game.objs.economy import Econ
     from game.objs.military import Unit
     from game.objs.region import Region
@@ -46,7 +45,8 @@ async def init_db(file: str = "data/nations.db"):
     await _db.execute(
     """
     CREATE TABLE IF NOT EXISTS regions (
-        name TEXT PRIMARY KEY,
+        name TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         x INTEGER NOT NULL,
         y INTEGER NOT NULL,
         owner INTEGER NOT NULL,
@@ -54,7 +54,6 @@ async def init_db(file: str = "data/nations.db"):
         authority TEXT,
         capital TEXT,
         city_tier INTEGER,
-        market TEXT,
         industries TEXT)
     """
     )
@@ -66,7 +65,7 @@ async def init_db(file: str = "data/nations.db"):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
-        home TEXT NOT NULL,
+        home INTEGER NOT NULL,
         x INTEGER NOT NULL,
         y INTEGER NOT NULL,
         strength INTEGER NOT NULL,
@@ -84,7 +83,7 @@ async def init_db(file: str = "data/nations.db"):
         x INTEGER NOT NULL,
         y INTEGER NOT NULL,
         terrain TEXT NOT NULL,
-        owner TEXT,
+        owner INTEGER,
         structure TEXT,
         link_structures TEXT,
         PRIMARY KEY (x, y))
@@ -99,16 +98,6 @@ async def init_db(file: str = "data/nations.db"):
             influence_cap INTEGER NOT NULL)
         """)
     logger.debug("Created economies table")
-
-    await _db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS markets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            owner INTEGER NOT NULL,
-            regions TEXT NOT NULL)
-        """)
-    logger.debug("Created markets table")
 
     await _db.commit()
     logger.info("Database started")
@@ -148,23 +137,41 @@ async def load_nations_rows():
 
 async def save_region(region: "Region"):
     logger.debug(f"Saving region at {region.name}")
-    await get_db().execute(
-        """
-        INSERT INTO regions (
-            name, x, y, owner, tiles, capital, city_tier, market, industries
+    if region.id == None:
+        async with get_db().execute(
+            """
+            INSERT INTO regions (
+                name, x, y, owner, tiles, capital, 
+                city_tier, industries
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)   
+            """,
+            (
+                region.name, 
+                region.location[0], 
+                region.location[1], 
+                region.owner, 
+                json.dumps(region.tiles), 
+                json.dumps(region.is_capital), 
+                region.city_tier,
+                json.dumps(region.industries)
+            )
+        ) as cursor:
+            region.id = cursor.lastrowid
+    else:
+        await get_db().execute(
+            """
+            UPDATE regions
+            SET tiles = ?, city_tier = ?, industries = ?
+            WHERE id = ?
+            """,
+            (
+                json.dumps(region.tiles),
+                region.city_tier,
+                json.dumps(region.industries),
+                region.id
+            )
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(name) DO UPDATE SET
-            name = excluded.name,
-            tiles = excluded.tiles,
-            city_tier = excluded.city_tier,
-            market = excluded.market,
-            industries = excluded.industries
-        """,
-        (region.name, region.location[0], region.location[1], region.owner, 
-         json.dumps(region.tiles), json.dumps(region.is_capital), 
-         region.city_tier, region.market, json.dumps(region.industries))
-    )
 
 async def load_regions_rows():
     async with get_db().execute("SELECT * FROM regions") as cursor:
@@ -290,46 +297,4 @@ async def save_economy(econ: "Econ"):
 
 async def load_economies_rows():
     async with get_db().execute("SELECT * FROM economies") as cursor:
-        return await cursor.fetchall()
-    
-# ----------------
-
-async def save_market(market: "Market"):
-    logger.debug(f"Saving market at {market.id}")
-    if market.id is None:
-        async with get_db().execute(
-            """
-            INSERT INTO markets (
-                name, owner, regions
-            )
-            VALUES (?, ?, ?)
-            """,
-            (
-                market.name,
-                market.owner,
-                json.dumps(market.regions)
-            )
-        ) as cursor:
-            market.id = cursor.lastrowid
-    else:
-        await get_db().execute(
-            """
-            UPDATE markets
-            SET name = ?, owner = ?, regions = ?
-            WHERE id = ?
-            """,
-            (
-                market.name,
-                market.owner,
-                json.dumps(market.regions),
-                market.id
-            )
-        )
-
-async def delete_market(market: "Market"):
-    if market.id is not None:
-        await get_db().execute("DELETE FROM markets WHERE id = ?", (market.id,))
-
-async def load_markets_rows():
-    async with get_db().execute("SELECT * FROM markets") as cursor:
         return await cursor.fetchall()

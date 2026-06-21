@@ -5,12 +5,9 @@ from data.constants import (food_surplus_use_rate,
 
 import world.database as db
 
-from world.world import tile_list, structures, regions, markets
-
 if TYPE_CHECKING:
-    from game.objs.market import Market
-    from game.objs.industry import IndustryType
     from game.objs.structures import Structure
+    from world.world import GameState
 
 class Region:
     """
@@ -20,6 +17,10 @@ class Region:
     name: str
     """
     The name of the central city of the region, and also the region itself.
+    """
+    id: int | None
+    """
+    The database ID of this region.
     """
     location: tuple[int, int]
     """
@@ -48,19 +49,20 @@ class Region:
     """
     The list of tile coordinates that belong to this region.
     """
-    market: str
+    market: int | None
     """
-    The name of the market this region belongs to.
+    The ID of the market this region belongs to. Can occasionally be None only 
+    if markets are currently being rebuilt.
     """
     industries: list[str]
     """
     The industries in this region. See :class:`game.industry.IndustryType`
     """
     def __init__(self, name: str, location: tuple[int, int], owner: int, 
-                 city_tier: int = 0, is_capital: bool = False, 
-                 market: str | None = None, population: float = 1.0,
+                 state: "GameState", city_tier: int = 0, 
+                 is_capital: bool = False, population: float = 1.0, 
                  tiles: list[tuple[int, int]] | None = None, 
-                 industries: list[str] | None = None):
+                 industries: list[str] | None = None, id: int | None = None):
         """
         :param name: The name of the central city of the region, and also the 
             region itself.
@@ -69,7 +71,6 @@ class Region:
         :param city_tier: The tier of this region's central city. Starts 
             at 0 and ranges to 4.
         :param is_capital: Whether this region is the capital of its nation.
-        :param market: The name of the market this region belongs to.
         :param population: A measure of the size of this region's central city.
             Growth is based on surplus of needed resources. Not an actual 
             population count, can be thought of as "the amount of people that 
@@ -82,7 +83,6 @@ class Region:
         :type owner: int
         :type city_tier: int
         :type is_capital: bool
-        :type market: str
         :type tiles: list[tuple[int, int]]
         :type industries: list["IndustryType"]
         """
@@ -93,16 +93,11 @@ class Region:
         self.city_tier = city_tier
         self.population = population
         self.tiles = (tiles if tiles is not None 
-                      else [tile.location for tile in tile_list[location].area()])
+                      else [tile.location for tile in state.tiles[location].area(state)])
         self.industries = (industries if industries is not None
                            else [])
-        
-        if market is not None:
-            self.market = market
-        else:
-            # Will join a new market with itself as the only member
-            # This market has to be separately instatiated for import safety
-            self.market = name
+        self.id = id
+        self.market = None
 
     async def save(self):
         """
@@ -110,12 +105,12 @@ class Region:
         """
         await db.save_region(self)
 
-    def growth(self):
+    def growth(self, state: "GameState"):
         """
         Returns the amount the population of this region will grow according
         to the current supplies in the market.
         """
-        market = markets[self.market]
+        market = state.markets[self.market]
         regions = len(market.regions)
         available_food = market.supply("food")
         # We'll use some % of our surplus
@@ -128,14 +123,17 @@ class Region:
 
         return growth_rate
 
-    def structures(self) -> list["Structure"]:
+    def structures(self, state: "GameState") -> list["Structure"]:
         """
         Returns a list of every structure in this region.
         """
         city_structures = []
-        for structure in structures:
-            if structure.region == self.name:
-                city_structures.append(structure)
+        for location in self.tiles:
+            tile = state.tiles[location]
+            if tile.structure == None:
+                continue
+
+            city_structures.append(tile.structure)
         return city_structures
 
     def calculate_tier(self) -> int:
@@ -145,12 +143,12 @@ class Region:
         #FIXME
         pass
 
-    def connected(self, target: str) -> bool:
+    def connected(self, target: int, state: "GameState") -> bool:
         """
-        Returns True if this region has a direct connection to the target
-        region. Used for trading.
+        Returns True if this region has a direct connection to the region with
+        the target ID. Used for trading.
         """
-        target_region = regions[target]
+        target_region = state.regions[target]
         
         if target in self.neighbors():
             return True
@@ -160,15 +158,15 @@ class Region:
         
         return False
 
-    def neighbors(self) -> list[str]:
+    def neighbors(self, state: "GameState") -> list[int]:
         """
         Returns a list of all the regions that border this one.
         """
         neighbors = set()
 
         for location in self.tiles:
-            tile = tile_list[location]
-            for neighbor_tile in tile.area():
+            tile = state.tiles[location]
+            for neighbor_tile in tile.area(state):
                 if neighbor_tile.location in self.tiles:
                     # Ignore our own tiles
                     continue
@@ -177,19 +175,19 @@ class Region:
         
         return list(neighbors)
 
-    def has_port(self) -> bool:
+    def has_port(self, state: "GameState") -> bool:
         """
         Returns True if this region's core city is coastal.
         """
-        return tile_list[self.location].is_coastal()
+        return state.tiles[self.location].is_coastal()
     
-    def arability(self) -> float:
+    def arability(self, state: "GameState") -> float:
         """
         Returns the sum arability of the region's tiles. See 
         :class:`world.map.Tile.arability`.
         """
         arability = 0
         for location in self.tiles:
-            tile = tile_list[location]
+            tile = state.tiles[location]
             arability += tile.arability()
         return arability
