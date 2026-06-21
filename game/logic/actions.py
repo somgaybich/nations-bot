@@ -11,7 +11,7 @@ from game.objs.military import Unit
 from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ
-from game.objs.industry import industry_types
+from data.industry import industry_types
 
 from game.objs.map import hex_distance
 from game.objs.structures import StructureType, Structure, structure_types
