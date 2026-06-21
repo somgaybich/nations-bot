@@ -4,17 +4,16 @@ from discord import Color
 from typing import TYPE_CHECKING
 
 import world.database as db
-from game.data.structures import structure_types
 
+from game.data.structures import structure_types
 from game.objs.unit import Unit
 from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ
 from game.objs.trade import Trade
-from game.objs.market import build_markets
-
 from game.objs.tile import Tile, Terrain
 from game.objs.structure import Structure
+from game.logic.logistics import build_markets
 
 if TYPE_CHECKING:
     from world.world import GameState
