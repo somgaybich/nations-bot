@@ -1,6 +1,8 @@
 import aiosqlite
 import json
 import logging
+import os
+import shutil
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,6 +31,8 @@ async def init_db(file: str = "data/nations.db"):
         logger.warning("Tried to start database connection when there was already one initialized")
         return
     
+    if not os.path.exists(file):
+        shutil.copy("data/map.db", file)
     _db = await aiosqlite.connect(file)
     await _db.execute("PRAGMA foreign_keys = ON;")
     _db.row_factory = aiosqlite.Row
