@@ -5,7 +5,7 @@ from itertools import count
 
 logger = logging.getLogger(__name__)
 
-from data.industry import industry_types
+from game.data.industry import industry_types
 
 if TYPE_CHECKING:
     from world.world import GameState

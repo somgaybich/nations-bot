@@ -12,7 +12,7 @@ from world.world import get_state
 
 logger = logging.getLogger(__name__)
 
-from data.constants import OPGUILD_ID, admin_mode
+from game.data.constants import OPGUILD_ID, admin_mode
 
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):

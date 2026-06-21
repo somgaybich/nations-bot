@@ -1,7 +1,7 @@
 import discord
 import asyncio
 
-from data.constants import brand_color
+from game.data.constants import brand_color
 
 class DirectionView(discord.ui.View):
     def __init__(self, future: asyncio.Future):

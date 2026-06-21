@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from data.constants import (food_surplus_use_rate, 
+from game.data.constants import (food_surplus_use_rate, 
                             food_shortage_contract_rate)
 
 import world.database as db

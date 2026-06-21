@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from data.constants import update_season
+from game.data.constants import update_season
 
 from game.logic.influence import calculate_cap
 

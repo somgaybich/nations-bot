@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import world.database as db
 import scripts.errors as errors
 
-from data.constants import (combat_settings, current_season)
+from game.data.constants import (combat_settings, current_season)
 
 from game.logic.map import move_in_direction, area, is_coastal
 from game.objs.tile import Tile

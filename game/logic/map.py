@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from data.constants import biome_arability, coastal_arability_factor
+from game.data.constants import biome_arability, coastal_arability_factor
 
 if TYPE_CHECKING:
     from game.objs.tile import Tile

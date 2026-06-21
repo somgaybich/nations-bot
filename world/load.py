@@ -4,7 +4,7 @@ from discord import Color
 from typing import TYPE_CHECKING
 
 import world.database as db
-from data.structures import structure_types
+from game.data.structures import structure_types
 
 from game.objs.military import Unit
 from game.objs.nation import Nation

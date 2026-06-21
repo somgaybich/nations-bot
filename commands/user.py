@@ -11,7 +11,7 @@ from scripts.errors import NationsException, CancelledException
 import scripts.rendering as rendering
 from scripts.ui import ConfirmView
 
-from data.constants import brand_color
+from game.data.constants import brand_color
 from game.logic.actions import new_nation, new_region, new_army, new_fleet
 
 from world.world import get_state
