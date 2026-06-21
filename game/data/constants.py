@@ -23,18 +23,18 @@ class CombatSettings:
     # crush_b controls the height/twist (how "crushy" unfavored wins are)
 
     # multiplied by a roll out of 1
-    crush_loser_strength_loss = 2
-    crush_loser_morale_loss = 1.8
-    loser_strength_loss = 1.5
-    loser_morale_loss = 1.3
+    crush_loser_strength_mult = 2.0
+    crush_loser_morale_mult = 1.8
+    loser_strength_mult = 1.5
+    loser_morale_mult = 1.3
 
-    crush_winner_strength_loss = 0.3
-    crush_winner_morale_loss = 0
-    winner_strength_loss = 1.0
-    winner_morale_loss = 0.7
+    crush_winner_strength_mult = 0.3
+    crush_winner_morale_mult = 0.0
+    winner_strength_mult = 1.0
+    winner_morale_mult = 0.7
 
-    stalemate_strength_loss = 1.2
-    stalemate_morale_loss = 1.0
+    stalemate_strength_mult = 1.2
+    stalemate_morale_mult = 1.0
 
     crush_coop_modifier = 0.2
     decisive_coop_modifier = 0.1
@@ -90,6 +90,20 @@ class BiomeArability:
     tundra = 0.1
     ice_caps = 0.0
 coastal_arability_factor = 0.006
+
+biome_arability = BiomeArability()
+
+@dataclass
+class BattleResult:
+    CRUSHING_LOSS = 0
+    LOSS = 1
+    STALEMATE = 2
+    VICTORY = 3
+    CRUSHING_VICTORY = 4
+    RETREATS = [0, 1, 2]
+    LOSES_MOVEMENT = [0, 1, 2, 3]
+
+battle_result = BattleResult()
 
 food_surplus_use_rate = 0.2 # % of surplus to grow into
 food_shortage_contract_rate = 0.3 # slows contractions due to food shortage

@@ -6,7 +6,7 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from game.objs.nation import Nation
     from game.objs.economy import Econ
-    from game.objs.military import Unit
+    from game.objs.unit import Unit
     from game.objs.region import Region
     from game.objs.tile import Tile
     from game.objs.structure import Structure

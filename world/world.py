@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from game.objs.nation import Nation
-    from game.objs.military import Unit
+    from game.objs.unit import Unit
     from game.objs.market import Market
     from game.objs.region import Region
     from game.objs.tile import Tile
