@@ -1,13 +1,11 @@
 import logging
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 import world.database as db
 
-if TYPE_CHECKING:
-    from world.world import GameState
-
+@dataclass
 class Econ:
     """
     Represents a nation's economy.
@@ -16,44 +14,17 @@ class Econ:
     """
     The NID of the parent nation.
     """
-    influence: int
+    influence: int = 2
     """
     The influence currently available.
     """
-    influence_cap: int
+    influence_cap: int = 2
     """
     The maximum influence usable per season.
     """
-
-    def __init__(self, nationid: int, influence: int = 2, 
-                 influence_cap: int = 2):
-        """
-        :param nationid: The NID of the parent nation.
-        :param influence: The influence currently available.
-        :param influence_cap: The maximum influence usable per season.
-        :type nationid: int
-        :type influence: int
-        :type influence_cap: int
-        """
-        self.nationid = nationid
-        self.influence = influence
-        self.influence_cap = influence_cap
 
     async def save(self):
         """
         Saves this economy to the database.
         """
         await db.save_economy(self)
-    
-    def calculate_cap(self, state: "GameState") -> int:
-        """
-        Calculates a new influence cap for this economy. Does not actually
-        assign or save the new cap value.
-        """
-        cap = 1
-        nation = state.nations[self.nationid]
-        for region_id in nation.regions:
-            region = state.regions[region_id]
-            cap += region.city_tier + 1
-
-        return cap

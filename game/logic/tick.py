@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 
 from data.constants import update_season
 
+from game.logic.influence import calculate_cap
+
 if TYPE_CHECKING:
     from world.world import GameState
 
@@ -38,7 +40,7 @@ async def tick(state: "GameState"):
             if unit.status == "TRAINING":
                 unit.status = ""
 
-        nation.econ.influence_cap = nation.econ.calculate_cap(state)
+        nation.econ.influence_cap = calculate_cap(nation.econ, state)
         nation.econ.influence = nation.econ.influence_cap
         
         await nation.save()
