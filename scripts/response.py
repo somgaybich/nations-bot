@@ -1,7 +1,7 @@
 from discord import Interaction, Embed, Webhook
 import logging
 
-from game.constants import brand_color, LOGGING_CHANNEL_ID, backup_msg
+from game.data.constants import brand_color, LOGGING_CHANNEL_ID, backup_msg
 from scripts.botlib import bot
 
 logger = logging.getLogger(__name__)

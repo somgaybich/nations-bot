@@ -4,14 +4,15 @@ import time
 from datetime import datetime, timezone
 from discord.ext import tasks
 
-from scripts.load import load
-from game.tick import tick
-from scripts.database import init_db
-from scripts.database import get_db
+from world.load import load
+from game.logic.tick import tick
+from world.database import init_db
+from world.database import get_db
+from world.world import get_state
 
 logger = logging.getLogger(__name__)
 
-from game.constants import OPGUILD_ID, admin_mode
+from game.data.constants import OPGUILD_ID, admin_mode
 
 class NationsBot(discord.Bot):
     def __init__(self, **kwargs):
@@ -23,7 +24,7 @@ class NationsBot(discord.Bot):
     async def on_ready(self):
         timer = time.perf_counter()
         await init_db()
-        await load()
+        await load(get_state())
         logger.debug(f"Took {(timer / 1000000):.2f}ms to initialize data")
         timer = time.perf_counter()
         self.load_extension("commands.admin")
@@ -51,7 +52,7 @@ class NationsBot(discord.Bot):
     async def tick(self):
         if datetime.now(timezone.utc).hour == 0:
             try:
-                await tick()
+                await tick(get_state())
             except Exception as e:
                 logger.error(f"Failed to execute game tick: {e}")
                 raise

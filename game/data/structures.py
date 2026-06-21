@@ -46,46 +46,6 @@ class StructureType:
         self.fname = fname
         self.name = name
 
-class Structure:
-    """
-    A player-built structure on the map.
-    """
-    structure_type: StructureType
-    """
-    The type of structure that this is. Encodes the costs and behaviors of this
-    structure.
-    """
-    location: tuple[int, int]
-    """
-    The location of the tile where this structure is built.
-    """
-    region: str
-    """
-    The name of the region this structure belongs to.
-    """
-    owner: int
-    """
-    The NID of the nation that this structure belongs to.
-    """
-    def __init__(self, structure_type: StructureType, 
-                 location: tuple[int, int], region: str, owner: int):
-        """
-        :param structure_type: The type of structure that this is. Encodes the 
-            costs and behaviors of this structure.
-        :param location: The location of the tile where this structure is 
-            built.
-        :param region: The name of the region this structure belongs to.
-        :param owner: The NID of the nation that this structure belongs to.
-        :type structure_type: StructureType
-        :type location: tuple[int, int]
-        :type region: str
-        :type owner: int
-        """
-        self.structure_type = structure_type
-        self.location = location
-        self.region = region
-        self.owner = owner
-
 structure_types = {
     # Dummy types
     # Only used for rendering

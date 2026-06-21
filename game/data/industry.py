@@ -5,10 +5,9 @@ logger = logging.getLogger(__name__)
 from typing import Callable, TYPE_CHECKING
 import math
 
-from world.world import tile_list, markets
-
 if TYPE_CHECKING:
-    from game.region import Region
+    from game.objs.region import Region
+    from world.world import GameState
 
 class IndustryType:
     """
@@ -18,11 +17,12 @@ class IndustryType:
     """
     The influence cost of establishing this industry.
     """
-    production: Callable[["Region"], tuple[str, float]]
+    production: Callable[["Region", "GameState"], tuple[str, float]]
     """
     A function that returns the resources produced by this industry. Takes
-    the parent :class:`game.region.Region`, and returns a tuple where element 0
-    is the name of the resource produced and element 1 is the amount.
+    the parent :class:`game.region.Region` and the current game state, and 
+    returns a tuple where element 0 is the name of the resource produced and 
+    element 1 is the amount.
     """
     def __init__(self, cost: int, 
                  production: Callable[[str], tuple[str, float]]):
@@ -31,9 +31,9 @@ class IndustryType:
         
         :param cost: The influence cost of establishing this industry.
         :param production: A function that returns the resources produced by 
-            this industry. Takes the parent :class:`game.region.Region`, and 
-            returns a tuple where element 0 is the name of the resource 
-            produced and element 1 is the amount.
+            this industry. Takes the parent :class:`game.region.Region` and the
+            current game state, and returns a tuple where element 0 is the name 
+            of the resource produced and element 1 is the amount.
         :type cost: int
         :type production: Callable[[str], tuple[str, float]]
         """
@@ -55,16 +55,21 @@ def farming_production(region: "Region") -> tuple[str, float]:
     production = region.arability() * subsistence
     return ("food", production)
 
-def mines_production(ore: str) -> Callable[[str], tuple[str, float]]:
+def mines_production(
+        ore: str
+    ) -> Callable[[str], tuple[str, float]]:
     """
     Creates a mining production function for this industry based on the
     passed ore. Output is based on the sum of the richness values of the 
     region's tiles, see :class:`world.map.Terrain.ores`.
     """
-    def mine_production(region: "Region") -> tuple[str, float]:
+    def mine_production(
+            region: "Region", 
+            state: "GameState"
+        ) -> tuple[str, float]:
         base_production = 0
         for location in region.tiles:
-            tile = tile_list[location]
+            tile = state.tiles[location]
             base_production += tile.terrain.ores[ore]
         
         production = base_production * region.population
@@ -73,8 +78,11 @@ def mines_production(ore: str) -> Callable[[str], tuple[str, float]]:
 
     return mine_production
 
-def steel_production(region: "Region") -> tuple[str, float]:
-    market = markets[region.market]
+def steel_production(
+        region: "Region",
+        state: "GameState"
+    ) -> tuple[str, float]:
+    market = state.markets[region.market]
     iron_fill = market.fulfillment("iron")
     coal_fill = market.fulfillment("coal")
     limiter = min(iron_fill, coal_fill)
@@ -82,8 +90,11 @@ def steel_production(region: "Region") -> tuple[str, float]:
 
     return ("steel", production)
     
-def machinery_production(region: "Region") -> tuple[str, float]:
-    market = markets[region.market]
+def machinery_production(
+        region: "Region",
+        state: "GameState"
+    ) -> tuple[str, float]:
+    market = state.markets[region.market]
     iron_fill = market.fulfillment("iron")
     copper_fill = market.fulfillment("copper")
     limiter = min(iron_fill, copper_fill)
@@ -96,7 +107,10 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
     Creates a luxury production function for this industry based on the passed
     luxury type. All luxury industries just produce 1 unit in ideal conditions.
     """
-    def luxury_production(region: "Region") -> tuple[str, float]:
+    def luxury_production(
+            region: "Region", 
+            state: "GameState"
+        ) -> tuple[str, float]:
         return (luxury, region.population)
     
     return luxury_production

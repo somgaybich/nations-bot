@@ -1,15 +1,13 @@
-import traceback
 import logging
 import asyncio
-import json
 
 import discord
 from discord import Embed, ApplicationContext
 
-from game.tick import tick
+from game.logic.tick import tick
 from scripts.ui import ConfirmView
-from game.constants import brand_color
-from scripts.botlib import sync
+from game.data.constants import brand_color
+from world.world import get_state
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +39,7 @@ class AdminCog(discord.Cog):
             return
         
         try:
-            await tick()
+            await tick(get_state())
             await message.edit(embed=Embed(
                 color=brand_color,
                 title="Success!",

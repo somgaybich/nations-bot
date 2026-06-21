@@ -1,8 +1,3 @@
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from world.structures import Link
-
 class NationsException(Exception):
     """
     A parent class for all custom exceptions invoked by nations. Should never be invoked directly.
@@ -89,14 +84,13 @@ class DoesNotExist(NationsException):
     def __init__(self, object_type: str, action: str, name: str):
         super().__init__(f"""{action} failed: {object_type} '{name}' does not 
                          exist""")
-        self.user_message = f"Couldn't find a {object_type} at {name}!"
+        self.user_message = f"Couldn't find a {object_type} named {name}!"
 
 class NotOwned(NationsException):
     def __init__(self, action: str, location: tuple[int, int]):
         super().__init__(f"""{action} failed: User did not own the tile 
                          {location}""")
         self.user_message = f"You don't own {location}!"
-
 
 class NotEnoughInfluence(NationsException):
     def __init__(self, action: str, required: int, had: int):
