@@ -127,4 +127,6 @@ async def load(state: "GameState", map_only: bool = False):
     await build_markets(state)
 
     logger.info("Loaded game data")
-    logger.debug(state)
+    # We don't want to log tiles b/c that is too big and easy to check
+    filtered_state = {k: v for k, v in vars(state).items() if k != 'tiles'}
+    logger.debug(filtered_state)
