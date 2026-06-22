@@ -73,7 +73,7 @@ async def load(state: "GameState", map_only: bool = False):
             name=row["name"],
             location=(row["x"], row["y"]),
             city_tier=row["city_tier"],
-            owner=json.loads(row["owner"]),
+            owner=row["owner"],
             is_capital=row["capital"],
             tiles=[tuple(tile) for tile in json.loads(row["tiles"])],
             industries=json.loads(row["industries"]),
@@ -81,7 +81,6 @@ async def load(state: "GameState", map_only: bool = False):
             id=row["id"]
         )
 
-        #FIXME: Check if other things have incorrectly been cast to strings like region.owner was ???
         state.nations[region.owner].regions.append(region.id)
         state.regions[region.id] = region
         state.region_ids[region.name] = region.id
