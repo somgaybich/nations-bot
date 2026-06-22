@@ -98,7 +98,7 @@ async def load(state: "GameState", map_only: bool = False):
     for row in units_data:
         unit = Unit(
             name=row["name"],
-            type=row["unit_type"],
+            type=row["type"],
             home=row["home"],
             location=(row["x"], row["y"]),
             strength=row["strength"],

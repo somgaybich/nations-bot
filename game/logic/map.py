@@ -183,7 +183,8 @@ def move_in_direction(current_tile: "Tile", direction: str, state: "GameState") 
     :type direction: str
     """
     last_tile = current_tile
-    new_tile: Tile = getattr(current_tile, direction)(state)
+    direction_function = globals().get(direction)
+    new_tile: Tile = direction_function(current_tile, state)
 
     return new_tile, last_tile
 
