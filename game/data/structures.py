@@ -1,7 +1,9 @@
 import logging
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+@dataclass
 class StructureType:
     """
     A specific type of structure. Encodes the requirements and behavior
@@ -26,25 +28,6 @@ class StructureType:
     """
     The internal name for this structure type.
     """
-
-    def __init__(self, usable_in: list, inf_cost: int, fname: str, name: str):
-        """
-        :param usable_in: A list of the environments required for this 
-            structure to be built. Currently implemented: arable, coastal, 
-            non-mountain, mountain, city
-        :param inf_cost: The amount of influence the builder nation will lose 
-            for building this structure.
-        :param fname: The name that will be displayed to the user.
-        :param name: The internal name for this structure type.
-        :type usable_in: list[str]
-        :type inf_cost: int
-        :type fname: str
-        :type name: str
-        """
-        self.usable_in = usable_in
-        self.inf_cost = inf_cost
-        self.fname = fname
-        self.name = name
 
 structure_types = {
     # Dummy types

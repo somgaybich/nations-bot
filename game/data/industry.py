@@ -1,14 +1,19 @@
 import logging
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 from typing import Callable, TYPE_CHECKING
 import math
 
+from game.logic.map import region_arability
+from game.logic.logistics import get_fulfillment
+
 if TYPE_CHECKING:
     from game.objs.region import Region
     from world.world import GameState
 
+@dataclass
 class IndustryType:
     """
     Defines a type of industry that can be in a region.
@@ -20,39 +25,30 @@ class IndustryType:
     production: Callable[["Region", "GameState"], tuple[str, float]]
     """
     A function that returns the resources produced by this industry. Takes
-    the parent :class:`game.region.Region` and the current game state, and 
+    the parent :class:`Region` and the current :class:`GameState`, and 
     returns a tuple where element 0 is the name of the resource produced and 
     element 1 is the amount.
     """
-    def __init__(self, cost: int, 
-                 production: Callable[[str], tuple[str, float]]):
-        """
-        Defines a type of industry that can be in a region.
-        
-        :param cost: The influence cost of establishing this industry.
-        :param production: A function that returns the resources produced by 
-            this industry. Takes the parent :class:`game.region.Region` and the
-            current game state, and returns a tuple where element 0 is the name 
-            of the resource produced and element 1 is the amount.
-        :type cost: int
-        :type production: Callable[[str], tuple[str, float]]
-        """
-        self.cost = cost
-        self.production = production
 
-def subsistence_production(region: "Region") -> tuple[str, float]:
+def subsistence_production(
+        region: "Region", 
+        state: "GameState"
+    ) -> tuple[str, float]:
     """
     Returns food equal to the sum of the arabilities of the region's tiles,
     see :class:`world.map.Tile.arability`. 
     """
-    production = region.arability() / math.sqrt(region.population)
+    production = region_arability(region, state) / math.sqrt(region.population)
     if "textile" in region.industries:
         production *= 0.4
     return ("food", production)
 
-def farming_production(region: "Region") -> tuple[str, float]:
+def farming_production(
+        region: "Region", 
+        state: "GameState"
+    ) -> tuple[str, float]:
     subsistence = subsistence_production(region)
-    production = region.arability() * subsistence
+    production = region_arability(region, state) * subsistence
     return ("food", production)
 
 def mines_production(
@@ -83,8 +79,8 @@ def steel_production(
         state: "GameState"
     ) -> tuple[str, float]:
     market = state.markets[region.market]
-    iron_fill = market.fulfillment("iron")
-    coal_fill = market.fulfillment("coal")
+    iron_fill = get_fulfillment(market, "iron", state)
+    coal_fill = get_fulfillment(market, "coal", state)
     limiter = min(iron_fill, coal_fill)
     production = limiter * region.population
 
@@ -95,8 +91,8 @@ def machinery_production(
         state: "GameState"
     ) -> tuple[str, float]:
     market = state.markets[region.market]
-    iron_fill = market.fulfillment("iron")
-    copper_fill = market.fulfillment("copper")
+    iron_fill = get_fulfillment(market, "iron", state)
+    copper_fill = get_fulfillment(market, "copper", state)
     limiter = min(iron_fill, copper_fill)
     production = limiter * region.population
 
