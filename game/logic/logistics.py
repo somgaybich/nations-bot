@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from game.data.industry import industry_types
+from game.data.industries import industry_types
 from game.logic.map import nation_capital, neighbors, has_port
 
 from game.objs.market import Market

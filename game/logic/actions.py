@@ -12,7 +12,7 @@ from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ
 from game.objs.structure import Structure
-from game.data.industry import industry_types
+from game.data.industries import industry_types
 
 from game.logic.map import hex_distance, get_area, region_structures, has_port
 from game.data.structures import StructureType, structure_types
