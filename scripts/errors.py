@@ -54,10 +54,15 @@ class AlreadyTraining(NationsException):
 
 class MissingLuxury(NationsException):
     def __init__(self):
-        super().__init__(f"""An industry couldn't be created because the region
+        super().__init__("""An industry couldn't be created because the region
                          was missing the needed luxury.""")
         self.user_message = "That region doesn't have that luxury resource!"
 
+class TooManyIndustries(NationsException):
+    def __init__(self):
+        super().__init__("""An industry couldn't be created because the region
+                         already had its max number of industries.""")
+        self.user_message = "That region can't support any more industries!"
 
 class InvalidLocation(NationsException):
     def __init__(self, action: str, location_type: str):
