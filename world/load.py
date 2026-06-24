@@ -78,7 +78,8 @@ async def load(state: "GameState", map_only: bool = False):
             tiles=[tuple(tile) for tile in json.loads(row["tiles"])],
             industries=json.loads(row["industries"]),
             population=row["population"],
-            id=row["id"]
+            id=row["id"],
+            luxury=row["luxury"]
         )
 
         state.nations[region.owner].regions.append(region.id)

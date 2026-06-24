@@ -16,6 +16,7 @@ from game.data.industries import industry_types
 
 from game.logic.map import hex_distance, get_area, region_structures, has_port
 from game.data.structures import StructureType, structure_types
+from game.logic.growth import roll_luxuries
 
 if TYPE_CHECKING:
     from world.world import GameState
@@ -233,6 +234,8 @@ async def new_region(
     city_tile.structure = Structure(structure_type=structure_types["outpost"], 
                                     location=location, region=name, 
                                     owner=owner)
+
+    new_region.luxury = roll_luxuries(new_region, state)
 
     await nation.save()
     await new_region.save()

@@ -109,6 +109,12 @@ food_surplus_use_rate = 0.2 # % of surplus to grow into
 food_shortage_contract_rate = 0.3 # slows contractions due to food shortage
 textile_food_debuff = 0.4 # % of food produced with a textile industry
 
+### Relative to the weights of each luxury. With no bonuses, all
+### luxuries add up to a weight of 5.
+no_luxury_weight = 20
+# Bonus applies for each tile matching the environment
+luxury_env_bonus = 0.05
+
 city_types = ["outpost", "village", "town", "city", "metropolis"]
 
 backup_msg = """There was a problem processing that request! Ping @madaman and 

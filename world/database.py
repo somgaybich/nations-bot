@@ -79,7 +79,8 @@ async def init_db(file: str = "data/nations.db"):
         exp INTEGER NOT NULL,
         movement_free INTEGER NOT NULL,
         status TEXT NOT NULL,
-        owner INTEGER NOT NULL)
+        owner INTEGER NOT NULL,
+        luxury TEXT)
     """)
     logger.debug("Created units table")
 
@@ -163,9 +164,9 @@ async def save_region(region: "Region"):
             """
             INSERT INTO regions (
                 name, x, y, owner, tiles, capital, 
-                city_tier, industries, population
+                city_tier, industries, population, luxury
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)   
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)   
             """,
             (
                 region.name, 
@@ -176,7 +177,8 @@ async def save_region(region: "Region"):
                 json.dumps(region.is_capital), 
                 region.city_tier,
                 json.dumps(region.industries),
-                region.population
+                region.population,
+                region.luxury
             )
         ) as cursor:
             region.id = cursor.lastrowid

@@ -1,12 +1,38 @@
 from typing import TYPE_CHECKING
+import random
 
 from game.data.constants import (food_shortage_contract_rate, 
-                                 food_surplus_use_rate)
+                                 food_surplus_use_rate, no_luxury_weight,
+                                 luxury_env_bonus)
+from game.data.luxuries import luxury_types
 from game.logic.logistics import get_supply
 
 if TYPE_CHECKING:
     from game.objs.region import Region
     from world.world import GameState
+
+def roll_luxuries(region: "Region", state: "GameState") -> str | None:
+    """
+    Roll to generate a new rare luxury in a region. Should only be called once
+    when the region is first created. Returns the name of the luxury if one
+    spawns, otherwise None.
+    """
+    luxuries = {}
+    for luxury in luxury_types:
+        weight = 1
+        for location in region.tiles:
+            tile = state.tiles[location]
+            biome = tile.terrain.biome
+            if biome in luxury.envs.keys:
+                weight += luxury_env_bonus * luxury.envs[biome]
+        
+        luxuries[luxury.resource] = weight
+    
+    luxuries[None] = no_luxury_weight
+    choice = random.choices(luxuries.keys(), weights=luxuries.values())
+    
+    return choice
+
 
 def growth(region: "Region", state: "GameState"):
     """

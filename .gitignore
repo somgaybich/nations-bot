@@ -3,6 +3,7 @@
 .vscode
 logs/
 data/
+!/game/data/
 test.py
 oregen.py
 map.png

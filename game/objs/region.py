@@ -51,6 +51,12 @@ class Region:
     """
     The industries in this region. See :class:`game.industry.IndustryType`
     """
+    luxury: str | None = None
+    """
+    The rare luxury available to this region, if any. Should be generated when
+    the region is created, and allows the construction of the corresponding
+    industry. 
+    """
 
     async def save(self):
         """
