@@ -113,7 +113,7 @@ textile_food_debuff = 0.4 # % of food produced with a textile industry
 ### luxuries add up to a weight of 5.
 no_luxury_weight = 20
 # Bonus applies for each tile matching the environment
-luxury_env_bonus = 0.05
+luxury_env_bonus = 0.2
 
 city_types = ["outpost", "village", "town", "city", "metropolis"]
 

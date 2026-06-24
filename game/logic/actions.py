@@ -355,7 +355,7 @@ async def new_industry(
             had=nation.econ.influence)
 
     nation.econ.influence -= industry_type.cost
-    region.industries.append(industry_name)
+    region.industries.append(industry_type)
     
     await region.save()
     await nation.save()

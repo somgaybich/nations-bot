@@ -1,5 +1,9 @@
 from dataclasses import dataclass, field
 import world.database as db
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from game.data.industries import IndustryType
 
 @dataclass
 class Region:
@@ -47,7 +51,7 @@ class Region:
     The ID of the market this region belongs to. Can occasionally be None only 
     if markets are currently being rebuilt.
     """
-    industries: list[str] = field(default_factory=list)
+    industries: list["IndustryType"] = field(default_factory=list)
     """
     The industries in this region. See :class:`game.industry.IndustryType`
     """

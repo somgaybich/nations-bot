@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 
-from game.data.industries import industry_types
 from game.logic.map import nation_capital, neighbors, has_port
 
 from game.objs.market import Market
@@ -46,8 +45,7 @@ def get_production(market: Market, item: str, state: "GameState"):
 
     for region_id in market.regions:
         region = state.regions[region_id]
-        for industry_name in region.industries:
-            industry = industry_types[industry_name]
+        for industry in region.industries:
             output = industry.production(region, state)
             if output[0] != item:
                 continue

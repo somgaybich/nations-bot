@@ -60,7 +60,8 @@ async def init_db(file: str = "data/nations.db"):
         tiles TEXT,
         capital TEXT,
         city_tier INTEGER,
-        industries TEXT)
+        industries TEXT,
+        luxury TEXT)
     """
     )
     logger.debug("Created regions table")
@@ -176,7 +177,7 @@ async def save_region(region: "Region"):
                 json.dumps(region.tiles), 
                 json.dumps(region.is_capital), 
                 region.city_tier,
-                json.dumps(region.industries),
+                json.dumps([industry.name for industry in region.industries]),
                 region.population,
                 region.luxury
             )
@@ -192,7 +193,7 @@ async def save_region(region: "Region"):
             (
                 json.dumps(region.tiles),
                 region.city_tier,
-                json.dumps(region.industries),
+                json.dumps([industry.name for industry in region.industries]),
                 region.population,
                 region.id
             )

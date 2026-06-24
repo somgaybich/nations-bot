@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import world.database as db
 
 from game.data.structures import structure_types
+from game.data.industries import industry_types
 from game.objs.unit import Unit
 from game.objs.nation import Nation
 from game.objs.region import Region
@@ -69,6 +70,8 @@ async def load(state: "GameState", map_only: bool = False):
 
     region_data = await db.load_regions_rows()
     for row in region_data:
+        raw_industries = json.loads(row["industries"])
+        industries = [industry_types[name] for name in raw_industries]
         region = Region(
             name=row["name"],
             location=(row["x"], row["y"]),
@@ -76,7 +79,7 @@ async def load(state: "GameState", map_only: bool = False):
             owner=row["owner"],
             is_capital=row["capital"],
             tiles=[tuple(tile) for tile in json.loads(row["tiles"])],
-            industries=json.loads(row["industries"]),
+            industries=industries,
             population=row["population"],
             id=row["id"],
             luxury=row["luxury"]

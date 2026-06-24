@@ -26,14 +26,16 @@ def roll_luxuries(region: "Region", state: "GameState") -> str | None:
         for location in region.tiles:
             tile = state.tiles[location]
             biome = tile.terrain.biome
-            if biome in luxury.envs.keys:
+            if biome in luxury.envs.keys():
                 weight += luxury_env_bonus * luxury.envs[biome]
         
         luxuries[luxury.resource] = weight
     
     luxuries[None] = no_luxury_weight
     logger.debug(f"Luxury weights for {region.name}: {luxuries}")
-    choice = random.choices(luxuries.keys(), weights=luxuries.values())
+    keys=list(luxuries.keys())
+    vals=list(luxuries.values())
+    choice = random.choices(keys, weights=vals)
     logger.debug(f"Chose {choice}")
 
     return choice

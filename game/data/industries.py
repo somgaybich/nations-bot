@@ -29,6 +29,11 @@ class IndustryType:
     returns a tuple where element 0 is the name of the resource produced and 
     element 1 is the amount.
     """
+    name: str
+    """
+    The name of the industry. Used in persistence, should always just be the
+    key of the type in :class:`industry_types`.
+    """
 
 def subsistence_production(
         region: "Region", 
@@ -114,66 +119,82 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
 industry_types = {
     "subsistence": IndustryType(
         cost=0,
-        production=subsistence_production
+        production=subsistence_production,
+        name="subsistence"
     ),
     "farming": IndustryType(
         cost=2,
-        production=farming_production
+        production=farming_production,
+        name="farming"
     ),
     "iron_mining": IndustryType(
         cost=3,
-        production=mines_production("iron")
+        production=mines_production("iron"),
+        name="iron_mining"
     ),
     "copper_mining": IndustryType(
         cost=3,
-        production=mines_production("copper")
+        production=mines_production("copper"),
+        name="copper_mining"
     ),
     "gold_mining": IndustryType(
         cost=3,
-        production=mines_production("gold")
+        production=mines_production("gold"),
+        name="gold_mining"
     ),
     "coal_mining": IndustryType(
         cost=3,
-        production=mines_production("coal")
+        production=mines_production("coal"),
+        name="coal_mining"
     ),
     "oil_drilling": IndustryType(
         cost=4,
-        production=mines_production("oil")
+        production=mines_production("oil"),
+        name="oil_drilling"
     ),
     "steelworks": IndustryType(
         cost=4,
-        production=steel_production
+        production=steel_production,
+        name="steelworks"
     ),
     "foundry": IndustryType(
         cost=4,
-        production=machinery_production
+        production=machinery_production,
+        name="foundry"
     ),
     "textile": IndustryType(
         cost=3,
-        production=luxuries_production("textiles")
+        production=luxuries_production("textiles"),
+        name="textiles"
     ),
     "jewelry": IndustryType(
         cost=4,
-        production=luxuries_production("jewelry")
+        production=luxuries_production("jewelry"),
+        name="jewelry"
     ),
     "spice": IndustryType(
         cost=4,
-        production=luxuries_production("spice")
+        production=luxuries_production("spice"),
+        name="spice"
     ),
     "consumer_goods": IndustryType(
         cost=4,
-        production=luxuries_production("consumer_goods")
+        production=luxuries_production("consumer_goods"),
+        name="consumer_goods"
     ),
     "horses": IndustryType(
         cost=4,
-        production=luxuries_production("horses")
+        production=luxuries_production("horses"),
+        name="horses"
     ),
     "gems": IndustryType(
         cost=4,
-        production=luxuries_production("gems")
+        production=luxuries_production("gems"),
+        name="gems"
     ),
     "glass": IndustryType(
         cost=4,
-        production=luxuries_production("glass")
+        production=luxuries_production("glass"),
+        name="glass"
     )
 }
