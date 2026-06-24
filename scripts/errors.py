@@ -52,6 +52,13 @@ class AlreadyTraining(NationsException):
                             until next season to raise another one."""
 
 
+class MissingLuxury(NationsException):
+    def __init__(self):
+        super().__init__(f"""An industry couldn't be created because the region
+                         was missing the needed luxury.""")
+        self.user_message = "That region doesn't have that luxury resource!"
+
+
 class InvalidLocation(NationsException):
     def __init__(self, action: str, location_type: str):
         super().__init__(f"{action} failed: Cannot be done '{location_type}'")

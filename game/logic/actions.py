@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 import scripts.errors as errors
 
-from game.data.constants import admin_mode
+from game.data.constants import admin_mode, luxury_industries
 from game.objs.market import Market
 from game.objs.unit import Unit
 from game.objs.nation import Nation
@@ -353,6 +353,8 @@ async def new_industry(
             action="Industry creation",
             required=industry_type.cost,
             had=nation.econ.influence)
+    if industry_name in luxury_industries and region.luxury != industry_name:
+        raise errors.MissingLuxury()
 
     nation.econ.influence -= industry_type.cost
     region.industries.append(industry_type)
