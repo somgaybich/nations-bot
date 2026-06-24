@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+import logging
 import random
 
 from game.data.constants import (food_shortage_contract_rate, 
@@ -10,6 +11,8 @@ from game.logic.logistics import get_supply
 if TYPE_CHECKING:
     from game.objs.region import Region
     from world.world import GameState
+
+logger = logging.getLogger(__name__)
 
 def roll_luxuries(region: "Region", state: "GameState") -> str | None:
     """
@@ -29,8 +32,10 @@ def roll_luxuries(region: "Region", state: "GameState") -> str | None:
         luxuries[luxury.resource] = weight
     
     luxuries[None] = no_luxury_weight
+    logger.debug(f"Luxury weights for {region.name}: {luxuries}")
     choice = random.choices(luxuries.keys(), weights=luxuries.values())
-    
+    logger.debug(f"Chose {choice}")
+
     return choice
 
 
