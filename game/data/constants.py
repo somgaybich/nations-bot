@@ -105,8 +105,12 @@ class BattleResult:
 
 battle_result = BattleResult()
 
-food_surplus_use_rate = 0.2 # % of surplus to grow into
-food_shortage_contract_rate = 0.3 # slows contractions due to food shortage
+surplus_use_rate = 0.2 # % of surplus to grow into
+contract_rate = 0.3 # slows contractions
+variety_shrink = 1 # pop/s lost when missing luxuries
+luxury_mult = 4 # increases luxury production
+steel_mult = 2
+machine_mult = 2
 textile_food_debuff = 0.4 # % of food produced with a textile industry
 
 ### Relative to the weights of each luxury. With no bonuses, all

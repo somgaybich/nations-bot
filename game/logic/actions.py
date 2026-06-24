@@ -360,11 +360,9 @@ async def new_industry(
     
     industry_count = len(region.industries)
     tier = region.city_tier
-    if industry_count >= 1 and tier < 2:
+    if industry_count >= 1 and tier < 3:
         raise errors.TooManyIndustries()
-    elif industry_count >= 2 and tier < 4:
-        raise errors.TooManyIndustries()
-    elif industry_count >= 3:
+    elif industry_count >= 2:
         raise errors.TooManyIndustries()
 
     nation.econ.influence -= industry_type.cost

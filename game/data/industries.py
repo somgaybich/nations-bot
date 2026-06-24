@@ -6,6 +6,8 @@ logger = logging.getLogger(__name__)
 from typing import Callable, TYPE_CHECKING
 import math
 
+from game.data.constants import (textile_food_debuff, luxury_mult, 
+                                 steel_mult, machine_mult)
 from game.logic.map import region_arability
 from game.logic.logistics import get_fulfillment
 
@@ -45,7 +47,7 @@ def subsistence_production(
     """
     production = region_arability(region, state) / math.sqrt(region.population)
     if "textile" in region.industries:
-        production *= 0.4
+        production *= textile_food_debuff
     return ("food", production)
 
 def farming_production(
@@ -71,6 +73,9 @@ def mines_production(
         base_production = 0
         for location in region.tiles:
             tile = state.tiles[location]
+            if tile.terrain.biome == "water":
+                # Oceans & lakes do not have ores
+                continue
             base_production += tile.terrain.ores[ore]
         
         production = base_production * region.population
@@ -87,7 +92,7 @@ def steel_production(
     iron_fill = get_fulfillment(market, "iron", state)
     coal_fill = get_fulfillment(market, "coal", state)
     limiter = min(iron_fill, coal_fill)
-    production = limiter * region.population
+    production = limiter * region.population * steel_mult
 
     return ("steel", production)
     
@@ -99,7 +104,7 @@ def machinery_production(
     iron_fill = get_fulfillment(market, "iron", state)
     copper_fill = get_fulfillment(market, "copper", state)
     limiter = min(iron_fill, copper_fill)
-    production = limiter * region.population
+    production = limiter * region.population * machine_mult
 
     return ("machinery", production)
 
@@ -112,7 +117,7 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
             region: "Region", 
             state: "GameState"
         ) -> tuple[str, float]:
-        return (luxury, region.population)
+        return (luxury, region.population * luxury_mult)
     
     return luxury_production
 
