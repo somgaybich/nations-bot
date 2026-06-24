@@ -50,6 +50,10 @@ class Nation:
     """
     The list of trade IDs that connect to this nation.
     """
+    markets: list[int] = field(default_factory=list)
+    """
+    The IDs of this nation's markets.
+    """
     color: Color = field(default_factory=Color.random)
     """
     The color this nation appears on the map.

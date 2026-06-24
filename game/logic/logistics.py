@@ -93,6 +93,10 @@ def get_fulfillment(
 
 async def build_markets(state: "GameState"):
     state.markets.clear()
+    for region in state.regions.values():
+        region.market = None
+    for nation in state.nations.values():
+        nation.markets = []
     
     for nation in state.nations.values():
         capital = nation_capital(nation, state)
@@ -114,6 +118,7 @@ async def build_markets(state: "GameState"):
                     connecting = True
 
         state.markets[capital_market.id] = capital_market
+        nation.markets.append(capital_market.id)
 
         isolated_ids = set(nation_regions) - set(capital_market.regions)
         while len(isolated_ids) != 0:
@@ -141,4 +146,5 @@ async def build_markets(state: "GameState"):
                         connecting = True
             
             state.markets[new_market.id] = new_market
+            nation.markets.append(capital_market.id)
             isolated_ids -= set(new_market.regions)
