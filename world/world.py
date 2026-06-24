@@ -53,6 +53,9 @@ class GameState:
     Maps unit names to IDs.
     """
     trades: dict[int, "Trade"] = field(default_factory=dict)
+    """
+    Provides searchable access to all trades. Keys are uniquely generated IDs.
+    """
 
 global state
 state = GameState()

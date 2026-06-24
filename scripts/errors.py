@@ -106,11 +106,8 @@ class NotEnoughInfluence(NationsException):
         self.user_message = f"""You need {required} influence to do that and 
                             only have {had}!"""
 
-class TooManyTrades(NationsException):
-    def __init__(self, trades: int, region: str):
-        super().__init__(f"""Exporting failed, {region} already has its max of 
-                         {trades} trades.""")
-        self.user_message = f"""{region} can't handle any more than the 
-                            {trades} trades it already has! Upgrade the 
-                            infrastructure level or city tier for more trade 
-                            capacity."""
+class NationsNotConnected(NationsException):
+    def __init__(self, source: str, target: str):
+        super().__init__(f"""{source} tried to make a trade route with {target}
+                         but they couldn't find a valid route""")
+        self.user_message = f"Couldn't find a valid connection to {target}"

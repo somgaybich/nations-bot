@@ -12,8 +12,10 @@ from game.objs.nation import Nation
 from game.objs.region import Region
 from game.objs.economy import Econ
 from game.objs.structure import Structure
+from game.objs.trade import Trade
 from game.data.industries import industry_types
 
+from game.logic.logistics import region_connected
 from game.logic.map import hex_distance, get_area, region_structures, has_port
 from game.data.structures import StructureType, structure_types
 from game.logic.growth import roll_luxuries
@@ -361,3 +363,46 @@ async def new_industry(
     
     await region.save()
     await nation.save()
+
+async def new_trade(
+        source: int,
+        target: int,
+        resource: str,
+        state: "GameState"
+    ):
+    """
+    Creates a new trade route between two nations that exchanges a specific
+    resource. This allows their markets to share a single pool of that
+    resource.
+
+    :param source: The NID of the nation initiating the trade.
+    :param target: The NID of the nation the source is trading with.
+    :param resource: The name of the resource being traded.
+    :param state: The current :class:`GameState`.
+    """
+
+    connectable = False
+    source_nation = state.nations[source]
+    target_nation = state.nations[target]
+    for source_region_id in source_nation.regions:
+        source_region = state.regions[source_region_id]
+        for target_region_id in target_nation.regions:
+            if region_connected(source_region, target_region_id, state):
+                connectable = True
+                break
+        if connectable:
+            break
+    
+    if not connectable:
+        raise errors.NationsNotConnected(
+            source=source_nation.name,
+            target=target_nation.name
+        )
+
+    trade = Trade(
+        nations=(source, target),
+        resource=resource
+    )
+    await trade.save()
+
+    state.trades[trade.id] = trade

@@ -1,21 +1,25 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from world.database import save_trade
 
 @dataclass
 class Trade:
     """
-    Connects two markets in terms of a certain resource. A trade agreement may
-    create multiple, as there is only one per resource.
+    Connects two nations in terms of a certain resource. A trade agreement may
+    create multiple, as there is only one resource per trade object.
     """
-    nations: tuple[str, str]
+    nations: tuple[int, int]
     """
-    The nations connected by this trade.
+    The NIDS of the nations connected by this trade.
     """
     resource: str
     """
     The name of the resource being connected. See :class:`empty_inventory` for
     valid values.
     """
-    id: int | None
+    id: int | None = field(init=False)
     """
     The object ID of this trade.
     """
+
+    async def save(self):
+        await save_trade(self)
