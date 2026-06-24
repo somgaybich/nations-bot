@@ -120,13 +120,16 @@ async def load(state: "GameState", map_only: bool = False):
 
     trades_data = await db.load_trades_rows()
     for row in trades_data:
+        nations: list[int] = json.loads(row["nations"])
         trade = Trade(
             id=row["id"],
-            nations=json.loads(row["nations"]),
+            nations=nations,
             resource=row["resoruce"]
         )
 
         state.trades[trade.id] = trade
+        for id in nations:
+            state.nations[id].trades.append(trade)
 
     await build_markets(state)
 

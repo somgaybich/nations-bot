@@ -380,7 +380,7 @@ async def new_trade(
     :param resource: The name of the resource being traded.
     :param state: The current :class:`GameState`.
     """
-
+    logger.debug(f"Making {resource} trade between {source} and {target}")
     connectable = False
     source_nation = state.nations[source]
     target_nation = state.nations[target]
@@ -406,3 +406,6 @@ async def new_trade(
     await trade.save()
 
     state.trades[trade.id] = trade
+    source_nation.trades.append(trade.id)
+    target_nation.trades.append(trade.id)
+    # A nation save isn't necessary here b/c Nation.trades is not persistent

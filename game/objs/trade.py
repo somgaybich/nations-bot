@@ -7,9 +7,9 @@ class Trade:
     Connects two nations in terms of a certain resource. A trade agreement may
     create multiple, as there is only one resource per trade object.
     """
-    nations: tuple[int, int]
+    nations: list[int]
     """
-    The NIDS of the nations connected by this trade.
+    The NIDS of the nations connected by this trade. Will always be length 2.
     """
     resource: str
     """
