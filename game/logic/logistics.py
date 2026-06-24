@@ -36,10 +36,26 @@ def region_connected(region: "Region", target: int, state: "GameState") -> bool:
     
     return False
 
-def get_production(market: Market, item: str, state: "GameState"):
+def get_production(
+        market: Market, 
+        item: str, 
+        state: "GameState",
+        exclude: list[int] = []
+    ) -> float:
     """
     Calculates the amount of an item produced by the regions in this
     market.
+
+    :param market: The market object to analyze production in.
+    :param item: The item type to find the production of.
+    :param state: The current game state.
+    :param exclude: The list of market IDs to exclude in trade-level searches.
+        This is used only in its own recursion, so if calling from
+        elsewhere, don't worry about it.
+    :type market: :class:`Market`
+    :type item: str
+    :type state: :class:`GameState`
+    :type exclude: list[int]
     """
     production = 0
 
@@ -51,13 +67,57 @@ def get_production(market: Market, item: str, state: "GameState"):
                 continue
             production += output[1]
     
+    parent_nation = state.nations[market.owner]
+    for trade_id in parent_nation.trades:
+        trade = state.trades[trade_id]
+        if trade.resource != item:
+            # Ignore irrelevant trades
+            continue
+    
+        for trade_nation_id in trade.nations:
+            if trade_nation_id == market.owner:
+                # Ignore our own ID
+                continue
+            
+            trade_nation = state.nations[trade_nation_id]
+            for trade_market_id in trade_nation.markets:
+                if trade_market_id in exclude:
+                    # Prevent an infinite loop on recursion
+                    continue
+
+                if not market_connected(market, trade_market_id, state):
+                    continue
+
+                production += get_production(
+                    market=state.markets[trade_market_id],
+                    item=item,
+                    state=state,
+                    exclude=exclude.append(market.id)
+                )
+    
     return production
 
-def get_consumption(market: Market, item: str, state: "GameState"):
+def get_consumption(
+        market: Market, 
+        item: str, 
+        state: "GameState",
+        exclude: list[int] = []
+    ) -> float:
     """
     Calculates the amount of an item that would ideally be consumed in this
     market. If the resource is in a deficit, this will not reflect actual
     change in resource volumes.
+
+    :param market: The market object to analyze consumption in.
+    :param item: The item type to get the consumption of.
+    :param state: The current game state.
+    :param exclude: The market IDs to exclude in trade-level searches. This is 
+        used only to prevent recursion, so don't worry about it if calling
+        from elsewhere.
+    :type market: :class:`Market`
+    :type item: str
+    :type state: :class:`GameState`
+    :type exclude: list[int]
     """
     consumption = 0
     
@@ -66,6 +126,34 @@ def get_consumption(market: Market, item: str, state: "GameState"):
             for region_id in market.regions:
                 region = state.regions[region_id]
                 consumption += region.population
+    
+    parent_nation = state.nations[market.owner]
+    for trade_id in parent_nation.trades:
+        trade = state.trades[trade_id]
+        if trade.resource != item:
+            # Ignore irrelevant trades
+            continue
+
+        for trade_nation_id in trade.nations:
+            if trade_nation_id == market.owner:
+                # Ignore our own ID
+                continue
+
+            trade_nation = state.nations[trade_nation_id]
+            for trade_market_id in trade_nation.markets:
+                if trade_market_id in exclude:
+                    # Prevent an infinite loop on recursion
+                    continue
+
+                if not market_connected(market, trade_market_id, state):
+                    continue
+
+                production += get_consumption(
+                    market=state.markets[trade_market_id],
+                    item=item,
+                    state=state,
+                    exclude=exclude.append(market.id)
+                )
     
     return consumption
 
