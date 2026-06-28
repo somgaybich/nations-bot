@@ -1,5 +1,6 @@
 from PIL import Image
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,15 @@ HEX_HEIGHT = 68.22
 ANCHOR_Q = -65
 ANCHOR_R = -8
 
-source_image = Image.open("assets/map.png").convert("RGBA")
+source_image = None
+map_path = Path("assets/map.png")
+if not map_path.exists():
+    map_path.parent.mkdir(parents=True, exist_ok=True)
+    map_path.write_text("")
+    logger.error("Booted with no map image. Insert an image at /assets/map.png. " \
+    "Mapping utilities will not work.")
+else:
+    source_image = Image.open(map_path).convert("RGBA")
 
 overlay_sprites = {
     "outpost": Image.open("assets/overlays/outpost.png").convert("RGBA"),
