@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 from typing import Optional, TYPE_CHECKING
+from pathlib import Path
 
 if TYPE_CHECKING:
     from game.objs.nation import Nation
@@ -31,10 +32,12 @@ async def init_db(file: str = "data/nations.db"):
         logger.warning("Tried to start database connection when there was already one initialized")
         return
     
-    if not os.path.exists(file):
-        if not os.path.exists("data/map.db"):
-            with open(file, "w") as file:
-                pass
+    file_path = Path(file)
+    map_path = Path("data/map.db")
+    if not file_path.exists():
+        if not map_path.exists():
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text("")
         else:
             shutil.copy("data/map.db", file)
     
