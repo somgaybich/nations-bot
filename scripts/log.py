@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 def log_setup(destination: str = "logs/last.log", console: bool = False):
     """
@@ -9,9 +10,9 @@ def log_setup(destination: str = "logs/last.log", console: bool = False):
     :type destination: str
     :type console: bool
     """
-    # Clears preexisting log data
-    with open(destination, 'w') as f:
-        pass
+    destination_path = Path(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    destination_path.write_text("")
 
     formatter = logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s", datefmt='%H:%M:%S')
 
