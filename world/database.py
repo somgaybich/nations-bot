@@ -32,7 +32,12 @@ async def init_db(file: str = "data/nations.db"):
         return
     
     if not os.path.exists(file):
-        shutil.copy("data/map.db", file)
+        if not os.path.exists("data/map.db"):
+            with open(file, "w") as file:
+                pass
+        else:
+            shutil.copy("data/map.db", file)
+    
     _db = await aiosqlite.connect(file)
     await _db.execute("PRAGMA foreign_keys = ON;")
     _db.row_factory = aiosqlite.Row
