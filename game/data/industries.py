@@ -97,9 +97,8 @@ def steel_production(
         region: "Region",
         state: "GameState"
     ) -> tuple[str, float]:
-    market = state.markets[region.market]
-    iron_fill = get_fulfillment(market, "iron", state)
-    coal_fill = get_fulfillment(market, "coal", state)
+    iron_fill = get_fulfillment(region.market, "iron", state)
+    coal_fill = get_fulfillment(region.market, "coal", state)
     limiter = min(iron_fill, coal_fill)
     production = limiter * region.population * steel_mult
 
@@ -109,9 +108,8 @@ def machinery_production(
         region: "Region",
         state: "GameState"
     ) -> tuple[str, float]:
-    market = state.markets[region.market]
-    iron_fill = get_fulfillment(market, "iron", state)
-    copper_fill = get_fulfillment(market, "copper", state)
+    iron_fill = get_fulfillment(region.market, "iron", state)
+    copper_fill = get_fulfillment(region.market, "copper", state)
     limiter = min(iron_fill, copper_fill)
     production = limiter * region.population * machine_mult
 

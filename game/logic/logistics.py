@@ -230,14 +230,24 @@ def get_supply(market: Market, item: str, state: "GameState") -> float:
     return (get_production(market, item, state) - get_consumption(market, item, state))
 
 def get_fulfillment(
-        market: Market, 
+        market: Market | int, 
         item: str, 
         state: "GameState"
     ) -> float:
     """
-    Calculates the fulfillment ratio of an item in this market. Returns 
+    Calculates the fulfillment ratio of an item in the target market. Returns 
     1.0 if produced > consumed, else returns produced/consumed.
+
+    :param market: The :class:`Market` object to query or its ID.
+    :param item: The name of the item to query.
+    :param state: The current :class:`GameState`.
+    :type market: Market | int
+    :type item: str
+    :type state: GameState
     """
+    if isinstance(market, int):
+        market = state.markets[market]
+
     production = get_production(market, item, state)
     consumption = get_consumption(market, item, state)
     if production > consumption:

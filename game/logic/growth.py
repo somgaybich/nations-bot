@@ -53,19 +53,18 @@ def region_satisfaction(region: "Region", state: "GameState"):
     """
     Returns a float value of how well supplied the region is.
     """
-    market = state.markets[region.market]
     satisfaction = 1
 
-    satisfaction *= get_fulfillment(market, "food", state)
+    satisfaction *= get_fulfillment(region.market, "food", state)
     if region.city_tier < 1:
         return satisfaction
     
-    satisfaction *= get_fulfillment(market, "steel", state)
+    satisfaction *= get_fulfillment(region.market, "steel", state)
     if region.city_tier < 2:
         return satisfaction
     
-    coal_ful = get_fulfillment(market, "coal", state)
-    oil_ful = get_fulfillment(market, "oil", state)
+    coal_ful = get_fulfillment(region.market, "coal", state)
+    oil_ful = get_fulfillment(region.market, "oil", state)
     satisfaction *= max(coal_ful, oil_ful)
 
     if region.city_tier < 3:
