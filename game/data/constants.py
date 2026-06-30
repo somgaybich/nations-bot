@@ -107,7 +107,6 @@ battle_result = BattleResult()
 
 surplus_use_rate = 0.2 # % of surplus to grow into
 contract_rate = 0.3 # slows contractions
-variety_shrink = 1 # pop/s lost when missing luxuries
 luxury_mult = 4 # increases luxury production
 steel_mult = 2
 machine_mult = 2
