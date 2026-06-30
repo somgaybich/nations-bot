@@ -6,7 +6,7 @@ from game.data.constants import (contract_rate,
                                  surplus_use_rate, no_luxury_weight,
                                  luxury_env_bonus, luxury_industries)
 from game.data.luxuries import luxury_types
-from game.logic.logistics import get_supply
+from game.logic.logistics import get_supply, get_fulfillment
 
 if TYPE_CHECKING:
     from game.objs.region import Region
@@ -48,6 +48,31 @@ def luxury_count(region: "Region", state: "GameState"):
             continue
         count += 1
     return count
+
+def region_satisfaction(region: "Region", state: "GameState"):
+    """
+    Returns a float value of how well supplied the region is.
+    """
+    market = state.markets[region.market]
+    satisfaction = 1
+
+    satisfaction *= get_fulfillment(market, "food", state)
+    if region.city_tier < 1:
+        return satisfaction
+    
+    satisfaction *= get_fulfillment(market, "steel", state)
+    if region.city_tier < 2:
+        return satisfaction
+    
+    coal_ful = get_fulfillment(market, "coal", state)
+    oil_ful = get_fulfillment(market, "oil", state)
+    satisfaction *= max(coal_ful, oil_ful)
+
+    if region.city_tier < 3:
+        return satisfaction
+    
+    luxury_variety = luxury_count(region, state)
+    satisfaction *= (region.city_tier - 3) / luxury_variety
 
 def growth_rate(available, regions):
     """
