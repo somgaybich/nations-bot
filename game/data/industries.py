@@ -15,6 +15,9 @@ if TYPE_CHECKING:
     from game.objs.region import Region
     from world.world import GameState
 
+def null_check(region: "Region"):
+    return True
+
 @dataclass
 class IndustryType:
     """
@@ -35,6 +38,12 @@ class IndustryType:
     """
     The name of the industry. Used in persistence, should always just be the
     key of the type in :class:`industry_types`.
+    """
+    check: Callable[["Region"], bool] = null_check
+    """
+    A check to execute on the parent region before an industry can be created.
+    If it returns False, the industry will fail to be built. If left blank,
+    will always return True.
     """
 
 def subsistence_production(
@@ -120,6 +129,12 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
         return (luxury, region.population * luxury_mult)
     
     return luxury_production
+
+def consumer_goods_check(region: "Region"):
+    if region.city_tier < 3:
+        return False
+    else:
+        return True
 
 industry_types = {
     "subsistence": IndustryType(
