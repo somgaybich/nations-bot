@@ -113,6 +113,9 @@ steel_mult = 2
 machine_mult = 2
 textile_food_debuff = 0.4 # % of food produced with a textile industry
 
+# %production bonus at 100% machinery fulfillment
+industry_machinery_buff = 0.5
+
 ### Relative to the weights of each luxury. With no bonuses, all
 ### luxuries add up to a weight of 5.
 no_luxury_weight = 20

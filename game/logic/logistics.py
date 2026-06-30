@@ -185,8 +185,7 @@ def get_consumption(
         consumption += max(steel_for_growth, steel_supply)
 
     elif item == "machinery":
-        # All machinery is consumed for efficiency buffs
-        consumption += get_production(market, item, state)
+        consumption += market_population(market, state)
     
     else:
         # All other resources are luxuries

@@ -7,7 +7,8 @@ from typing import Callable, TYPE_CHECKING
 import math
 
 from game.data.constants import (textile_food_debuff, luxury_mult, 
-                                 steel_mult, machine_mult)
+                                 steel_mult, machine_mult, 
+                                 industry_machinery_buff)
 from game.logic.map import region_arability
 from game.logic.logistics import get_fulfillment
 
@@ -57,6 +58,12 @@ def subsistence_production(
     production = region_arability(region, state) / math.sqrt(region.population)
     if "textile" in region.industries:
         production *= textile_food_debuff
+    
+    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
+    if machinery_fulfillment > 0:
+        bonus = production * machinery_fulfillment * industry_machinery_buff
+        production += bonus
+
     return ("food", production)
 
 def farming_production(
@@ -89,6 +96,11 @@ def mines_production(
         
         production = base_production * region.population
 
+        machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
+        if machinery_fulfillment > 0:
+            bonus = production * machinery_fulfillment * industry_machinery_buff
+            production += bonus
+
         return (ore, production)
 
     return mine_production
@@ -102,6 +114,11 @@ def steel_production(
     limiter = min(iron_fill, coal_fill)
     production = limiter * region.population * steel_mult
 
+    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
+    if machinery_fulfillment > 0:
+        bonus = production * machinery_fulfillment * industry_machinery_buff
+        production += bonus
+
     return ("steel", production)
     
 def machinery_production(
@@ -112,6 +129,11 @@ def machinery_production(
     copper_fill = get_fulfillment(region.market, "copper", state)
     limiter = min(iron_fill, copper_fill)
     production = limiter * region.population * machine_mult
+
+    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
+    if machinery_fulfillment > 0:
+        bonus = production * machinery_fulfillment * industry_machinery_buff
+        production += bonus
 
     return ("machinery", production)
 
@@ -124,8 +146,19 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
             region: "Region", 
             state: "GameState"
         ) -> tuple[str, float]:
-        return (luxury, region.population * luxury_mult)
-    
+        production = region.population * luxury_mult
+        
+        machinery_fulfillment = get_fulfillment(
+            region.market, 
+            "machinery", 
+            state
+        )
+        bonus = production * machinery_fulfillment * industry_machinery_buff
+        if machinery_fulfillment > 0:
+            production += bonus
+
+        return (luxury)
+
     return luxury_production
 
 def consumer_goods_check(region: "Region"):
