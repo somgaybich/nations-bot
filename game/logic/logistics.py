@@ -9,6 +9,40 @@ if TYPE_CHECKING:
     from game.objs.region import Region
     from world.world import GameState
 
+def market_population(market: Market, state: "GameState"):
+    population = 0
+    for region_id in market.regions:
+        region = state.regions[region_id]
+        population += region.population
+    return population
+
+def market_population_tier(market: Market, state: "GameState", min_tier: int):
+    """
+    Returns the population of all regions in a market that are greater than or
+    equal to the given minimum tier.
+    """
+    population = 0
+    for region_id in market.regions:
+        region = state.regions[region_id]
+        if not region.city_tier >= min_tier:
+            continue
+        population += region.population
+    return population
+
+def industry_population(market: Market, state: "GameState", industry: str):
+    """
+    The sum of populations for each region in the target market that has an
+    industry matching the given name. When industries double up, populations
+    count double.
+    """
+    population = 0
+    for region_id in market.regions:
+        region = state.regions[region_id]
+        for region_industry in region.industries:
+            if region_industry.name == industry:
+                population += region.population
+    return population
+
 def market_connected(market: Market, target: int, state: "GameState") -> bool:
     """
     Determines if this market is connected to a region by its ID.
@@ -122,11 +156,41 @@ def get_consumption(
     """
     consumption = 0
     
-    match item:
-        case "food":
-            for region_id in market.regions:
-                region = state.regions[region_id]
-                consumption += region.population
+    if item == "food":
+        consumption += market_population(market, state)
+
+    elif item == "iron":
+        consumption += industry_population(market, state, "foundry")
+        consumption += industry_population(market, state, "steelworks")
+    elif item == "copper":
+        consumption += industry_population(market, state, "foundry")
+
+    elif item == "coal":
+        consumption += industry_population(market, state, "steelworks")
+
+        energy_consumption = market_population_tier(market, state, 2)
+        oil_supply = get_production(market, "oil", state)
+        consumption += max(0, energy_consumption - oil_supply)
+    elif item == "oil":
+        energy_consumption = market_population_tier(market, state, 2)
+        coal_for_steel = industry_population(market, state, "steelworks")
+        coal_supply = get_production(market, "coal", state)
+        coal_available = coal_supply - coal_for_steel
+        consumption += max(0, energy_consumption - coal_available)
+            
+    elif item == "steel":
+        steel_supply = get_production(market, "steel", state)
+        steel_for_growth = market_population_tier(market, state, 1)
+        
+        consumption += max(steel_for_growth, steel_supply)
+
+    elif item == "machinery":
+        # All machinery is consumed for efficiency buffs
+        consumption += get_production(market, item, state)
+    
+    else:
+        # All other resources are luxuries
+        consumption += market_population_tier(market, state, 3)
     
     parent_nation = state.nations[market.owner]
     for trade_id in parent_nation.trades:
