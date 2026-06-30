@@ -47,6 +47,16 @@ class IndustryType:
     will always return True.
     """
 
+def machinery_bonus(region: "Region", state: "GameState", production: float):
+    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
+    bonus = production * machinery_fulfillment * industry_machinery_buff
+    return max(0, bonus)
+
+def steel_bonus(region: "Region", state: "GameState", production: float):
+    steel_fulfillment = get_fulfillment(region.market, "steel", state)
+    bonus = production * steel_fulfillment * industry_steel_buff
+    return max(0, bonus)
+
 def subsistence_production(
         region: "Region", 
         state: "GameState"
@@ -59,15 +69,8 @@ def subsistence_production(
     if "textile" in region.industries:
         production *= textile_food_debuff
     
-    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
-    if machinery_fulfillment > 0:
-        bonus = production * machinery_fulfillment * industry_machinery_buff
-        production += bonus
-
-    steel_fulfillment = get_fulfillment(region.market, "steel", state)
-    if steel_fulfillment > 0:
-        bonus = production * steel_fulfillment * industry_steel_buff
-        production += bonus
+    production += machinery_bonus(region, state, production)
+    production += steel_bonus(region, state, production)
 
     return ("food", production)
 
@@ -101,15 +104,8 @@ def mines_production(
         
         production = base_production * region.population
 
-        machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
-        if machinery_fulfillment > 0:
-            bonus = production * machinery_fulfillment * industry_machinery_buff
-            production += bonus
-
-        steel_fulfillment = get_fulfillment(region.market, "steel", state)
-        if steel_fulfillment > 0:
-            bonus = production * steel_fulfillment * industry_steel_buff
-            production += bonus
+        production += machinery_bonus(region, state, production)
+        production += steel_bonus(region, state, production)
 
         return (ore, production)
 
@@ -124,15 +120,8 @@ def steel_production(
     limiter = min(iron_fill, coal_fill)
     production = limiter * region.population * steel_mult
 
-    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
-    if machinery_fulfillment > 0:
-        bonus = production * machinery_fulfillment * industry_machinery_buff
-        production += bonus
-
-    steel_fulfillment = get_fulfillment(region.market, "steel", state)
-    if steel_fulfillment > 0:
-        bonus = production * steel_fulfillment * industry_steel_buff
-        production += bonus
+    production += machinery_bonus(region, state, production)
+    production += steel_bonus(region, state, production)
 
     return ("steel", production)
     
@@ -145,15 +134,8 @@ def machinery_production(
     limiter = min(iron_fill, copper_fill)
     production = limiter * region.population * machine_mult
 
-    machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
-    if machinery_fulfillment > 0:
-        bonus = production * machinery_fulfillment * industry_machinery_buff
-        production += bonus
-
-    steel_fulfillment = get_fulfillment(region.market, "steel", state)
-    if steel_fulfillment > 0:
-        bonus = production * steel_fulfillment * industry_steel_buff
-        production += bonus
+    production += machinery_bonus(region, state, production)
+    production += steel_bonus(region, state, production)
 
     return ("machinery", production)
 
@@ -168,19 +150,8 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
         ) -> tuple[str, float]:
         production = region.population * luxury_mult
         
-        machinery_fulfillment = get_fulfillment(
-            region.market, 
-            "machinery", 
-            state
-        )
-        bonus = production * machinery_fulfillment * industry_machinery_buff
-        if machinery_fulfillment > 0:
-            production += bonus
-
-        steel_fulfillment = get_fulfillment(region.market, "steel", state)
-        if steel_fulfillment > 0:
-            bonus = production * steel_fulfillment * industry_steel_buff
-            production += bonus
+        production += machinery_bonus(region, state, production)
+        production += steel_bonus(region, state, production)
 
         return (luxury, production)
 
