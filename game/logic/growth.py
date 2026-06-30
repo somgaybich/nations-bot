@@ -85,7 +85,6 @@ def growth_rate(available, regions):
         return rate * contract_rate, True
     return rate, True
 
-
 def growth(region: "Region", state: "GameState"):
     """
     Returns the amount the population of the target region will grow according
