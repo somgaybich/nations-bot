@@ -82,7 +82,8 @@ async def load(state: "GameState", map_only: bool = False):
             industries=industries,
             population=row["population"],
             id=row["id"],
-            luxury=row["luxury"]
+            luxury=row["luxury"],
+            stability=row["stability"]
         )
 
         state.nations[region.owner].regions.append(region.id)

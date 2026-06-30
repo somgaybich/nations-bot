@@ -42,6 +42,12 @@ class Region:
     surplus of needed resources. Not an actual population count, can be thought
     of as "the amount of people that consume x units of food."
     """
+    stability: float = 1.0
+    """
+    A measure of how stable leadership in this region is. The more time the
+    region spends undersupplied, the lower it will get. Low-stability regions
+    have a chance to start revolts.
+    """
     is_capital: bool = False
     """
     Whether this region is the capital of its nation.
