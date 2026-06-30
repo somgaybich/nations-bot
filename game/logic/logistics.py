@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from game.data.constants import luxury_industries
 from game.logic.map import nation_capital, neighbors, has_port
+from game.logic.combat import at_war
 
 from game.objs.market import Market
 
@@ -265,7 +266,8 @@ async def build_markets(state: "GameState"):
             connecting = False
             for region_id in nation_regions:
                 if (market_connected(capital_market, region_id, state) 
-                    and region_id not in capital_market.regions):
+                    and region_id not in capital_market.regions
+                    and not at_war(region, state)):
                     capital_market.regions.append(region_id)
                     state.regions[region_id].market = capital_market.name
                     connecting = True
@@ -293,7 +295,8 @@ async def build_markets(state: "GameState"):
                 connecting = False
                 for region_id in isolated_ids:
                     if (market_connected(new_market, region_id, state) 
-                        and region_id not in new_market.regions):
+                        and region_id not in new_market.regions
+                        and not at_war(region, state)):
                         new_market.regions.append(region_id)
                         state.regions[region_id].market = new_market.name
                         connecting = True
