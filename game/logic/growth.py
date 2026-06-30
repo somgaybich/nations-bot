@@ -40,51 +40,63 @@ def roll_luxuries(region: "Region", state: "GameState") -> str | None:
 
     return choice
 
+def luxury_count(region: "Region", state: "GameState"):
+    market = state.markets[region.market]
+    count = 0
+    for luxury in luxury_industries:
+        if get_supply(market, luxury, state) <= 0:
+            continue
+        count += 1
+    return count
+
+def growth_rate(available, regions):
+    """
+    A helper function for growth() that calculates a rate and whether to finish
+    checking resources.
+    """
+    rate = available / regions * surplus_use_rate
+
+    if rate < 0:
+        return rate * contract_rate, True
+    return rate, True
+
+
 def growth(region: "Region", state: "GameState"):
     """
     Returns the amount the population of the target region will grow according
     to the current supplies in the market.
     """
     market = state.markets[region.market]
-    regions = len(market.regions)
-    available_food = get_supply(market, "food", state)
+    regions = market.regions
     # We'll use some % of our surplus
-    food_growth_rate = available_food / regions * surplus_use_rate
-    if food_growth_rate < 0:
-        # If we have a shortage, we should shrink slower
-        return food_growth_rate * contract_rate
-
-    if region.city_tier < 1:
+    food_growth_rate, done = growth_rate(
+        available=get_supply(market, "food", state), 
+        regions=regions
+    )
+    if region.city_tier < 1 or done:
         return food_growth_rate
 
-    available_steel = get_supply(market, "steel", state)
-    steel_growth_rate = available_steel / regions * surplus_use_rate
-    if steel_growth_rate < 0:
-        return steel_growth_rate * contract_rate
-    
-    if region.city_tier < 2:
+    steel_growth_rate, done = growth_rate(
+        available=get_supply(market, "steel", state),
+        regions=regions
+    )
+    if region.city_tier < 2 or done:
         return min(food_growth_rate, steel_growth_rate)
 
-    available_coal = get_supply(market, "coal", state)
-    available_oil = get_supply(market, "oil", state)
-    available_energy = available_coal + available_oil
-    energy_growth_rate = available_energy / regions * surplus_use_rate
-    if energy_growth_rate < 0:
-        return energy_growth_rate * contract_rate
+    energy_growth_rate, done = growth_rate(
+        available=get_supply(market, "coal", state) 
+                  + get_supply(market, "oil", state),
+        regions=regions
+    )
     
     true_growth_rate = min(
         food_growth_rate, energy_growth_rate, steel_growth_rate
     )
-    if region.city_tier < 3:
+    if region.city_tier < 3 or done:
         return true_growth_rate
 
-    luxury_count = 0
-    for luxury in luxury_industries:
-        if get_supply(market, luxury, state) <= 0:
-            continue
-        luxury_count += 1
-    
-    if luxury_count <= region.city_tier - 3:
+    luxury_variety = luxury_count(region, state)
+    if luxury_variety <= region.city_tier - 3:
         # There's not enough variety of luxuries for this region to grow
         return 0
     
