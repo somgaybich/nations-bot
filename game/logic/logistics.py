@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 
-from game.data.constants import luxury_industries
 from game.logic.map import nation_capital, neighbors, has_port
 from game.logic.combat import at_war
 
