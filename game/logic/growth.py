@@ -9,7 +9,6 @@ from game.data.luxuries import luxury_types
 from game.logic.logistics import get_supply
 
 if TYPE_CHECKING:
-    from game.objs.market import Market
     from game.objs.region import Region
     from world.world import GameState
 
