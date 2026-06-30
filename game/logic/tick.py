@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from game.data.constants import update_season
 
 from game.logic.influence import calculate_cap
+from game.logic.growth import growth, calculate_tier
 
 if TYPE_CHECKING:
     from world.world import GameState
@@ -15,19 +16,14 @@ async def tick(state: "GameState"):
     Processes a tick of the game system.
     """
     logger.info("Processing game tick...")
-    
-    # Resource distribution pass
-    for market in state.markets.values():
-        logger.debug(f"Processing distribution tick for {market.name}")
-        # Do distribution stuff :P
 
     # Region pass
     for region in state.regions.values():
         logger.debug(f"Processing region tick for {region.name}")
         
-        region.population += region.growth()
+        region.population += growth(region)
         
-        region.city_tier = region.calculate_tier()
+        region.city_tier = calculate_tier(region)
         await region.save()
 
     # Nation pass
