@@ -365,6 +365,9 @@ async def new_industry(
     elif industry_count >= 2:
         raise errors.TooManyIndustries()
 
+    if not industry_type.check(region):
+        raise errors.IndustryCheckFailed()
+
     nation.econ.influence -= industry_type.cost
     region.industries.append(industry_type)
     

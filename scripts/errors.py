@@ -52,6 +52,11 @@ class AlreadyTraining(NationsException):
                             until next season to raise another one."""
 
 
+class IndustryCheckFailed(NationsException):
+    def __init__(self):
+        super().__init__("A city failed a check in order to.")
+        self.user_message = "That industry can't be made in that region."
+
 class MissingLuxury(NationsException):
     def __init__(self):
         super().__init__("""An industry couldn't be created because the region

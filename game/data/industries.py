@@ -200,7 +200,8 @@ industry_types = {
     "consumer_goods": IndustryType(
         cost=4,
         production=luxuries_production("consumer_goods"),
-        name="consumer_goods"
+        name="consumer_goods",
+        check=consumer_goods_check
     ),
     "horses": IndustryType(
         cost=4,
