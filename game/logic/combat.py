@@ -9,8 +9,22 @@ import scripts.errors as errors
 
 if TYPE_CHECKING:
     from world.world import GameState
+    from game.objs.region import Region
     from game.objs.unit import Unit
     from game.objs.tile import Tile
+
+def at_war(region: "Region", state: "GameState"):
+    """
+    Returns True if there is a hostile unit in the area around the region's
+    capital.
+    """
+    capital = state.tiles[region.location]
+    sensitive_tiles = get_area(capital, state)
+    for unit in state.units.values():
+        if unit.location in sensitive_tiles:
+            return True
+    
+    return False
 
 def unit_effectiveness(
         unit: "Unit", 
