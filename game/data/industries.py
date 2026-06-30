@@ -8,7 +8,7 @@ import math
 
 from game.data.constants import (textile_food_debuff, luxury_mult, 
                                  steel_mult, machine_mult, 
-                                 industry_machinery_buff)
+                                 industry_machinery_buff, industry_steel_buff)
 from game.logic.map import region_arability
 from game.logic.logistics import get_fulfillment
 
@@ -64,6 +64,11 @@ def subsistence_production(
         bonus = production * machinery_fulfillment * industry_machinery_buff
         production += bonus
 
+    steel_fulfillment = get_fulfillment(region.market, "steel", state)
+    if steel_fulfillment > 0:
+        bonus = production * steel_fulfillment * industry_steel_buff
+        production += bonus
+
     return ("food", production)
 
 def farming_production(
@@ -101,6 +106,11 @@ def mines_production(
             bonus = production * machinery_fulfillment * industry_machinery_buff
             production += bonus
 
+        steel_fulfillment = get_fulfillment(region.market, "steel", state)
+        if steel_fulfillment > 0:
+            bonus = production * steel_fulfillment * industry_steel_buff
+            production += bonus
+
         return (ore, production)
 
     return mine_production
@@ -119,6 +129,11 @@ def steel_production(
         bonus = production * machinery_fulfillment * industry_machinery_buff
         production += bonus
 
+    steel_fulfillment = get_fulfillment(region.market, "steel", state)
+    if steel_fulfillment > 0:
+        bonus = production * steel_fulfillment * industry_steel_buff
+        production += bonus
+
     return ("steel", production)
     
 def machinery_production(
@@ -133,6 +148,11 @@ def machinery_production(
     machinery_fulfillment = get_fulfillment(region.market, "machinery", state)
     if machinery_fulfillment > 0:
         bonus = production * machinery_fulfillment * industry_machinery_buff
+        production += bonus
+
+    steel_fulfillment = get_fulfillment(region.market, "steel", state)
+    if steel_fulfillment > 0:
+        bonus = production * steel_fulfillment * industry_steel_buff
         production += bonus
 
     return ("machinery", production)
@@ -157,7 +177,12 @@ def luxuries_production(luxury: str) -> Callable[[str], tuple[str, float]]:
         if machinery_fulfillment > 0:
             production += bonus
 
-        return (luxury)
+        steel_fulfillment = get_fulfillment(region.market, "steel", state)
+        if steel_fulfillment > 0:
+            bonus = production * steel_fulfillment * industry_steel_buff
+            production += bonus
+
+        return (luxury, production)
 
     return luxury_production
 
