@@ -37,3 +37,4 @@ if __name__ == "__main__":
     finally:
         logger.critical("Shutting down.")
         asyncio.run(get_db().commit())
+        asyncio.run(get_db().close())
