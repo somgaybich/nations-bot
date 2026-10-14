@@ -1,15 +1,27 @@
 import logging
 from typing import TYPE_CHECKING
 
-from game.data.constants import update_season
+from game.data.constants import (update_season, stability_loss_factor, 
+                                 satisfaction_loss_exponent, 
+                                 satisfaction_gain_exponent,
+                                 stability_gain_factor)
 
 from game.logic.influence import calculate_cap
-from game.logic.growth import growth, calculate_tier
+from game.logic.growth import growth, calculate_tier, region_satisfaction
 
 if TYPE_CHECKING:
     from world.world import GameState
+    from game.objs.region import Region
 
 logger = logging.getLogger(__name__)
+
+def reduce_stability(region: "Region", satisfaction: float):
+    satisfaction_deficit = 1 - (satisfaction ** satisfaction_loss_exponent)
+    region.stability -= satisfaction_deficit * stability_loss_factor
+
+def increase_stability(region: "Region", satisfaction: float):
+    true_satisfaction = satisfaction ** satisfaction_gain_exponent
+    region.stability += true_satisfaction * stability_gain_factor
 
 async def tick(state: "GameState"):
     """
@@ -23,6 +35,10 @@ async def tick(state: "GameState"):
         
         region.population += growth(region)
         
+        satisfaction = region_satisfaction(region, state)
+        if satisfaction < 0.8:
+            reduce_stability(region, satisfaction)
+
         region.city_tier = calculate_tier(region)
         await region.save()
 

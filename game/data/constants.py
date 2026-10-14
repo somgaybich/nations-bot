@@ -112,6 +112,13 @@ steel_mult = 2
 machine_mult = 2
 textile_food_debuff = 0.4 # % of food produced with a textile industry
 
+# %stability change at 0/1 satisfaction
+stability_loss_factor = 0.4
+stability_gain_factor = 0.3
+# Smooth stability changes (lower = more lenient on satisfaction)
+satisfaction_loss_exponent = 0.25 # < 1
+satisfaction_gain_exponent = 13 # > 1
+
 # %production bonus at 100% fulfillment
 industry_machinery_buff = 0.5
 industry_steel_buff = 0.8
